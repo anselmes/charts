@@ -1,0 +1,24 @@
+---
+{{- if .Values.policy.enabled }}
+apiVersion: rabbitmq.com/v1beta1
+kind: Policy
+metadata:
+  name: {{ include "rabbitmq-cluster.fullname" . }}-policy
+  namespace:  {{ .Release.Namespace }}
+  labels:
+    {{- include "rabbitmq-cluster.labels" . | nindent 4 }}
+  annotations:
+    {{- if .Values.podAnnotations }}
+    {{- toYaml .Values.podAnnotations | nindent 4 }}
+    {{- end }}
+spec:
+  name: transient # name of the policy
+  vhost: {{ .Values.policy.vhost | quote }} # defaults to / if not specified
+  pattern: {{ .Values.policy.pattern | quote }} # regex used to match queues and exchanges
+  applyTo: {{ .Values.policy.applyTo | quote }} # set to all, queues, or exchanges
+  rabbitmqClusterReference:
+    name: {{ include "rabbitmq-cluster.fullname" . }} # name of the RabbitmqCluster resource
+  definition:
+    ha-mode: all
+    ha-sync-mode: automatic
+{{- end }}

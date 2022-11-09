@@ -1,0 +1,60 @@
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: {{ include "rabbitmq-cluster.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rabbitmq-cluster.labels" . | nindent 4 }}
+  annotations:
+    {{- if .Values.podAnnotations }}
+    {{- toYaml .Values.podAnnotations | nindent 4 }}
+    {{- end }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  {{- if .Values.affinity }}
+  affinity:
+  {{- toYaml .Values.affinity | nindent 4 }}
+  {{- end }}
+  {{- if .Values.tolerations }}
+  tolerations:
+  {{- toYaml .Values.tolerations | nindent 4 }}
+  {{- end }}
+  {{- if .Values.resources }}
+  resources:
+  {{- toYaml .Values.resources | nindent 4 }}
+  {{- end }}
+  rabbitmq:
+    additionalConfig: |
+      {{ .Values.additionalConfig | nindent 6 }}
+    additionalPlugins: {{ .Values.additionalPlugins }}
+    baseImage: {{ .Values.image.repository }}
+    image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+    statefulSet:
+      podManagementPolicy: Parallel
+      updateStrategy:
+        type: RollingUpdate
+  {{- if .Values.tls.enabled }}
+  tls:
+    secretName: {{ include "rabbitmq-cluster.fullname" . }}-tls
+  {{- end }}
+  service:
+    type: {{ .Values.service.type }}
+  {{- if .Values.persistence.enabled }}
+  persistence:
+    storageClassName: {{ .Values.persistence.storageClass }}
+    storage: {{ .Values.persistence.size }}
+  {{- end }}
+  {{- if .Values.securityContext }}
+  override:
+    statefulSet:
+      spec:
+        template:
+          spec:
+            securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+            initContainers:
+            - name: setup-container
+              securityContext:
+              {{- toYaml .Values.securityContext | nindent 12 }}
+  {{- end }}

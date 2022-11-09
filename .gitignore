@@ -80,4 +80,9 @@ gen
 # Project Builder files
 bin/
 
+.*.swp
 *.env
+*.tgz
+
+Chart.lock
+requirements.lock

@@ -1,0 +1,6 @@
+dependencies:
+- name: cert-manager
+  repository: https://anselmes.jfrog.io/artifactory/api/helm/pkg-helm-virtual
+  version: v1.10.0
+digest: sha256:e8eda2fc22481db63ce2cd3e490e6917fc7e037d3e5344ae61c0bff1d279cc99
+generated: "2022-10-30T23:26:24.889894-04:00"

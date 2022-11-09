@@ -1,0 +1,89 @@
+# Default values for rabbitmq-cluster.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 3
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: anselmes.jfrog.io/pkg-docker-virtual/rabbitmq
+  pullPolicy: IfNotPresent
+  tag: "3.8.9-management"
+
+podAnnotations: {}
+
+securityContext: {}
+# capabilities:
+#   drop:
+#   - ALL
+# readOnlyRootFilesystem: true
+# runAsNonRoot: true
+# runAsUser: 1000
+
+service:
+  type: ClusterIP
+
+persistence:
+  enabled: false
+  # storageClass: "general"
+  size: 50Gi
+
+tls:
+  enabled: false
+
+additionalPlugins: ""
+# additionalPlugins: |
+#   rabbitmq_peer_discovery_k8s
+
+additionalConfig: ""
+# additionalConfig: |
+#   cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+#   cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+#   cluster_formation.k8s.address_type = hostname
+#   cluster_formation.node_cleanup.only_log_warning = true
+#   cluster_partition_handling = autoheal
+#   queue_master_locator = min-masters
+#   disk_free_limit.relative = 0.5
+#   log.file.level = debug
+#   log.console.level = debug
+
+policy:
+  enabled: false
+  vhost: / # defaults to / if not specified
+  pattern: "" # regex used to match queues and exchanges
+  applyTo: all # set to all, queues, or exchanges
+  rabbitmqClusterReference: rabbitmq-cluster # name of the RabbitmqCluster resource
+
+resources: {}
+# We usually recommend not to specify default resources and to leave this as a conscious
+# choice for the user. This also increases chances charts run on environments with little
+# resources, such as Minikube. If you do want to specify resources, uncomment the following
+# lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+# limits:
+#   cpu: 100m
+#   memory: 128Mi
+# requests:
+#   cpu: 100m
+#   memory: 128Mi
+
+affinity: {}
+# podAntiAffinity:
+#   preferredDuringSchedulingIgnoredDuringExecution:
+#   - weight: 100
+#     podAffinityTerm:
+#       labelSelector:
+#         matchExpressions:
+#           - key: app.kubernetes.io/name
+#             operator: In
+#             values:
+#             - pod-anti-affinity
+#       topologyKey: kubernetes.io/hostname
+
+tolerations: []
+# - key: "dedicated"
+#   operator: "Equal"
+#   value: "rabbitmq"
+#   effect: "NoSchedule"
