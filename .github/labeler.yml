@@ -1,0 +1,44 @@
+# Add 'repo' label to any root file changes
+repo:
+- '*'
+
+# Add 'command' label to files in cmd
+command:
+- cmd/*
+- cmd/**/*
+
+# Add 'docker' label to Dockerfile
+docker:
+- build/package/Dockerfile
+- build/package/**/Dockerfile
+
+# Add 'helm' label to helm chart
+helm:
+- deployment/chart/*
+- deployment/chart/**
+
+# Add 'docs' label to files in docs
+docs:
+- docs/*
+- */docs
+- **/docs
+
+# Add 'scripts' label to files in scripts
+scripts:
+- '*'
+
+# Add 'tooling' label to change within tools and .run
+tooling:
+- tools/*
+- tools/*/**
+- .run/*.xml
+- .run/**/*.xml
+
+# Add 'pkg' label to any change within packages
+@pkg:
+- pkg/*
+- pkg/**/*
+
+# Add 'test' label to any change to *_test.go files
+test:
+- *_test.go

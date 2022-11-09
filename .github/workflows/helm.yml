@@ -1,0 +1,73 @@
+# Copyright © 2022 Schubert Anselme <schubert@anselm.es>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+name: Helm
+
+on:
+  # push:
+  #  branches: [ "dev" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      name:
+        description: Cluster name
+        required: false
+        default: kind-helm-test
+      namespace:
+        description: Cluster namespace
+        required: false
+        default: default
+
+jobs:
+
+  helm:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Create kind cluster
+      run: |
+        # Generate kind config
+        cat <<-eof | tee /tmp/kind-config.yaml
+        kind: Cluster
+        apiVersion: kind.x-k8s.io/v1alpha4
+        name: ${{ github.event.inputs.name }}
+        nodes:
+        - role: control-plane
+        eof
+
+        # Create kind cluster
+        kind create cluster --config /tmp/kind-config.yaml
+
+    - name: Install helm chart
+      run: |
+        # Generate values file
+        cat <<-eof | tee /tmp/values.yaml
+        eof
+
+        # Install helm chart
+        helm upgrade --install ${{ github.event.inputs.name }} \
+          ./deployment/chart/<chartname> \
+          --reuse-values \
+          --namespace ${{ github.event.inputs.namespace }} \
+
+        # Verify installation
+        helm ls -n ${{ github.event.inputs.namespace }}
+
+    # TODO: delete cluster on failure
+    - name: Cleanup
+      run: |
+        kind delete cluster --name ${{ github.event.inputs.name }}
