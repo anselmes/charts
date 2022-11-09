@@ -1,0 +1,6 @@
+dependencies:
+- name: eck-operator-crds
+  repository: https://anselmes.jfrog.io/artifactory/api/helm/pkg-helm-virtual
+  version: 2.6.0
+digest: sha256:4af93b85cf773cf2493b6a84767ab34ee27f147fc2886b596dbed13418848be2
+generated: "2022-10-11T19:51:06.047581-04:00"
