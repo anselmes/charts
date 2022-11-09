@@ -1,0 +1,68 @@
+{{/*
+# Copyright (c) 2018 AT&T Intellectual Property. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+*/}}
+
+{{- if and .Values.manifests.ingress_region .Values.network.region_api.ingress.public }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: maas-region-api
+spec:
+  ingressClassName: {{ .Values.network.region_api.ingress.classes.cluster | quote }}
+  rules:
+    - host: {{ tuple "maas_region" "public" . | include "helm-toolkit.endpoints.hostname_fqdn_endpoint_lookup" }}
+      http:
+        paths:
+{{- if .Values.conf.maas.ingress_disable_gui }}
+          - path: /MAAS/api
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ tuple "maas_region" "internal" . | include "helm-toolkit.endpoints.hostname_short_endpoint_lookup" }}
+                port:
+                  name: region-api
+          - path: /MAAS/images-stream
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ tuple "maas_region" "internal" . | include "helm-toolkit.endpoints.hostname_short_endpoint_lookup" }}
+                port:
+                  name: region-api
+          - path: /MAAS/metadata
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ tuple "maas_region" "internal" . | include "helm-toolkit.endpoints.hostname_short_endpoint_lookup" }}
+                port:
+                  name: region-api
+          - path: /MAAS/rpc
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ tuple "maas_region" "internal" . | include "helm-toolkit.endpoints.hostname_short_endpoint_lookup" }}
+                port:
+                  name: region-api
+{{- else }}
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ tuple "maas_region" "internal" . | include "helm-toolkit.endpoints.hostname_short_endpoint_lookup" }}
+                port:
+                  name: region-api
+{{- end }}
+...
+{{ end }}
