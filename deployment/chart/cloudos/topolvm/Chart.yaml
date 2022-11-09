@@ -1,0 +1,14 @@
+apiVersion: v2
+appVersion: 0.15.2
+dependencies:
+  - condition: cert-manager.enabled
+    name: cert-manager
+    repository: https://anselmes.jfrog.io/artifactory/api/helm/pkg-helm-virtual
+    version: 1.10.0
+description: Topolvm
+home: https://github.com/topolvm/topolvm
+name: topolvm
+sources:
+  - https://github.com/topolvm/topolvm
+type: application
+version: 9.1.0
