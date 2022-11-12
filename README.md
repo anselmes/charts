@@ -3,7 +3,7 @@
 [![Lint Code Base](https://github.com/anselmes/charts/actions/workflows/super-linter.yml/badge.svg)](https://github.com/anselmes/charts/actions/workflows/super-linter.yml)
 [![Dependency Review](https://github.com/anselmes/charts/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/anselmes/charts/actions/workflows/dependency-review.yml)
 [![GitHub Pages](https://github.com/anselmes/charts/actions/workflows/pages.yml/badge.svg)](https://github.com/anselmes/charts/actions/workflows/pages.yml)
-[![Helm](https://github.com/anselmes/charts/actions/workflows/helm.yml/badge.svg)](https://github.com/anselmes/charts/actions/workflows/helm.yml)
+[![Helm](https://github.com/anselmes/charts/actions/workflows/helm-publish.yml/badge.svg)](https://github.com/anselmes/charts/actions/workflows/helm-publish.yml)
 
 Helm Charts
 
