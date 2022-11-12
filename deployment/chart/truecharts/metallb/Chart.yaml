@@ -9,7 +9,8 @@ keywords:
   - loadbalancer
 dependencies:
   - name: common
-    repository: https://library-charts.truecharts.org
+    repository: "file://../common"
+    # repository: https://library-charts.truecharts.org
     version: 10.9.4
 kubeVersion: ">=1.16.0-0"
 maintainers:

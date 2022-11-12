@@ -2,7 +2,8 @@ apiVersion: v2
 appVersion: "3.3.6"
 dependencies:
   - name: common
-    repository: https://library-charts.truecharts.org
+    # repository: https://library-charts.truecharts.org
+    repository: "file://../common"
     version: 10.9.4
   - condition: postgresql.enabled
     name: postgresql

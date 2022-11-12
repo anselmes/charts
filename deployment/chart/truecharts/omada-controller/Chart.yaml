@@ -2,7 +2,8 @@ apiVersion: v2
 appVersion: "5.5"
 dependencies:
   - name: common
-    repository: https://library-charts.truecharts.org
+    repository: "file://../common"
+    # repository: https://library-charts.truecharts.org
     version: 10.9.4
 description: Omada is a SDN tool for TP-Link Omada hardware
 home: https://truecharts.org/docs/charts/stable/omada-controller

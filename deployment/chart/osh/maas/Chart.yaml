@@ -24,5 +24,6 @@ maintainers:
   - name: Openstack Airship Contributors
 dependencies:
   - name: helm-toolkit
-    version: 0.2.49
-    repository: "https://anselmes.jfrog.io/artifactory/api/helm/pkg-helm-virtual"
+    version: "0.2.49"
+    repository: "file://../helm-toolkit"
+    # repository: "https://anselmes.jfrog.io/artifactory/api/helm/chart"

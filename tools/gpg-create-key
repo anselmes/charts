@@ -1,0 +1,43 @@
+#!/bin/sh
+
+# Copyright © 2022 Schubert Anselme <schubert@anselm.es>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+set -eux
+
+: ${KEY_NAME="helm"}
+: ${KEY_COMMENT="helm charts gpg key"}
+
+# generate gpg key
+gpg --batch --full-generate-key <<EOF
+%no-protection
+Key-Type: 1
+Key-Length: 4096
+Subkey-Type: 1
+Subkey-Length: 4096
+Expire-Date: 0
+Name-Comment: ${KEY_COMMENT}
+Name-Real: ${KEY_NAME}
+EOF
+
+# export gpg key
+KEY_FP=$(gpg --list-secret-keys "${KEY_NAME}" | sed '2p;d' | tr -d " ")
+
+gpg --export-secret-keys "${KEY_FP}" >sign.key
+gpg --export "${KEY_FP}" >sign.pub
+
+# remove gpg key
+gpg --delete-secret-keys "${KEY_FP}"
+gpg --delete-keys "${KEY_FP}"

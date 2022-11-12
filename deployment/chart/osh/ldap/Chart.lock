@@ -1,6 +1,0 @@
-dependencies:
-- name: helm-toolkit
-  repository: https://anselmes.jfrog.io/artifactory/api/helm/pkg-helm-virtual
-  version: 0.2.49
-digest: sha256:e03847e8c47f05dc2e6e57e47427efe3c00e4c727f59c847e789efc2e5db30c9
-generated: "2022-11-03T19:27:47.24944-04:00"
