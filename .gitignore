@@ -83,6 +83,7 @@ bin/
 .*.swp
 *.env
 *.tgz
+*.key
 
 Chart.lock
 requirements.lock
