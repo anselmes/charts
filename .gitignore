@@ -78,7 +78,8 @@ gen
 .vscode
 
 # Project Builder files
-bin/
+bin/*
+!bin/*.tpl
 
 .*.swp
 *.env

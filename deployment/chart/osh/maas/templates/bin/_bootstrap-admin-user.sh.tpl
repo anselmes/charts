@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2017 The Openstack-Helm Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,18 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: v2
-description: Chart to run Canonical MaaS
-name: maas
-version: 0.1.2
-home: https://docs.ubuntu.com/maas
-sources:
-  - https://git.launchpad.net/maas
-  - https://git.openstack.org/cgit/openstack/openstack-helm
-maintainers:
-  - name: Openstack Airship Contributors
-dependencies:
-  - name: helm-toolkit
-    version: "0.2.49"
-    repository: "file://../helm-toolkit"
-    # repository: "https://anselmes.jfrog.io/artifactory/api/helm/chart"
+set -e
+
+maas-region createadmin --username=${ADMIN_USERNAME} --password=${ADMIN_PASSWORD} --email=${ADMIN_EMAIL} || true
+
+# Change password.
+echo "${ADMIN_USERNAME}:${ADMIN_PASSWORD}" | maas-region changepasswords
