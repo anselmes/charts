@@ -26,7 +26,8 @@ on:
     branches: ["main"]
 
 env:
-  REPO_URL: https://anselmes.jfrog.io/artifactory/api/helm/chart
+  REPO_URL: https://anselmes.jfrog.io
+  REPO_BASE: chart
 
 jobs:
   chart:
@@ -80,5 +81,5 @@ jobs:
       - name: Upload Helm chart
         run: |
           for ITEM in /tmp/${{ matrix.base }}/*; do
-            jf rt upload --flat "${ITEM}" "${{ matrix.base }}/"
+            jf rt upload --flat "${ITEM}" "${{ env.REPO_BASE }}/${{ matrix.base }}/"
           done
