@@ -17,9 +17,9 @@
 
 set -eux
 
-: ${RUNNER_OS:=linux}
-: ${RUNNER_VERSION:=2.294.0}
-: ${RUNNER_HASH_256:=11041376754f6beaccb56101a3e79bf5fc5d6ff628460fa1ae419f9f439e24a2}
+: "${RUNNER_OS:="linux"}"
+: "${RUNNER_VERSION:="2.294.0"}"
+: "${RUNNER_HASH_256:="11041376754f6beaccb56101a3e79bf5fc5d6ff628460fa1ae419f9f439e24a2"}"
 
 ##
 ## Download
@@ -44,7 +44,7 @@ tar xzf ./actions-runner-${RUNNER_OS}-x64-${RUNNER_VERSION}.tar.gz
 ##
 
 # Create the runner and start the configuration experience
-./config.sh --url https://github.com/sanselme/etcd-bench --token ${GH_TOKEN}
+./config.sh --url https://github.com/sanselme/etcd-bench --token "${GH_TOKEN}"
 
 # Last step, run it!
 echo """
