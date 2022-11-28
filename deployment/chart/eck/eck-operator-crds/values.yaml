@@ -5,3 +5,12 @@ global:
   manifestGen: false
   # kubeVersion is the effective Kubernetes version we target when generating the all-in-one.yaml.
   kubeVersion: 1.21.0
+
+enable:
+  agent: false
+  beat: false
+  elasticsearch: true
+  elasticMapServer: false
+  enterpriseSearch: false
+  apmServer: false
+  kibana: true
