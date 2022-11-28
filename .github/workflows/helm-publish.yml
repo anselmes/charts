@@ -23,11 +23,11 @@ on:
     # Publish semver tags as releases.
     tags: ["v*.*.*"]
     paths:
-      - deployment/chart
+      - deployment/chart/**
   pull_request:
     branches: ["main"]
     paths:
-      - deployment/chart
+      - deployment/chart/**
 
 env:
   REPO_URL: https://anselmes.jfrog.io
