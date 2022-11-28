@@ -17,8 +17,8 @@
 
 set -eux
 
-: ${KEY_NAME="helm"}
-: ${KEY_COMMENT="helm charts gpg key"}
+: "${KEY_NAME="helm"}"
+: "${KEY_COMMENT="helm charts gpg key"}"
 
 # generate gpg key
 gpg --batch --full-generate-key <<EOF
@@ -33,7 +33,7 @@ Name-Real: ${KEY_NAME}
 EOF
 
 # export gpg key
-KEY_FP=$(gpg --list-secret-keys "${KEY_NAME}" | sed '2p;d' | tr -d " ")
+KEY_FP=$(gpg --list-secret-keys ${KEY_NAME} | sed '2p;d' | tr -d " ")
 
 gpg --export-secret-keys "${KEY_FP}" >sign.key
 gpg --export "${KEY_FP}" >sign.pub

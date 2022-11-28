@@ -8,8 +8,8 @@ set -ex
 : "${CALICO_VERSION:="v3.20"}"
 : "${YQ_VERSION:="v4.6.0"}"
 
-: ${OSH_INFRA_EXTRA_HELM_ARGS:=""}
-: ${OSH_INFRA_EXTRA_HELM_ARGS_POSTGRESQL:=""}
+: "${OSH_INFRA_EXTRA_HELM_ARGS:=""}"
+: "${OSH_INFRA_EXTRA_HELM_ARGS_POSTGRESQL:=""}"
 
 export DEBCONF_NONINTERACTIVE_SEEN=true
 export DEBIAN_FRONTEND=noninteractive
@@ -202,6 +202,6 @@ helm upgrade --install ingress-ucp ./openstack-helm-infra/ingress \
   --namespace=ucp \
   --values /tmp/ingress.yaml \
   ${OSH_INFRA_EXTRA_HELM_ARGS} \
-  ${OSH_INFRA_EXTRA_HELM_ARGS_INGRESS_OPENSTACK}
+  "${OSH_INFRA_EXTRA_HELM_ARGS_INGRESS_OPENSTACK}"
 
 ./openstack-helm-infra/tools/deployment/common/wait-for-pods.sh ucp
