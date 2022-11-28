@@ -42,8 +42,6 @@ jobs:
             base: eck
           - path: deployment/chart/osh
             base: osh
-          - path: deployment/chart/truecharts
-            base: truecharts
 
     steps:
       - uses: actions/checkout@v3
