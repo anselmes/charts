@@ -22,8 +22,12 @@ on:
     branches: ["main"]
     # Publish semver tags as releases.
     tags: ["v*.*.*"]
+    paths:
+      - deployment/chart
   pull_request:
     branches: ["main"]
+    paths:
+      - deployment/chart
 
 env:
   REPO_URL: https://anselmes.jfrog.io
