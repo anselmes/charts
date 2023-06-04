@@ -1,0 +1,702 @@
+# Copyright 2017 The Openstack-Helm Authors.
+# Copyright (c) 2018 AT&T Intellectual Property. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Default values for maas.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+dependencies:
+  static:
+    maas_ingress: {}
+    maas_syslog: {}
+    rack_controller:
+      services:
+        - service: maas_region
+          endpoint: internal
+        - service: maas_ingress
+          endpoint: monitor
+      jobs:
+        - maas-export-api-key
+    region_controller:
+      jobs:
+        - maas-db-sync
+      services:
+        - service: maas_db
+          endpoint: internal
+        - service: maas_ingress
+          endpoint: monitor
+    db_init:
+      services:
+        - service: maas_db
+          endpoint: internal
+    db_sync:
+      jobs:
+        - maas-db-init
+    bootstrap_admin_user:
+      jobs:
+        - maas-db-sync
+      services:
+        - service: maas_region
+          endpoint: internal
+        - service: maas_db
+          endpoint: internal
+        - service: maas_ingress
+          endpoint: monitor
+    import_resources:
+      jobs:
+        - maas-bootstrap-admin-user
+      services:
+        - service: maas_region
+          endpoint: internal
+        - service: maas_db
+          endpoint: internal
+        - service: maas_ingress
+          endpoint: monitor
+    export_api_key:
+      jobs:
+        - maas-bootstrap-admin-user
+      services:
+        - service: maas_region
+          endpoint: internal
+        - service: maas_db
+          endpoint: internal
+        - service: maas_ingress
+          endpoint: monitor
+
+network_policy:
+  maas:
+    ingress:
+      - {}
+    egress:
+      - {}
+
+manifests:
+  region_statefulset: true
+  rack_statefulset: true
+  syslog_statefulset: true
+  syslog_service: true
+  test_maas_api: true
+  secret_ssh_key: false
+  ingress_region: true
+  configmap_ingress: true
+  maas_ingress: true
+  network_policy: false
+
+images:
+  tags:
+    db_init: docker.io/postgres:9.5
+    db_sync: quay.io/airshipit/maas-region-controller:latest
+    maas_rack: quay.io/airshipit/maas-rack-controller:latest
+    maas_region: quay.io/airshipit/maas-region-controller:latest
+    bootstrap: quay.io/airshipit/maas-region-controller:latest
+    export_api_key: quay.io/airshipit/maas-region-controller:latest
+    maas_cache: quay.io/airshipit/sstream-cache:latest
+    dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.3.1
+    ingress: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.26.1
+    ingress_vip: docker.io/busybox:latest
+    error_pages: gcr.io/google_containers/ingress-gce-404-server-with-metrics-amd64:v1.6.0
+    maas_syslog: quay.io/airshipit/maas-region-controller:latest
+    enable_tls: quay.io/airshipit/maas-region-controller:latest
+  pull_policy: IfNotPresent
+  local_registry:
+    # TODO(portdirect): this chart does not yet support local image cacheing
+    active: false
+    exclude:
+      - dep_check
+
+jobs:
+  import_boot_resources:
+    try_limit: 1
+    retry_timer: 10
+    #default timeout: 15 minutes
+    timeout: 900
+
+labels:
+  rack:
+    node_selector_key: ucp-control-plane
+    node_selector_value: enabled
+  region:
+    node_selector_key: ucp-control-plane
+    node_selector_value: enabled
+  ingress:
+    node_selector_key: ucp-control-plane
+    node_selector_value: enabled
+  syslog:
+    node_selector_key: ucp-control-plane
+    node_selector_value: enabled
+  test:
+    node_selector_key: ucp-control-plane
+    node_selector_value: enabled
+
+network:
+  maas_ingress:
+    mode: routed
+    interface: maas-vip
+    addr: 172.18.0.2/32
+  region_proxy:
+    node_port:
+      enabled: false
+  region_api:
+    ingress:
+      public: true
+      classes:
+        namespace: "maas-ingress"
+        cluster: "maas-ingress"
+      annotations:
+        nginx.ingress.kubernetes.io/rewrite-target: "/"
+    node_port:
+      enabled: false
+
+storage:
+  syslog:
+    pvc:
+      class_name: general
+      size: 1Gi
+  rackd:
+    pvc:
+      class_name: general
+      size: 5Gi
+
+conf:
+  ssh:
+    # A SSH private key strings to mount
+    # to allow MaaS access virsh over SSH
+    # The corresponding public key should be
+    # added to a authorized_keys file to a user
+    # in the libvirt group on the hypervisors
+    private_key: null
+  bind:
+    override:
+    append:
+    # 'cpus: n' number of CPUs for bind to use
+    # 'cpus: ""' to revert to the default (all of them)
+    cpus: 1
+  nginx:
+    # 'worker_processes: auto' (the maas default) launches one worker per core
+    worker_processes: 1
+    # 'worker_connections: 768' is the MAAS default, 512 is the nginx default
+    worker_connections: 768
+  curtin:
+    override: true
+    late_commands: {}
+    # Additional commands to be run during the "late" curtin stage
+    #   https://curtin.readthedocs.io/en/latest/topics/config.html#stages
+    # When naming the keys, consider that the commands are executed in
+    # lexicographic order. The existing late_commands are named:
+    #   driver_NN_*, drydock_NN, and maas
+    # Example:
+    # late_commands:
+    #   install_modules_extra: ["curtin", "in-target", "--", "apt-get", "-y", "install", "linux-modules-extra-4.15.0-88-generic"]
+  cloudconfig:
+    override: false
+    sections: {}
+    # Additional user-data sections to add to the default cloud-config.
+    # These apply to the ephemeral environment, used during enlistment,
+    # commissioning, and deployment (pre-curtin).
+    # In particular, bootcmd may be useful:
+    # https://cloudinit.readthedocs.io/en/latest/topics/modules.html#bootcmd
+    # Example:
+    # conf:
+    #   cloudconfig:
+    #     override: true
+    #     sections:
+    #       bootcmd:
+    #         - "rm -fr /var/lib/apt/lists"
+  drydock:
+    bootaction_url: null
+  cache:
+    enabled: false
+  syslog:
+    logpath: /var/log/maas
+    logfile: nodeboot.log
+    logrotate:
+      # How many rotated logs to keep
+      rotate: '30'
+      # Size threshold when a log should rotate
+      size: '100M'
+    # levels (emerg,alert,crit,error,warning,notice,info,debug)
+    # use 'info' as default when overwritting the default
+    log_level: 'info'
+  maas:
+    override:
+    append:
+    url:
+      maas_url: null
+    ingress_disable_gui: false
+    ntp:
+      # These options allow you to mock out the ntpd binary within the container
+      # by overwriting it with a script that simply sleeps - this is useful in
+      # environments where you do not wish these privileged containers to try and
+      # run ntpd that may conflict with the baremetal host
+      disable_ntpd_region: false
+      disable_ntpd_rack: false
+      # Use external only points region and rack serves and deployed nodes directly
+      # at external NTP servers. Otherwise we have nodes -> rack -> region -> external
+      use_external_only: false
+      ntp_servers: []
+    dns:
+      require_dnssec: no
+      # These are upstream servers
+      dns_servers: []
+    proxy:
+      # Whether deploying nodes should use MaaS region as an APT proxy
+      proxy_enabled: false
+      # Whether MaaS region should utilize an external proxy for accessing repos
+      peer_proxy_enabled: false
+      # An external proxy server to use
+      proxy_server: null
+    images:
+      default_os: 'ubuntu'
+      default_image: 'bionic'
+      default_kernel: 'ga-18.04'
+    credentials:
+      secret:
+        namespace: maas
+        name: maas-api-key
+    syslog:
+      # Remote syslog destination for machine syslogs (during enlistment,
+      # commissioning, and deployment)
+      # Can be specified as 'ip', 'fqdn', 'ip:port', or 'fqdn:port', where
+      # ':port' defaults to ':514'
+      # If remote_syslog is null, the destination will be resolved via a
+      # host_and_port_endpoint_uri_lookup of the public maas_syslog endpoint
+      # (Note that this differs from the MAAS default, which is to send machine
+      # syslogs to MAAS on port 5247)
+      remote_syslog: null
+    extra_settings:
+      # Additional settings available via maas $PROFILE maas set-config
+      # Marks if the initial intro has been completed: true or false
+      completed_intro: true
+      # Enable Google Analytics: true or false
+      enable_analytics: false
+      # network_discovery: 'enabled' or 'disabled'
+      network_discovery: disabled
+      # active_discovery_interval (seconds): one of '0', '604800', '86400', '43200', '21600', '10800', '3600', '1800', '600'
+      active_discovery_interval: 0
+      # enlist_commissioning: if true, directly go into commissioning during enlistment
+      enlist_commissioning: false
+    # system user for console login/recovery in early phases of deployment
+    system_user: 'root'
+    system_passwd: 'password'
+    tls:
+      enabled: false
+      create: false
+      ca: ""
+      cert: ""
+      key: ""
+  drivers: null
+  #### If you populates drivers, it will replace the 3rd party driver
+  #### info that comes with MaaS. see structure below if it is needed
+  #### Additional context about the use of this file can be found here:
+  #### https://github.com/maas/maas/blob/2.3.5/src/maasserver/third_party_drivers.py
+  # - blacklist: string    # a kernel module to blacklist from loading if needed
+  #   comment: string       # free form comment
+  #   key_binary: |    # The GPG key for the repo holding the package, base64 encoded, non-ascii armored
+  #     mQENBFRtGAgBCADlSku65P14hVdx9E/W0n6MwuB3WGqmsyKNoa3HezFdMjWERldINNUdi8O28cZ6
+  #     j2+Hi9L1HeQIQ9+7FHpR3JyQePBJtRX8WSEusfRtML98opDhJxKm8Jyxb7aTvCwdNHz3yxADINkM
+  #     tOj5oRm7VCr8XHkG7YU27ELs8B+BXWvjO21oSosiFurnhT+H3hQsYXfYA55aa21q0qX+L5dFJSNd
+  #     zZVo7m9ybioVv2R5+PfBvdaSxCnmOpcGXFaKAsqVHeTW0pd3sdkin1rkbhOBaU5lFBt2ZiMtKpKH
+  #     pT8TZnqHpFHFbgi8j2ARJj4IDct2OGILddUIZSFyue6WE2hpV5c/ABEBAAG0OEhld2xldHQtUGFj
+  #     a2FyZCBDb21wYW55IFJTQSAoSFAgQ29kZXNpZ25pbmcgU2VydmljZSkgLSAxiQE+BBMBAgAoBQJU
+  #     bRgIAhsDBQkSzAMABgsJCAcDAgYVCAIJCgsEFgIDAQIeAQIXgAAKCRD63Y1ksSdeo6BJCADOfIPP
+  #     LPpIOnFK9jH4t8lLUd+RyMc+alA3uTDPUJa/ZHa6DHfh42iaPYVEV8OG0tnbMlHmwvsZ5c1/MRMw
+  #     1UbxCvD88P2qM4SUrUjQUlSCms2GLGvFftFXBiOJQ7/yBc9o+yoSvwPrrTxSCk4+Sqm0IfVXVzCh
+  #     DM9dM9YPY2Vzjd+LUaYC3X+eSuggUDO0TmJLJd7tZdF9fVXq3lr63BZ5PY98MTCuOoeSMDa9FIUQ
+  #     f6vn6UUJMDSRZ9OzhpNJOKR+ShVRwDK6My8gtVIW1EAW2w3VQWI2UNF07aLeO8UG6nTNWA23+OuZ
+  #     kUdgQovjcq01caSefgOkmiQOx6d74CAkuQENBFRtGAgBCAC35eBfUIpnTdF5lpIBWOsWGKwNZEg1
+  #     f5GRCc3qv2Cd0dpcDPFDiE6Oa0OjtnyzhBXWEQXfckWh53tIl5Sjhoy4Gh7z7vZEgmuw1L+ILy0Q
+  #     00SqMpZFZaXNn4cnkc4wy5XG1bs81ij4Xp8Gkk9oRDJfCxv6ztW7++uhmU/2w4iqJghJRZwjMKl7
+  #     hGis8cx6vP5UCr7K7nnJqHVeO/z82ooE6XgxHHeGrLNPrzebO74PQ5iV/F5Dq9DFwYk61JaoJ9mA
+  #     R9CKn+CDtTTCkbdv7yQKFxXQSludHInRBfuBeM28djOddZF9XCBL3n+KYWC9Mjf0SCyqiUKA/f3P
+  #     c6KaTqCZABEBAAGJASUEGAECAA8FAlRtGAgCGwwFCRLMAwAACgkQ+t2NZLEnXqM0/gf/VwQY9rVG
+  #     X0ZEoEAto+naRi2wLxae8AJ+JTwChaybyOFtIblM4PnG3rUmQCqFM18PNcfeSiX+dd8CuXOI/voI
+  #     hwcfM7HP4hPTykmquHgEHp5t+/gA4+iRYDZvHthURmBzFUl4NS9AhOT7V1udUkn1lAORFc8/bcu1
+  #     yiFIhaQRT3MtOzp+qvThPrspXAgpfOwqjSkPR2YdvvZeqWAs77k2RZQc2aknaMgjWaPLb+V8mBmg
+  #     zRO1RDvShu8hsREaKYVMHyAeKhEYC+lX2bNCImQIs/TqhYo5sn0I5+sbpmFNwtF1gP7AF9DjcFfJ
+  #     ruvNnfrWpNvn7vuBH6g//Qk5ZnBpwg==
+  #   modaliases:  # list of strings with modalias patterns that denote a need for this driver
+  #     - string
+  #   module: string  # the name of the kernel module to load
+  #   package: string # the name of the debian package containing the kernel module
+  #   repository: string # URL to the debian repo containing the package
+  ####
+
+secrets:
+  maas_db:
+    admin: maas-db-admin
+    user: maas-db-user
+  maas_users:
+    admin: maas-admin
+  maas_region:
+    name: maas-region-secret
+    value: 3858f62230ac3c915f300c664312c63f
+  ssh_key: ssh-private-key
+  certificate: maas-tls
+
+pod:
+  mandatory_access_control:
+    type: apparmor
+    maas-rack:
+      maas-rack: runtime/default
+      init: runtime/default
+    maas-region:
+      maas-region: runtime/default
+      maas-cache: runtime/default
+      init: runtime/default
+    maas-syslog:
+      syslog: runtime/default
+      logrotate: runtime/default
+      init: runtime/default
+    maas-ingress:
+      maas-ingress-vip: runtime/default
+      maas-ingress: runtime/default
+      init: runtime/default
+      maas-ingress-vip-init: runtime/default
+    maas-ingress-errors:
+      maas-ingress-errors: runtime/default
+    maas-bootstrap-admin-user:
+      maas-bootstrap-admin-user: runtime/default
+      init: runtime/default
+    maas-db-init:
+      maas-db-init: runtime/default
+      init: runtime/default
+    maas-db-sync:
+      maas-db-sync: runtime/default
+      init: runtime/default
+    maas-export-api-key:
+      exporter: runtime/default
+      init: runtime/default
+    maas-import-resources:
+      region-import-resources: runtime/default
+      init: runtime/default
+    maas-api-test:
+      maas-api-test: runtime/default
+  security_context:
+    ingress:
+      pod:
+        runAsUser: 0
+      container:
+        maas_ingress_vip_init:
+          readOnlyRootFilesystem: false
+          capabilities:
+            add:
+              - 'NET_ADMIN'
+              - 'SYS_MODULE'
+          runAsUser: 0
+        maas_ingress_vip:
+          readOnlyRootFilesystem: false
+          capabilities:
+            add:
+              - 'NET_ADMIN'
+        maas_ingress:
+          readOnlyRootFilesystem: false
+          capabilities:
+            add:
+              - 'NET_BIND_SERVICE'
+    ingress_errors:
+      pod:
+        runAsUser: 65534
+      container:
+        maas_ingress_errors:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+    bootstrap_admin_user:
+      pod:
+        runAsUser: 0
+      container:
+        maas_bootstrap_admin_user:
+          readOnlyRootFilesystem: false
+    db_init:
+      pod:
+        runAsUser: 0
+      container:
+        maas_db_init:
+          readOnlyRootFilesystem: true
+    db_sync:
+      pod:
+        runAsUser: 0
+      container:
+        maas_db_sync:
+          readOnlyRootFilesystem: false
+    export_api_key:
+      pod:
+        runAsUser: 0
+      container:
+        exporter:
+          readOnlyRootFilesystem: false
+    import_resources:
+      pod:
+        runAsUser: 0
+      container:
+        region_import_resources:
+          readOnlyRootFilesystem: false
+    syslog:
+      pod:
+        runAsUser: 0
+      container:
+        syslog:
+          readOnlyRootFilesystem: false
+        logrotate:
+          readOnlyRootFilesystem: false
+    rack:
+      pod:
+        runAsUser: 0
+      container:
+        maas_rack:
+          readOnlyRootFilesystem: false
+          capabilities:
+            add:
+              - 'DAC_READ_SEARCH'
+              - 'NET_ADMIN'
+              - 'SYS_ADMIN'
+              - 'SYS_PTRACE'
+              - 'SYS_RESOURCE'
+              - 'SYS_TIME'
+    region:
+      pod:
+        runAsUser: 0
+      container:
+        maas_cache:
+          readOnlyRootFilesystem: false
+        maas_region:
+          readOnlyRootFilesystem: false
+          capabilities:
+            add:
+              - 'SYS_ADMIN'
+              - 'NET_ADMIN'
+              - 'SYS_PTRACE'
+              - 'SYS_TIME'
+              - 'SYS_RESOURCE'
+              - 'DAC_READ_SEARCH'
+    api_test:
+      pod:
+        runAsUser: 0
+      container:
+        maas_api_test:
+          readOnlyRootFilesystem: false
+  affinity:
+    anti:
+      type:
+        rack: requiredDuringSchedulingIgnoredDuringExecution
+        default: preferredDuringSchedulingIgnoredDuringExecution
+      topologyKey:
+        default: kubernetes.io/hostname
+  mounts:
+    maas_rack:
+      init_container: []
+      maas_rack:
+    maas_region:
+      init_container: []
+      maas_region:
+    export_api_key:
+      init_container: []
+      export_api_key:
+    maas_ingress:
+      init_container: []
+      maas_region:
+    maas_syslog:
+      init_container: []
+      syslog: []
+  replicas:
+    rack: 2
+    region: 2
+    syslog: 1
+  resources:
+    enabled: false
+    test:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+      requests:
+        memory: "128Mi"
+        cpu: "500m"
+    maas_rack:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+      requests:
+        memory: "128Mi"
+        cpu: "500m"
+    maas_region:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+      requests:
+        memory: "128Mi"
+        cpu: "500m"
+    maas_syslog:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+      requests:
+        memory: "128Mi"
+        cpu: "500m"
+    maas_ingress_vip:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+      requests:
+        memory: "128Mi"
+        cpu: "500m"
+    maas_ingress:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+      requests:
+        memory: "128Mi"
+        cpu: "500m"
+    maas_ingress_errors:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+      requests:
+        memory: "128Mi"
+        cpu: "500m"
+    jobs:
+      db_init:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      db_sync:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      bootstrap_admin_user:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      import_resources:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      export_api_key:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+
+endpoints:
+  cluster_domain_suffix: cluster.local
+  maas_ingress:
+    hosts:
+      default: maas-ingress
+      error_pages: maas-ingress-error
+      monitor: maas-ingress-monitor
+    host_fqdn_override:
+      default: null
+    port:
+      http:
+        default: 80
+      https:
+        default: 443
+      error_pages:
+        default: 8080
+        podport: 10080
+      ingress_default_server:
+        default: 8181
+      healthz:
+        podport: 10254
+      status:
+        podport: 10246
+      stream:
+        podport: 10247
+      profiler:
+        podport: 10245
+  maas_syslog:
+    hosts:
+      default: maas-syslog
+    host_fqdn_override:
+      default: null
+    port:
+      syslog:
+        public: 514
+        podport: 514
+
+  maas_db:
+    auth:
+      admin:
+        username: postgres
+        password: password
+      user:
+        username: maas
+        password: password
+        database: maasdb
+    path: maasdb
+    hosts:
+      default: postgresql
+    port:
+      postgresql:
+        default: 5432
+    host_fqdn_override:
+      default: null
+  maas_region:
+    name: maas-region
+    auth:
+      admin:
+        username: admin
+        password: admin
+        email: none@none
+    hosts:
+      default: maas-region
+      public: maas
+    path:
+      default: /MAAS
+    scheme:
+      default: 'http'
+    port:
+      region_api:
+        default: 80
+        nodeport: 31900
+        podport: 5240
+        public: 80
+      region_proxy:
+        default: 8000
+        # podport and public need to be the same as of MAAS 2.3.4, so
+        # comment them out and let the default rule
+        # podport: 8000
+        # public: 8000
+      region_syslog:
+        default: 514
+        podport: 514
+    host_fqdn_override:
+      default: null
+  physicalprovisioner:
+    name: drydock
+    hosts:
+      default: drydock-api
+    port:
+      api:
+        default: 9000
+        nodeport: 31900
+    path:
+      default: /api/v1.0
+    scheme:
+      default: http
+    host_fqdn_override:
+      default: null
