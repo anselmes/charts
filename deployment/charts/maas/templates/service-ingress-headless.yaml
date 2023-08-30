@@ -1,0 +1,18 @@
+{{- if .Values.manifests.maas_ingress }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ tuple "maas_ingress" "monitor" . | include "helm-toolkit.endpoints.hostname_short_endpoint_lookup" }}
+spec:
+  clusterIP: 'None'
+  ports:
+    - name: http
+      port: 80
+{{- if .Values.conf.maas.tls.enabled }}
+    - name: https
+      port: 443
+{{- end }}
+  selector:
+{{ tuple . "maas" "ingress" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
+{{- end }}

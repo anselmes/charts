@@ -1,0 +1,62 @@
+{{- if .Values.manifests.test_maas_api }}
+{{- $envAll := . }}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-api-test"
+  annotations:
+    "helm.sh/hook": "test-success"
+    {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
+{{ dict "envAll" $envAll "podName" "maas-api-test" "containerNames" (list "maas-api-test") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 4 }}
+  labels:
+{{ tuple $envAll "maas" "init-test" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
+spec:
+{{ dict "envAll" $envAll "application" "api_test" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 2 }}
+  restartPolicy: Never
+  nodeSelector:
+    {{ .Values.labels.test.node_selector_key }}: {{ .Values.labels.test.node_selector_value }}
+  containers:
+    - name: maas-api-test
+      env:
+        - name: 'MAAS_URL'
+{{- if empty .Values.conf.maas.url.maas_url }}
+          value: {{ tuple "maas_region" "public" "region_api" . | include "helm-toolkit.endpoints.keystone_endpoint_uri_lookup" | quote }}
+{{- else }}
+          value: {{ .Values.conf.maas.url.maas_url }}
+{{- end }}
+        - name: 'MAAS_API_KEY'
+          valueFrom:
+            secretKeyRef:
+              name: 'maas-api-key'
+              key: 'token'
+      image: {{ .Values.images.tags.maas_region }}
+      imagePullPolicy: {{ .Values.images.pull_policy }}
+{{ tuple . .Values.pod.resources.test | include "helm-toolkit.snippets.kubernetes_resources" | indent 6 }}
+{{ dict "envAll" $envAll "application" "api_test" "container" "maas_api_test" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 6 }}
+      command: ["/tmp/maas-test.sh"]
+      volumeMounts:
+        - name: maas-bin
+          mountPath: /tmp/maas-test.sh
+          subPath: maas-test.sh
+          readOnly: true
+{{- if .Values.conf.maas.tls.enabled }}
+        - name: ca-cert
+          mountPath: /usr/local/share/ca-certificates/maas-ca.crt
+          subPath: maas-ca.crt
+          readOnly: true
+{{ end }}
+  volumes:
+    - name: maas-bin
+      configMap:
+        name: maas-bin
+        defaultMode: 0555
+{{- if .Values.conf.maas.tls.enabled }}
+    - name: ca-cert
+      secret:
+        secretName: {{ .Values.secrets.maas_cert }}
+        items:
+          - key: ca.crt
+            path: maas-ca.crt
+{{ end }}
+{{- end }}

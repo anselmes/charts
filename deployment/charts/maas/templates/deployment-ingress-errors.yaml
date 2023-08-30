@@ -1,0 +1,42 @@
+{{- if and .Values.manifests.maas_ingress .Values.manifests.rack_statefulset }}
+{{- $envAll := . }}
+{{- $labels := tuple $envAll "maas" "ingress-errors" | include "helm-toolkit.snippets.kubernetes_metadata_labels" -}}
+{{- $serviceAccountName := "maas-ingress-errors" }}
+{{- $mounts_maas_rack := .Values.pod.mounts.maas_rack }}
+{{- $mounts_maas_rack_init := .Values.pod.mounts.maas_rack.init_container }}
+
+{{ tuple $envAll "rack_controller" $serviceAccountName | include "helm-toolkit.snippets.kubernetes_pod_rbac_serviceaccount" }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maas-ingress-errors
+  labels:
+{{ $labels | indent 4 }}
+spec:
+  replicas: {{ .Values.pod.replicas.ingress_errors }}
+  selector:
+    matchLabels:
+{{ $labels | indent 6 }}
+  template:
+    metadata:
+      labels:
+{{ $labels | indent 8 }}
+      annotations:
+{{ dict "envAll" $envAll "podName" "maas-ingress-errors" "containerNames" (list "maas-ingress-errors") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 8 }}
+    spec:
+{{ dict "envAll" $envAll "application" "ingress_errors" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 6 }}
+      serviceAccountName: {{ $serviceAccountName }}
+      nodeSelector:
+        {{ .Values.labels.rack.node_selector_key }}: {{ .Values.labels.rack.node_selector_value }}
+      dnsPolicy: ClusterFirst
+      containers:
+        - name: maas-ingress-errors
+          image: {{ .Values.images.tags.error_pages }}
+          imagePullPolicy: {{ .Values.images.pull_policy }}
+{{ tuple $envAll $envAll.Values.pod.resources.maas_ingress_errors | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
+{{ dict "envAll" $envAll "application" "ingress_errors" "container" "maas_ingress_errors" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 10 }}
+          args:
+            - "-port"
+            - {{ tuple "maas_ingress" "podport" "error_pages" . | include "helm-toolkit.endpoints.endpoint_port_lookup" | quote }}
+{{- end }}

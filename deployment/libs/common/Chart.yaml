@@ -1,0 +1,18 @@
+apiVersion: v2
+name: common
+description: A library chart for common resources
+type: library
+version: 0.1.0
+dependencies:
+  - name: helm-toolkit
+    version: ">= 0.1.0"
+    repository: file://../helm-toolkit
+  - name: cert-manager
+    version: ">= v1.12.3"
+    repository: https://charts.jetstack.io/
+  - name: trust-manager
+    version: ">= v0.6.0"
+    repository: https://charts.jetstack.io/
+  - name: flux
+    version: ">= 0.4.0"
+    repository: oci://registry-1.docker.io/bitnamicharts/flux
