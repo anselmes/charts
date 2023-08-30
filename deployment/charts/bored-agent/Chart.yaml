@@ -1,0 +1,6 @@
+apiVersion: v2
+name: bored-agent
+description: A Helm chart for Lens Bored Agent
+type: application
+version: 0.0.1
+appVersion: "0.10.0"

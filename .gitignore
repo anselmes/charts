@@ -157,16 +157,13 @@ fabric.properties
 *.vsix
 
 # Project Specific
-.trunk/*
-!.trunk/trunk.yaml
-
 bin/*
 !bin/*.tpl
-
+!*tls.yaml
+!*tls*.tpl
 .*.swp
 *.env
-*.tgz
 *.key
-
+*.tgz
 Chart.lock
 requirements.lock

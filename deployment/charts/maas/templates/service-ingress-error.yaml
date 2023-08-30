@@ -1,0 +1,12 @@
+{{- if .Values.manifests.secret_ssh_key }}
+{{- $secretName := .Values.secrets.ssh_key }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Release.Name}}-{{ $secretName }}
+type: Opaque
+data:
+  PRIVATE_KEY: |-
+{{ .Values.conf.ssh.private_key | b64enc | indent 4 }}
+{{- end }}

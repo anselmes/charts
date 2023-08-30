@@ -1,0 +1,69 @@
+{{- $envAll := . }}
+{{- $serviceAccountName := "maas-bootstrap-admin-user" }}
+{{ tuple $envAll "bootstrap_admin_user" $serviceAccountName | include "helm-toolkit.snippets.kubernetes_pod_rbac_serviceaccount" }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: maas-bootstrap-admin-user
+  labels:
+{{ tuple $envAll "maas" "bootstrap-admin-user" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
+  annotations:
+    {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
+spec:
+  template:
+    metadata:
+      labels:
+{{ tuple $envAll "maas" "bootstrap-admin-user" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
+      annotations:
+{{ dict "envAll" $envAll "podName" "maas-bootstrap-admin-user" "containerNames" (list "init" "maas-bootstrap-admin-user") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 8 }}
+    spec:
+{{ dict "envAll" $envAll "application" "bootstrap_admin_user" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 6 }}
+      serviceAccountName: {{ $serviceAccountName }}
+      restartPolicy: OnFailure
+      nodeSelector:
+        {{ .Values.labels.region.node_selector_key }}: {{ .Values.labels.region.node_selector_value }}
+      initContainers:
+{{ tuple $envAll "bootstrap_admin_user" list | include "helm-toolkit.snippets.kubernetes_entrypoint_init_container" | indent 8 }}
+      containers:
+        - name: maas-bootstrap-admin-user
+          image: {{ .Values.images.tags.bootstrap }}
+          imagePullPolicy: {{ .Values.images.pull_policy }}
+{{ tuple $envAll $envAll.Values.pod.resources.jobs.bootstrap_admin_user | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
+{{ dict "envAll" $envAll "application" "bootstrap_admin_user" "container" "maas_bootstrap_admin_user" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 10 }}
+          env:
+            - name: ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.maas_users.admin }}
+                  key: USERNAME
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.maas_users.admin }}
+                  key: PASSWORD
+            - name: ADMIN_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.maas_users.admin }}
+                  key: EMAIL
+          command:
+            - /tmp/bootstrap-admin-user.sh
+          volumeMounts:
+            - name: maas-bin
+              mountPath: /tmp/bootstrap-admin-user.sh
+              subPath: bootstrap-admin-user.sh
+              readOnly: true
+            - name: maas-etc
+              mountPath: /etc/maas/regiond.conf
+              subPath: regiond.conf
+              readOnly: true
+      volumes:
+        - name: maas-bin
+          configMap:
+            name: maas-bin
+            defaultMode: 0555
+        - name: maas-etc
+          configMap:
+            name: maas-etc
+            defaultMode: 0444

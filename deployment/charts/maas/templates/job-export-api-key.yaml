@@ -1,0 +1,120 @@
+{{- $envAll := . }}
+{{- $initMounts := .Values.pod.mounts.export_api_key.export_api_key }}
+{{- $serviceAccountName := "maas-export-api-key" }}
+{{ tuple $envAll "export_api_key" $serviceAccountName | include "helm-toolkit.snippets.kubernetes_pod_rbac_serviceaccount" }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $envAll.Release.Name }}-{{ $serviceAccountName }}-job
+  namespace: {{ $envAll.Release.Namespace }}
+  annotations:
+    {{ tuple $envAll | include "helm-toolkit.snippets.release_uuid" }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $envAll.Release.Name }}-{{ $envAll.Release.Namespace }}-{{ $serviceAccountName }}}-job
+subjects:
+  - kind: ServiceAccount
+    name: {{ $serviceAccountName }}
+    namespace: {{ $envAll.Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $envAll.Release.Name }}-{{ $envAll.Release.Namespace }}-{{ $serviceAccountName }}}-job
+  namespace: {{ $envAll.Release.Namespace }}
+rules:
+  - apiGroups:
+      - ""
+      - extensions
+      - batch
+      - apps
+    verbs:
+      - get
+      - list
+    resources:
+      - services
+      - endpoints
+      - jobs
+      - pods
+  - apiGroups:
+      - ""
+    verbs:
+      - get
+      - create
+      - update
+      - delete
+    resources:
+      - secrets
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: maas-export-api-key
+  labels:
+{{ tuple $envAll "maas" "export-api-key" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
+spec:
+  template:
+    metadata:
+      labels:
+{{ tuple $envAll "maas" "export-api-key" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 8 }}
+      annotations:
+{{ dict "envAll" $envAll "podName" "maas-export-api-key" "containerNames" (list "init" "exporter") | include "helm-toolkit.snippets.kubernetes_mandatory_access_control_annotation" | indent 8 }}
+    spec:
+{{ dict "envAll" $envAll "application" "export_api_key" | include "helm-toolkit.snippets.kubernetes_pod_security_context" | indent 6 }}
+      serviceAccountName: {{ $serviceAccountName }}
+      restartPolicy: OnFailure
+      nodeSelector:
+        {{ .Values.labels.region.node_selector_key }}: {{ .Values.labels.region.node_selector_value }}
+      initContainers:
+{{ tuple $envAll "export_api_key" $initMounts | include "helm-toolkit.snippets.kubernetes_entrypoint_init_container" | indent 8 }}
+      containers:
+        - name: exporter
+          image: {{ .Values.images.tags.export_api_key }}
+{{ tuple $envAll $envAll.Values.pod.resources.jobs.export_api_key | include "helm-toolkit.snippets.kubernetes_resources" | indent 10 }}
+{{ dict "envAll" $envAll "application" "export_api_key" "container" "exporter" | include "helm-toolkit.snippets.kubernetes_container_security_context" | indent 10 }}
+          imagePullPolicy: {{ .Values.images.pull_policy }}
+          env:
+            - name: SECRET_NAMESPACE
+              value: {{ .Values.conf.maas.credentials.secret.namespace }}
+            - name: ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.maas_users.admin }}
+                  key: USERNAME
+            - name: SECRET_NAME
+              value: {{ .Values.conf.maas.credentials.secret.name }}
+          command:
+            - /tmp/export-api-key.sh
+          readinessProbe:
+            exec:
+              command:
+                - /tmp/job-readiness.sh
+            initialDelaySeconds: 60
+          volumeMounts:
+            - name: maas-bin
+              mountPath: /tmp/export-api-key.sh
+              subPath: export-api-key.sh
+              readOnly: true
+            - name: maas-bin
+              mountPath: /tmp/job-readiness.sh
+              subPath: job-readiness.sh
+              readOnly: true
+            - name: maas-etc
+              mountPath: /etc/bind/named.conf.options
+              subPath: named.conf.options
+              readOnly: true
+            - name: maas-etc
+              mountPath: /etc/maas/regiond.conf
+              subPath: regiond.conf
+              readOnly: true
+      volumes:
+        - name: maas-bin
+          configMap:
+            name: maas-bin
+            defaultMode: 0555
+        - name: maas-etc
+          configMap:
+            name: maas-etc
+            defaultMode: 0444

@@ -1,0 +1,32 @@
+{{- $envAll := . }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ tuple "maas_region" "internal" . | include "helm-toolkit.endpoints.hostname_short_endpoint_lookup" }}
+spec:
+  ports:
+    - name: region-api
+      port: {{ tuple "maas_region" "internal" "region_api" $envAll | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
+      targetPort: {{ tuple "maas_region" "podport" "region_api" $envAll | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
+      {{ if .Values.network.region_api.node_port.enabled }}
+      nodePort: {{ tuple "maas_region" "nodeport" "region_api" $envAll | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
+      {{ end }}
+    - name: region-proxy
+      port: {{ tuple "maas_region" "internal" "region_proxy" $envAll | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
+      targetPort: {{ tuple "maas_region" "podport" "region_proxy" $envAll | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
+      {{ if .Values.network.region_proxy.node_port.enabled }}
+      nodePort:  {{ tuple "maas_region" "nodeport" "region_proxy" $envAll | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
+      {{ end }}
+    - name: region-dns
+      port: 53
+      targetPort: 53
+      protocol: "UDP"
+    - name: region-syslog
+      port: 514
+      targetPort: {{ tuple "maas_region" "podport" "region_syslog" $envAll | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
+  selector:
+{{ tuple $envAll "maas" "region" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
+  {{ if or .Values.network.region_proxy.node_port.enabled .Values.network.region_api.node_port.enabled }}
+  type: NodePort
+  {{ end }}

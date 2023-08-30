@@ -1,0 +1,16 @@
+{{- if .Values.manifests.syslog_service -}}
+{{- $envAll := . }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ tuple "maas_syslog" "internal" . | include "helm-toolkit.endpoints.hostname_short_endpoint_lookup" }}
+spec:
+  ports:
+    - name: syslog
+      port: 514
+      protocol: "UDP"
+      targetPort: {{ tuple "maas_syslog" "podport" "syslog" $envAll | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
+  selector:
+{{ tuple $envAll "maas" "syslog" | include "helm-toolkit.snippets.kubernetes_metadata_labels" | indent 4 }}
+{{- end -}}
