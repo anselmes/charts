@@ -1,0 +1,11 @@
+{{- if .Values.openstack.enabled }}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+kind: OpenStackClusterTemplate
+metadata:
+  name: capi-openstack-cluster
+spec:
+  template:
+    spec:
+      managedSecurityGroups: true
+{{- end }}

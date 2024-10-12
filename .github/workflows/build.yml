@@ -3,8 +3,7 @@ name: Build Pipeline
 on:
   push:
     paths:
-      - build/img/**
-      - build/scripts/init-devos.sh
+      - deployment/chart/**
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -13,13 +12,67 @@ concurrency:
 permissions: read-all
 
 jobs:
-  # todo: separate build and push
   container:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: ${{ github.ref == 'refs/heads/main' }}
-      # matrix:
-      #   repo: []
+      matrix:
+        repo:
+          - name: sanselmechart # fixme: switch to anselmescharts
+            url: oci://registry-1.docker.io
+            # todo: generate
+            charts:
+              # cni
+              - path: deployment/chart/cni/cilium
+              - path: deployment/chart/cni/cni-resource
+              # csi
+              - path: deployment/charts/csi/openebs
+              # cert-manager
+              - path: deployment/chart/cert-manager/ca-clusterissuer
+              - path: deployment/chart/cert-manager/ca-issuer
+              - path: deployment/chart/cert-manager/cert-manager
+              - path: deployment/chart/cert-manager/cert-manager-webhook-pdns
+              - path: deployment/chart/cert-manager/trust-manager
+              # knative
+              - path: deployment/chart/knative/knative-eventing
+              - path: deployment/chart/knative/knative-operator
+              - path: deployment/chart/knative/knative-serving
+              # lgtm
+              - path: deployment/chart/lgtm/k8s-monitoring
+              - path: deployment/chart/lgtm/lgtm-distributedß
+              # cluster-api
+              - path: deployment/chart/capi/capi-cluster-class
+              - path: deployment/chart/capi/capi-operator
+              - path: deployment/chart/capi/capi-provider
+              - path: deployment/chart/capi/helm-chart-proxy
+              # openstack
+              - path: deployment/charts/osh/barbican
+              - path: deployment/charts/osh/ceph-adapter-rook
+              - path: deployment/charts/osh/cert-rotation
+              - path: deployment/charts/osh/cinder
+              - path: deployment/charts/osh/daemonjob-controller
+              - path: deployment/charts/osh/designate
+              - path: deployment/charts/osh/glance
+              - path: deployment/charts/osh/heat
+              - path: deployment/charts/osh/horizon
+              - path: deployment/charts/osh/keystone
+              - path: deployment/charts/osh/kubernetes-keystone-webhook
+              - path: deployment/charts/osh/kubernetes-node-problem-detector
+              - path: deployment/charts/osh/ldap
+              - path: deployment/charts/osh/libvirt
+              - path: deployment/charts/osh/memcached
+              - path: deployment/charts/osh/namespace-config
+              - path: deployment/charts/osh/neutron
+              - path: deployment/charts/osh/nova
+              - path: deployment/charts/osh/octavia
+              - path: deployment/charts/osh/openvswitch
+              - path: deployment/charts/osh/ovn
+              - path: deployment/charts/osh/placement
+              - path: deployment/charts/osh/powerdns
+              - path: deployment/charts/osh/prometheus-blackbox-exporter
+              - path: deployment/charts/osh/prometheus-openstack-exporter
+              # others
+              - path: deployment/charts/gitea-runner
     permissions:
       contents: read
       pages: write
@@ -32,15 +85,32 @@ jobs:
           persist-credentials: false
 
       - name: Download helm
-        uses: ./scripts/install-helm.sh
+        uses: azure/setup-helm@fe7b79cd5ee1e45176fcad797de68ecaf3ca4814 # v4.2.0 https://github.com/Azure/setup-helm/commit/fe7b79cd5ee1e45176fcad797de68ecaf3ca4814
+        with:
+          version: v3.16.3 # default is latest (stable)
 
+
+      # fixme: lint
+      # - name: Lint charts
+      #   run: |
+      #     set -x
+      #     helm lint ${{ matrix.repo.charts.path }}
+
+      # fixme: template
+      # - name: Test charts
+      #   run: |
+      #     set -x
+      #     helm template ${{ matrix.repo.charts.path }}
+
+      # fixme: build
       # - name: Package charts
       #   run: |
-      #     helm package charts/{{ matrix.helm.charts }} -d /tmp/
-      #     ls -lh /tmp/{{ matrix.helm.charts }}*.tgz
+      #     set -x
+      #     helm package ${{ matrix.repo.charts.path }}
 
+      # fixme: upload
       # - name: Push charts
       #   if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
       #   run: |
       #     set -x
-      #     echo helm push /tmp/{{ matrix.repo.charts }}*.tgz oci://{{ matrix.repo.url }}/{{ matrix.repo.name || github.repository_owner }}
+      #     helm push ${{ matrix.repo.charts }}.tgz oci://${{ matrix.repo.url }}/${{ matrix.repo.name || github.repository_owner }}

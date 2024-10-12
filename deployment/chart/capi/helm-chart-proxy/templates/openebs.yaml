@@ -1,0 +1,25 @@
+{{- if .Values.openebs.enabled }}
+---
+apiVersion: addons.cluster.x-k8s.io/v1alpha1
+kind: HelmChartProxy
+metadata:
+  name: openebs
+  labels:
+    {{- include "helm-chart-proxy.labels" . | nindent 4 }}
+spec:
+  namespace: kube-system
+  chartName: openebs
+  releaseName: openebs
+  repoURL: {{ .Values.openebs.repoURL }}
+  version: {{ .Values.openebs.version }}
+  clusterSelector:
+    {{- toYaml .Values.openebs.selector | nindent 4 }}
+  options:
+    timeout: {{ .Values.openebs.timeout }}
+    wait: {{ .Values.openebs.wait }}
+    waitForJobs: {{ .Values.openebs.waitForJobs }}
+  {{- with .Values.openebs.valuesTemplate }}
+  valuesTemplate: |
+    {{ toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

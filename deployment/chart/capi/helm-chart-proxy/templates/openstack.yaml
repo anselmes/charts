@@ -1,0 +1,75 @@
+{{- if .Values.openstackccm.enabled }}
+---
+apiVersion: addons.cluster.x-k8s.io/v1alpha1
+kind: HelmChartProxy
+metadata:
+  name: cloud-provider-openstack
+  labels:
+    {{- include "helm-chart-proxy.labels" . | nindent 4 }}
+spec:
+  namespace: {{ .Values.openstackccm.namespace }}
+  chartName: openstack-cloud-controller-manager
+  releaseName: cloud-provider-openstack
+  repoURL: {{ .Values.openstackccm.repoURL }}
+  version: {{ .Values.openstackccm.version }}
+  clusterSelector:
+    {{- toYaml .Values.openstackccm.selector | nindent 4 }}
+  options:
+    timeout: {{ .Values.openstackccm.timeout }}
+    wait: {{ .Values.openstackccm.wait }}
+    waitForJobs: {{ .Values.openstackccm.waitForJobs }}
+  {{- with .Values.openstackccm.valuesTemplate }}
+  valuesTemplate: |
+    {{ toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- if .Values.cindercsi.enabled }}
+---
+apiVersion: addons.cluster.x-k8s.io/v1alpha1
+kind: HelmChartProxy
+metadata:
+  name: csi-cinder
+  labels:
+    {{- include "helm-chart-proxy.labels" . | nindent 4 }}
+spec:
+  namespace: {{ .Values.cindercsi.namespace }}
+  chartName: openstack-cinder-csi
+  releaseName: csi-cinder
+  repoURL: {{ .Values.cindercsi.repoURL }}
+  version: {{ .Values.cindercsi.version }}
+  clusterSelector:
+    {{- toYaml .Values.cindercsi.selector | nindent 4 }}
+  options:
+    timeout: {{ .Values.cindercsi.timeout }}
+    wait: {{ .Values.cindercsi.wait }}
+    waitForJobs: {{ .Values.cindercsi.waitForJobs }}
+  {{- with .Values.cindercsi.valuesTemplate }}
+  valuesTemplate: |
+    {{ toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- if .Values.manilacsi.enabled }}
+---
+apiVersion: addons.cluster.x-k8s.io/v1alpha1
+kind: HelmChartProxy
+metadata:
+  name: csi-manila
+  labels:
+    {{- include "helm-chart-proxy.labels" . | nindent 4 }}
+spec:
+  namespace: {{ .Values.manilacsi.namespace }}
+  chartName: openstack-manila-csi
+  releaseName: csi-manila
+  repoURL: {{ .Values.manilacsi.repoURL }}
+  version: {{ .Values.manilacsi.version }}
+  clusterSelector:
+    {{- toYaml .Values.manilacsi.selector | nindent 4 }}
+  options:
+    timeout: {{ .Values.manilacsi.timeout }}
+    wait: {{ .Values.manilacsi.wait }}
+    waitForJobs: {{ .Values.manilacsi.waitForJobs }}
+  {{- with .Values.manilacsi.valuesTemplate }}
+  valuesTemplate: |
+    {{ toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

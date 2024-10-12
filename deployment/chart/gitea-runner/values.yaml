@@ -1,0 +1,173 @@
+# Default values for gitea-act-runner.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: gitea/act_runner
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "0.2.6"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+giteaInstance: "https://gitea.example.com"
+token: "TOKEN"
+configAsCode:
+  enabled: true
+  config:
+    # Example configuration file, it's safe to copy this as the default config file without any modification.
+    log:
+      # The level of logging, can be trace, debug, info, warn, error, fatal
+      level: info
+    runner:
+      # Where to store the registration result.
+      file: .runner
+      # Execute how many tasks concurrently at the same time.
+      capacity: 100
+      # Extra environment variables to run jobs.
+      #envs:
+      #  A_TEST_ENV_NAME_1: a_test_env_value_1
+      #  A_TEST_ENV_NAME_2: a_test_env_value_2
+      # Extra environment variables to run jobs from a file.
+      # It will be ignored if it's empty or the file doesn't exist.
+      env_file: .env
+      # The timeout for a job to be finished.
+      # Please note that the Gitea instance also has a timeout (3h by default) for the job.
+      # So the job could be stopped by the Gitea instance if it's timeout is shorter than this.
+      timeout: 3h
+      # Whether skip verifying the TLS certificate of the Gitea instance.
+      insecure: false
+      # The timeout for fetching the job from the Gitea instance.
+      fetch_timeout: 5s
+      # The interval for fetching the job from the Gitea instance.
+      fetch_interval: 2s
+    cache:
+      # Enable cache server to use actions/cache.
+      enabled: true
+      # The directory to store the cache data.
+      # If it's empty, the cache data will be stored in $HOME/.cache/actcache.
+      dir: /data/cache
+      # The host of the cache server.
+      # It's not for the address to listen, but the address to connect from job containers.
+      # So 0.0.0.0 is a bad choice, leave it empty to detect automatically.
+      host: ""
+      # The port of the cache server.
+      # 0 means to use a random available port.
+      port: 0
+    container:
+      # Which network to use for the job containers. Could be bridge, host, none, or the name of a custom network.
+      network: host
+      # Whether to use privileged mode or not when launching task containers (privileged mode is required for Docker-in-Docker).
+      privileged: true
+      # And other options to be used when the container is started (eg, --add-host=my.gitea.url:host-gateway).
+      options:
+      # The parent directory of a job's working directory.
+      # If it's empty, /workspace will be used.
+      workdir_parent:
+      # Volumes (including bind mounts) can be mounted to containers. Glob syntax is supported, see https://github.com/gobwas/glob
+      # You can specify multiple volumes. If the sequence is empty, no volumes can be mounted.
+      # For example, if you only allow containers to mount the `data` volume and all the json files in `/src`, you should change the config to:
+      # valid_volumes:
+      #   - data
+      #   - /src/*.json
+      # If you want to allow any volume, please use the following configuration:
+      # valid_volumes:
+      #   - '**'
+      valid_volumes: []
+      # overrides the docker client host with the specified one.
+      # If it's empty, act_runner will find an available docker host automatically.
+      # If it's "-", act_runner will find an available docker host automatically, but the docker host won't be mounted to the job containers and service containers.
+      # If it's not empty or "-", the specified docker host will be used. An error will be returned if it doesn't work.
+      docker_host: ""
+
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext:
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+persistence:
+  enabled: true
+  annotations: {}
+  ## PeerTube data Persistent Volume Storage Class
+  ## If defined, storageClassName: <storageClass>
+  ## If set to "-", storageClassName: "", which disables dynamic provisioning
+  ## If undefined (the default) or set to null, no storageClassName spec is
+  ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+  ##   GKE, AWS & OpenStack)
+  ##
+  # storageClass: "-"
+
+  ## A manually managed Persistent Volume and Claim
+  ## Requires persistence.enabled: true
+  ## If defined, PVC must be created manually before volume will be bound
+  # existingClaim:
+
+  accessMode: ReadWriteOnce
+  size: 25Gi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
