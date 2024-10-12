@@ -1,0 +1,139 @@
+{{- if and .Values.byoh.enabled .Values.kubeadm.enabled }}
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: capi-byoh-kubeadm
+spec:
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: ByoClusterTemplate
+      name: capi-byoh-cluster
+  controlPlane:
+    {{- with .Values.machineHealthCheck }}
+    machineHealthCheck:
+      {{ . | toYaml | nindent 6 }}
+    {{- end }}
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: capi-kubeadm-control-plane
+    machineInfrastructure:
+      ref:
+        kind: ByoMachineTemplate
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        name: capi-byoh-control-plane
+  workers:
+    machineDeployments:
+      - class: default-worker
+        {{- with .Values.machineHealthCheck }}
+        machineHealthCheck:
+          {{ . | toYaml | nindent 10 }}
+        {{- end }}
+        template:
+          bootstrap:
+            ref:
+              apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+              kind: KubeadmConfigTemplate
+              name: capi-kubeadm-bootstrap
+          infrastructure:
+            ref:
+              apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+              kind: ByoMachineTemplate
+              name: capi-byoh-machine
+  variables:
+    - name: bundleLookupBaseRegistry
+      required: true
+      schema:
+        openAPIV3Schema:
+          type: string
+          description: The base registry for bundle lookup.
+          default: https://projects.registry.vmware.com/cluster_api_provider_bringyourownhost
+          example: https://projects.registry.vmware.com/cluster_api_provider_bringyourownhost
+    - name: controlPlaneIpAddr
+      required: true
+      schema:
+        openAPIV3Schema:
+          type: string
+          description: Floating VIP for the control plane.
+          example: 10.0.0.1
+    - name: kubeVipPodManifest
+      required: true
+      schema:
+        openAPIV3Schema:
+          type: string
+          description: kube-vip manifest for the control plane.
+          example: |
+            apiVersion: v1
+            kind: Pod
+            metadata:
+              name: kube-vip
+              namespace: kube-system
+            spec:
+              containers:
+              - name: kube-vip
+                image: plndr/kube-vip:0.1.1
+                args:
+                - start
+                - --arp
+                - --interface=eth0
+                - --vip=172.16.0.1
+  patches:
+    - name: bundleLookupBaseRegistry
+      description: Sets the bundleLookupBaseRegistry used for the BYOCluster.
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: ByoClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/bundleLookupBaseRegistry
+              valueFrom:
+                variable: bundleLookupBaseRegistry
+            - op: add
+              path: /spec/template/spec/controlPlaneEndpoint
+              valueFrom:
+                template: |
+                  host: '{{ `{{ .controlPlaneIpAddr }}` }}'
+                  port: 6443
+        {{- if .Values.byoh.installer }}
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: K8sInstallerConfigTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/bundleRepo
+              valueFrom:
+                variable: bundleLookupBaseRegistry
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: K8sInstallerConfigTemplate
+            matchResources:
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/bundleRepo
+              valueFrom:
+                variable: bundleLookupBaseRegistry
+        {{- end }}
+    - name: kubeVipPodManifest
+      description: Adds kube-vip to the control plane.
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+            kind: KubeadmControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/kubeadmConfigSpec/files/0/content
+              valueFrom:
+                variable: kubeVipPodManifest
+{{- end }}

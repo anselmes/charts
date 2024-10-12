@@ -1,0 +1,27 @@
+{{- if .Values.flux.enabled }}
+---
+apiVersion: addons.cluster.x-k8s.io/v1alpha1
+kind: HelmChartProxy
+metadata:
+  name: flux
+  labels:
+    {{- include "helm-chart-proxy.labels" . | nindent 4 }}
+spec:
+  namespace: {{ .Values.flux.namespace }}
+  chartName: flux
+  releaseName: flux
+  repoURL: {{ .Values.flux.repoURL }}
+  version: {{ .Values.flux.version }}
+  clusterSelector:
+    {{- toYaml .Values.flux.selector | nindent 4 }}
+  options:
+    timeout: {{ .Values.flux.timeout }}
+    wait: {{ .Values.flux.wait }}
+    waitForJobs: {{ .Values.flux.waitForJobs }}
+    install:
+      createNamespace: true
+  {{- with .Values.flux.valuesTemplate }}
+  valuesTemplate: |
+    {{ toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
