@@ -1,0 +1,9 @@
+cilium:
+  l2Announcement:
+    enabled: false
+    externalIPs: true
+    loadBalancerIPs: true
+  ipPool:
+    enabled: false
+    allowFirstLastIPs: false
+    cidr: 172.16.0.0/24

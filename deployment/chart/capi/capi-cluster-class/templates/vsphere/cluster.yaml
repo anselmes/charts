@@ -1,0 +1,13 @@
+{{- if .Values.vsphere.enabled }}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: VSphereClusterTemplate
+metadata:
+  name: capi-vsphere-cluster
+spec:
+  template:
+    spec:
+      identityRef:
+        kind: Secret
+        name: {{ .Values.vsphere.secretName | default "vsphere-creds" }}
+{{- end }}

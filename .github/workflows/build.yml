@@ -19,7 +19,17 @@ jobs:
     strategy:
       fail-fast: ${{ github.ref == 'refs/heads/main' }}
       matrix:
-        repo: []
+        repo:
+          - url: oci://registry-1.docker.io
+            name: sanselmechart
+            charts:
+              - ca-clusterissuer
+              - ca-issuer
+              - capi/capi-cluster-class
+              - capi/capi-operator
+              - capi/capi-provider
+              - capi/helm-chart-proxy
+              - cni-resources
     permissions:
       contents: read
       pages: write

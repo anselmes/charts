@@ -1,0 +1,11 @@
+{{- if .Values.metal3.enabled }}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: Metal3ClusterTemplate
+metadata:
+  name: capi-baremetal-cluster
+spec:
+  template:
+    spec:
+      noCloudProvider: true
+{{- end }}
