@@ -18,8 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: ${{ github.ref == 'refs/heads/main' }}
-      matrix:
-        repo: []
+      # matrix:
+      #   repo: []
     permissions:
       contents: read
       pages: write
@@ -34,13 +34,13 @@ jobs:
       - name: Download helm
         uses: ./scripts/install-helm.sh
 
-      - name: Package charts
-        run: |
-          helm package charts/{{ matrix.helm.charts }} -d /tmp/
-          ls -lh /tmp/{{ matrix.helm.charts }}*.tgz
+      # - name: Package charts
+      #   run: |
+      #     helm package charts/{{ matrix.helm.charts }} -d /tmp/
+      #     ls -lh /tmp/{{ matrix.helm.charts }}*.tgz
 
-      - name: Push charts
-        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
-        run: |
-          set -x
-          echo helm push /tmp/{{ matrix.repo.charts }}*.tgz oci://{{ matrix.repo.url }}/{{ matrix.repo.name || github.repository_owner }}
+      # - name: Push charts
+      #   if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+      #   run: |
+      #     set -x
+      #     echo helm push /tmp/{{ matrix.repo.charts }}*.tgz oci://{{ matrix.repo.url }}/{{ matrix.repo.name || github.repository_owner }}
