@@ -1,0 +1,6 @@
+[submodule "modules/osh/openstack-helm"]
+  path = modules/osh/openstack-helm
+  url = https://opendev.org/openstack/openstack-helm.git
+[submodule "modules/osh/openstack-helm-infra"]
+  path = modules/osh/openstack-helm-infra
+  url = https://opendev.org/openstack/openstack-helm-infra.git
