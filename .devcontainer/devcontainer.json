@@ -1,8 +1,8 @@
 {
-  "name": "Helm Charts",
+  "name": "Charts",
   "dockerComposeFile": ["${localWorkspaceFolder}/compose-dev.yaml"],
   "service": "charts",
-  "workspaceFolder": "/home/devos/workspace",
-  "postCreateCommand": "${containerWorkspaceFolder}/scripts/config-devos.sh",
-  "remoteUser": "devos"
+  "workspaceFolder": "/home/devcontainer",
+  "postCreateCommand": "${containerWorkspaceFolder}/scripts/configure.sh",
+  "remoteUser": "devcontainer"
 }
