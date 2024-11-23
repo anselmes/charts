@@ -1,8 +1,0 @@
-apiVersion: eventing.knative.dev/v1
-kind: Broker
-metadata:
-  name: {{ include "knative-resource.fullname" . }}-broker
-  labels:
-  {{- include "knative-resource.labels" . | nindent 4 }}
-  annotations:
-    eventing.knative.dev/broker.class: {{ .Values.broker.class | default "MTChannelBasedBroker" }}

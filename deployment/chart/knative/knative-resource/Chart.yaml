@@ -1,5 +1,0 @@
-apiVersion: v2
-description: Knative resoures
-name: knative-resource
-type: application
-version: 0.2.0
