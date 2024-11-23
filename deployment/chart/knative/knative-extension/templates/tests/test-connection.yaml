@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "knative-extension.fullname" . }}-test-connection"
+  labels:
+    {{- include "knative-extension.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "knative-extension.fullname" . }}:{{ .Values.service.port }}']
+  restartPolicy: Never

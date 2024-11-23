@@ -1,0 +1,17 @@
+apiVersion: sources.knative.dev/v1
+kind: ApiServerSource
+metadata:
+  name: {{ include "knative-resource.fullname" . }}-apiserversource
+  labels:
+  {{- include "knative-resource.labels" . | nindent 4 }}
+spec:
+  mode: Reference
+  resources:
+  - apiVersion: v1
+    kind: Event
+  serviceAccountName: {{ .Values.source.apiServer.serviceAccount }}
+  sink:
+    ref:
+      apiVersion: eventing.knative.dev/v1
+      kind: Broker
+      name: {{ include "knative-resource.fullname" . }}-broker
