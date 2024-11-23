@@ -22,66 +22,57 @@ jobs:
             url: oci://registry-1.docker.io
             # todo: generate
             charts:
-              # note: networking
+              # cni
               - path: deployment/chart/cni/cilium
               - path: deployment/chart/cni/cni-resource
-              - path: deployment/charts/osh/openstack-helm-infra/openvswitch
-              - path: deployment/charts/osh/openstack-helm-infra/ovn
-              - path: deployment/charts/osh/openstack-helm-infra/powerdns
-              # note: storage
+              # csi
               - path: deployment/charts/csi/openebs
-              - path: deployment/charts/osh/openstack-helm-infra/ceph-adapter-rook
-              # note: certs
+              # cert-manager
               - path: deployment/chart/cert-manager/ca-clusterissuer
               - path: deployment/chart/cert-manager/ca-issuer
               - path: deployment/chart/cert-manager/cert-manager
               - path: deployment/chart/cert-manager/cert-manager-webhook-pdns
               - path: deployment/chart/cert-manager/trust-manager
-              - path: deployment/charts/osh/openstack-helm-infra/cert-rotation
-              # note: observability
-              - path: deployment/chart/lgtm/k8s-monitoring
-              - path: deployment/chart/lgtm/lgtm-distributed
-              - path: deployment/chart/osh/openstack-helm-infra/kubernetes-node-problem-detector
-              - path: deployment/charts/osh/openstack-helm-infra/prometheus-blackbox-exporter
-              - path: deployment/charts/osh/openstack-helm-infra/prometheus-openstack-exporter
-              - path: deployment/charts/osh/openstack-helm-infra/prometheus-process-exporter
-              # note: knative
+              # knative
               - path: deployment/chart/knative/knative-eventing
               - path: deployment/chart/knative/knative-operator
               - path: deployment/chart/knative/knative-serving
-              # note: cluster-api
+              # lgtm
+              - path: deployment/chart/lgtm/k8s-monitoring
+              - path: deployment/chart/lgtm/lgtm-distributedß
+              # cluster-api
               - path: deployment/chart/capi/capi-cluster-class
               - path: deployment/chart/capi/capi-operator
               - path: deployment/chart/capi/capi-provider
               - path: deployment/chart/capi/helm-chart-proxy
-              # note: data
-              - path: deployment/chart/osh/openstack-helm-infra/mariadb
-              - path: deployment/chart/osh/openstack-helm-infra/memcached
-              - path: deployment/chart/osh/openstack-helm-infra/mongodb
-              - path: deployment/chart/osh/openstack-helm-infra/postgresql
-              - path: deployment/chart/osh/openstack-helm-infra/rabbitmq
-              - path: deployment/chart/osh/openstack-helm-infra/redis
-              # note: openstack
-              - path: deployment/charts/osh/openstack-helm/barbican
-              - path: deployment/charts/osh/openstack-helm/cinder
-              - path: deployment/charts/osh/openstack-helm/designate
-              - path: deployment/charts/osh/openstack-helm/glance
-              - path: deployment/charts/osh/openstack-helm/heat
-              - path: deployment/charts/osh/openstack-helm/horizon
-              - path: deployment/charts/osh/openstack-helm/keystone
-              - path: deployment/charts/osh/openstack-helm/neutron
-              - path: deployment/charts/osh/openstack-helm/nova
-              - path: deployment/charts/osh/openstack-helm/octavia
-              - path: deployment/charts/osh/openstack-helm/placement
-              # note: misc
-              - path: deployment/chart/gitea-runner
-              - path: deployment/chart/osh/openstack-helm-infra/daemonjob-controller
-              - path: deployment/chart/osh/openstack-helm-infra/kubernetes-keystone-webhook
-              - path: deployment/chart/osh/openstack-helm-infra/ldap
-              - path: deployment/chart/osh/openstack-helm-infra/libvirt
-              - path: deployment/chart/osh/openstack-helm-infra/lockdown
-              - path: deployment/chart/osh/openstack-helm-infra/metacontroller
-              - path: deployment/chart/osh/openstack-helm-infra/namespace-config
+              # openstack
+              - path: deployment/charts/osh/barbican
+              - path: deployment/charts/osh/ceph-adapter-rook
+              - path: deployment/charts/osh/cert-rotation
+              - path: deployment/charts/osh/cinder
+              - path: deployment/charts/osh/daemonjob-controller
+              - path: deployment/charts/osh/designate
+              - path: deployment/charts/osh/glance
+              - path: deployment/charts/osh/heat
+              - path: deployment/charts/osh/horizon
+              - path: deployment/charts/osh/keystone
+              - path: deployment/charts/osh/kubernetes-keystone-webhook
+              - path: deployment/charts/osh/kubernetes-node-problem-detector
+              - path: deployment/charts/osh/ldap
+              - path: deployment/charts/osh/libvirt
+              - path: deployment/charts/osh/memcached
+              - path: deployment/charts/osh/namespace-config
+              - path: deployment/charts/osh/neutron
+              - path: deployment/charts/osh/nova
+              - path: deployment/charts/osh/octavia
+              - path: deployment/charts/osh/openvswitch
+              - path: deployment/charts/osh/ovn
+              - path: deployment/charts/osh/placement
+              - path: deployment/charts/osh/powerdns
+              - path: deployment/charts/osh/prometheus-blackbox-exporter
+              - path: deployment/charts/osh/prometheus-openstack-exporter
+              # others
+              - path: deployment/charts/gitea-runner
     permissions:
       contents: read
       pages: write
