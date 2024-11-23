@@ -1,9 +1,9 @@
 name: Build Pipeline
 
 on:
-  push:
-    paths:
-      - deployment/chart/**
+  push: {}
+  # paths:
+  #   - deployment/chart/**
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,105 +12,201 @@ concurrency:
 permissions: read-all
 
 jobs:
-  container:
+  helm:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: ${{ github.ref == 'refs/heads/main' }}
       matrix:
         repo:
           - name: sanselmechart # fixme: switch to anselmescharts
-            url: oci://registry-1.docker.io
-            # todo: generate
-            charts:
-              # cni
-              - path: deployment/chart/cni/cilium
-              - path: deployment/chart/cni/cni-resource
-              # csi
-              - path: deployment/charts/csi/openebs
-              # cert-manager
-              - path: deployment/chart/cert-manager/ca-clusterissuer
-              - path: deployment/chart/cert-manager/ca-issuer
-              - path: deployment/chart/cert-manager/cert-manager
-              - path: deployment/chart/cert-manager/cert-manager-webhook-pdns
-              - path: deployment/chart/cert-manager/trust-manager
-              # knative
-              - path: deployment/chart/knative/knative-eventing
-              - path: deployment/chart/knative/knative-operator
-              - path: deployment/chart/knative/knative-serving
-              # lgtm
-              - path: deployment/chart/lgtm/k8s-monitoring
-              - path: deployment/chart/lgtm/lgtm-distributedß
-              # cluster-api
-              - path: deployment/chart/capi/capi-cluster-class
-              - path: deployment/chart/capi/capi-operator
-              - path: deployment/chart/capi/capi-provider
-              - path: deployment/chart/capi/helm-chart-proxy
-              # openstack
-              - path: deployment/charts/osh/barbican
-              - path: deployment/charts/osh/ceph-adapter-rook
-              - path: deployment/charts/osh/cert-rotation
-              - path: deployment/charts/osh/cinder
-              - path: deployment/charts/osh/daemonjob-controller
-              - path: deployment/charts/osh/designate
-              - path: deployment/charts/osh/glance
-              - path: deployment/charts/osh/heat
-              - path: deployment/charts/osh/horizon
-              - path: deployment/charts/osh/keystone
-              - path: deployment/charts/osh/kubernetes-keystone-webhook
-              - path: deployment/charts/osh/kubernetes-node-problem-detector
-              - path: deployment/charts/osh/ldap
-              - path: deployment/charts/osh/libvirt
-              - path: deployment/charts/osh/memcached
-              - path: deployment/charts/osh/namespace-config
-              - path: deployment/charts/osh/neutron
-              - path: deployment/charts/osh/nova
-              - path: deployment/charts/osh/octavia
-              - path: deployment/charts/osh/openvswitch
-              - path: deployment/charts/osh/ovn
-              - path: deployment/charts/osh/placement
-              - path: deployment/charts/osh/powerdns
-              - path: deployment/charts/osh/prometheus-blackbox-exporter
-              - path: deployment/charts/osh/prometheus-openstack-exporter
-              # others
-              - path: deployment/charts/gitea-runner
+            url: registry-1.docker.io
+        # todo: generate
+        chart:
+          # note: networking
+          - path: deployment/chart/cni/cilium
+            repo: sanselmechart
+          - path: deployment/chart/cni/cni-resource
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/openvswitch
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/ovn
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/powerdns
+            repo: sanselmechart
+          # note: storage
+          - path: deployment/chart/csi/openebs
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/ceph-adapter-rook
+            repo: sanselmechart
+          # note: certs
+          - path: deployment/chart/cert-manager/ca-clusterissuer
+            repo: sanselmechart
+          - path: deployment/chart/cert-manager/ca-issuer
+            repo: sanselmechart
+          # fixme: cert-manager
+          # - path: deployment/chart/cert-manager/cert-manager
+          #   repo: sanselmechart
+          - path: deployment/chart/cert-manager/cert-manager-webhook-pdns
+            repo: sanselmechart
+          - path: deployment/chart/cert-manager/trust-manager
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/cert-rotation
+            repo: sanselmechart
+          # note: observability
+          - path: deployment/chart/lgtm/k8s-monitoring
+            repo: sanselmechart
+            values: |
+              alloy-metrics:
+                enabled: true
+              cluster:
+                name: kubernetes
+              clusterMetrics:
+                enabled: true
+              destinations:
+                - name: prometheus
+                  type: prometheus
+                  url: http://prometheus.observability.svc.cluster.local:9090
+          - path: deployment/chart/lgtm/lgtm-distributed
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/kubernetes-node-problem-detector
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/prometheus-blackbox-exporter
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/prometheus-node-exporter
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/prometheus-openstack-exporter
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/prometheus-process-exporter
+            repo: sanselmechart
+          # note: knative
+          - path: deployment/chart/knative/knative-eventing
+            repo: sanselmechart
+          - path: deployment/chart/knative/knative-operator
+            repo: sanselmechart
+          - path: deployment/chart/knative/knative-serving
+            repo: sanselmechart
+          # note: cluster-api
+          - path: deployment/chart/capi/capi-cluster-class
+            repo: sanselmechart
+          - path: deployment/chart/capi/capi-operator
+            repo: sanselmechart
+          - path: deployment/chart/capi/capi-provider
+            repo: sanselmechart
+          - path: deployment/chart/capi/helm-chart-proxy
+            repo: sanselmechart
+          # note: data
+          - path: deployment/chart/osh/openstack-helm-infra/mariadb
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/memcached
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/mongodb
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/postgresql
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/rabbitmq
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/redis
+            repo: sanselmechart
+          # note: openstack
+          - path: deployment/chart/osh/openstack-helm/barbican
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm/cinder
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm/designate
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm/glance
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm/heat
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm/horizon
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm/keystone
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm/neutron
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm/nova
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm/octavia
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm/placement
+            repo: sanselmechart
+          # note: misc
+          - path: deployment/chart/gitea-runner
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/daemonjob-controller
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/kubernetes-keystone-webhook
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/ldap
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/libvirt
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/lockdown
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/metacontroller
+            repo: sanselmechart
+          - path: deployment/chart/osh/openstack-helm-infra/namespace-config
+            repo: sanselmechart
     permissions:
+      attestations: write
       contents: read
-      pages: write
       id-token: write
+      pages: write
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.1.7  https://github.com/actions/checkout/commit/692973e3d937129bcbf40652eb9f2f61becf3332
         with:
           fetch-depth: 0
           persist-credentials: false
+          submodules: true
 
-      - name: Download helm
+      - name: Download Helm
         uses: azure/setup-helm@fe7b79cd5ee1e45176fcad797de68ecaf3ca4814 # v4.2.0 https://github.com/Azure/setup-helm/commit/fe7b79cd5ee1e45176fcad797de68ecaf3ca4814
         with:
           version: v3.16.3 # default is latest (stable)
 
+      - name: Prep Chart
+        id: chart
+        run: |
+          set -x
+          helm dependency update ${{ matrix.chart.path }}
+          echo name=$(basename ${{ matrix.chart.path }}) >> ${GITHUB_OUTPUT}
 
-      # fixme: lint
-      # - name: Lint charts
-      #   run: |
-      #     set -x
-      #     helm lint ${{ matrix.repo.charts.path }}
+      - name: Lint Chart
+        run: |
+          set -x
+          helm lint ${{ matrix.chart.path }}
 
-      # fixme: template
-      # - name: Test charts
-      #   run: |
-      #     set -x
-      #     helm template ${{ matrix.repo.charts.path }}
+      - name: Test Chart
+        run: |
+          set -x
+          echo "${{ matrix.chart.values }}" | tee ${{ github.workspace }}/values.yaml
+          helm template ${{ matrix.chart.path }} --values ${{ github.workspace }}/values.yaml
 
-      # fixme: build
-      # - name: Package charts
-      #   run: |
-      #     set -x
-      #     helm package ${{ matrix.repo.charts.path }}
+      - name: Package Chart
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+        run: |
+          set -x
+          helm package --destination ${{ github.workspace }} ${{ matrix.chart.path }}
 
-      # fixme: upload
-      # - name: Push charts
+      # todo: signing
+      # - name: Sign Chart
       #   if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+
+      # fixme: upload attestation
+      - name: Attest Chart
+        uses: actions/attest-build-provenance@ef244123eb79f2f7a7e75d99086184180e6d0018 # v1.4.4 https://github.com/actions/attest-build-provenance/commit/ef244123eb79f2f7a7e75d99086184180e6d0018
+        with:
+          # github-token: ${{ matrix.repo.secret_name }}
+          # push-to-registry: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+          subject-name: ${{ matrix.repo.url }}/${{ matrix.repo.name }}/${{ steps.chart.outputs.name }}
+          subject-path: ${{ matrix.chart.path }}
+
+      # fixme: upload chart
+      # - name: Upload Chart
+      #   if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && matrix.repo.name == matrix.chart.repo }}
       #   run: |
       #     set -x
-      #     helm push ${{ matrix.repo.charts }}.tgz oci://${{ matrix.repo.url }}/${{ matrix.repo.name || github.repository_owner }}
+      #     repo=oci://${{ matrix.repo.url }}/${{ matrix.repo.name }}
+      #     # helm registry login ${repo} -u ${{ matrix.repo.username }} # fixme: login
+      #     helm push ${{ github.workspace }}/${{ steps.chart.outputs.name }}-*.tgz ${repo}
