@@ -1,0 +1,131 @@
+{{- if and .Values.byoh.enabled .Values.k0s.enabled }}
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: capi-byoh-k0s
+spec:
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: ByoClusterTemplate
+      name: capi-byoh-cluster
+  controlPlane:
+    {{- with .Values.machineHealthCheck }}
+    machineHealthCheck:
+      {{ . | toYaml | nindent 6 }}
+    {{- end }}
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: K0sControlPlaneTemplate
+      name: capi-k0s-control-plane
+    machineInfrastructure:
+      ref:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: ByoMachineTemplate
+        name: capi-byoh-control-plane
+  workers:
+    machineDeployments:
+      - class: default-worker
+        {{- with .Values.machineHealthCheck }}
+        machineHealthCheck:
+          {{ . | toYaml | nindent 10 }}
+        {{- end }}
+        template:
+          bootstrap:
+            ref:
+              apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+              kind: K0sWorkerConfigTemplate
+              name: capi-k0s-bootstrap
+          infrastructure:
+            ref:
+              apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+              kind: ByoMachineTemplate
+              name: capi-byoh-machine
+  variables:
+    - name: siteName
+      schema:
+        openAPIV3Schema:
+          type: string
+          description: SiteName is the name of the site.
+          example: dev
+    - name: domainName
+      schema:
+        openAPIV3Schema:
+          type: string
+          description: DomainName is the domain name of the cluster.
+          example: cluster.local
+    - name: bundleLookupBaseRegistry
+      required: true
+      schema:
+        openAPIV3Schema:
+          type: string
+          description: The base registry for bundle lookup.
+          default: https://projects.registry.vmware.com/cluster_api_provider_bringyourownhost
+          example: https://projects.registry.vmware.com/cluster_api_provider_bringyourownhost
+    - name: controlPlaneIpAddr
+      required: true
+      schema:
+        openAPIV3Schema:
+          type: string
+          description: Floating VIP for the control plane.
+          example: 10.0.0.1
+  patches:
+    - name: sans
+      description: Add the cluster name to the SANs of the control plane.
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+            kind: K0sControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/k0sConfigSpec/k0s/spec/api/sans
+              valueFrom:
+                template: |
+                  - 'kubernetes.{{ `{{ .builtin.cluster.name }}` }}.{{ `{{ .siteName }}` }}.{{ `{{ .domainName }}` }}'
+    - name: version
+      description: Add the cluster topology version to the K0s version.
+      definitions:
+        - selector:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: K0sWorkerConfigTemplate
+            matchResources:
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/version
+              valueFrom:
+                template: '{{ `{{ .builtin.cluster.topology.version }}` }}+k0s.0'
+    - name: bundleLookupBaseRegistry
+      description: Sets the bundleLookupBaseRegistry used for the BYOCluster.
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: ByoClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/bundleLookupBaseRegistry
+              valueFrom:
+                variable: bundleLookupBaseRegistry
+    - name: controlPlaneEndpoint
+      description: Sets control plane endpoint
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: ByoClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/controlPlaneEndpoint
+              valueFrom:
+                template: |
+                  host: '{{ `{{ .controlPlaneIpAddr }}` }}'
+                  port: 6443
+{{- end }}

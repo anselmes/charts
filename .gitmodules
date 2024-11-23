@@ -10,3 +10,24 @@
 [submodule "modules/osh/openstack-helm-infra"]
   path = modules/osh/openstack-helm-infra
   url = https://opendev.org/openstack/openstack-helm-infra.git
+[submodule "modules/cert-manager/cert-manager"]
+	path = modules/cert-manager/cert-manager
+	url = https://github.com/cert-manager/cert-manager.git
+[submodule "modules/cert-manager/trust-manager"]
+	path = modules/cert-manager/trust-manager
+	url = https://github.com/cert-manager/trust-manager.git
+[submodule "modules/cert-manager/cert-manager-webhook-pdns"]
+	path = modules/cert-manager/cert-manager-webhook-pdns
+	url = https://github.com/zachomedia/cert-manager-webhook-pdns.git
+[submodule "modules/cni/cilium"]
+	path = modules/cni/cilium
+	url = https://github.com/cilium/cilium.git
+[submodule "modules/csi/openebs"]
+	path = modules/csi/openebs
+	url = https://github.com/openebs/openebs.git
+[submodule "modules/grafana"]
+	path = modules/grafana
+	url = https://github.com/grafana/helm-charts.git
+[submodule "modules/k8s-monitoring"]
+	path = modules/k8s-monitoring
+	url = https://github.com/grafana/k8s-monitoring-helm.git

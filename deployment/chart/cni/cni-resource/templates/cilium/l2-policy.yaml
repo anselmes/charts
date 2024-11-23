@@ -1,0 +1,12 @@
+{{- if .Values.cilium.advert.l2.enabled }}
+---
+apiVersion: cilium.io/v2alpha1
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: {{ include "cni-resources.fullname" . }}-l2-policy
+  labels:
+    {{- include "cni-resources.labels" . | nindent 4 }}
+spec:
+  externalIPs: {{ .Values.cilium.advert.l2.externalIPs }}
+  loadBalancerIPs: {{ .Values.cilium.advert.l2.loadBalancerIPs }}
+{{- end }}
