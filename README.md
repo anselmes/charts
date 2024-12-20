@@ -5,6 +5,7 @@
 [![OpenSSF Scorecard][ossf-score-badge]][ossf-score-link]
 [![Contiuos Integration][ci-badge]][ci-link]
 [![Review][review-badge]][review-link]
+[![Build Pipeline][build-badge]][build-link]
 
 [ossf-score-badge]: https://api.securityscorecards.dev/projects/github.com/anselmes/charts/badge
 [ossf-score-link]: https://securityscorecards.dev/viewer/?uri=github.com/anselmes/charts
@@ -12,10 +13,12 @@
 [ci-link]: https://github.com/anselmes/charts/actions/workflows/cicd.yml
 [review-badge]: https://github.com/anselmes/charts/actions/workflows/required/anselmes/cicd/.github/workflows/review.yml/badge.svg
 [review-link]: https://github.com/anselmes/charts/actions/workflows/required/anselmes/cicd/.github/workflows/review.yml
+[build-badge]: https://github.com/anselmes/charts/actions/workflows/build.yml/badge.svg
+[build-link]: https://github.com/anselmes/charts/actions/workflows/build.yml
 
 ---
 
-Copyright (c) 2023 Schubert Anselme <schubert@anselm.es>
+Copyright (c) Schubert Anselme <schubert@anselm.es>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
