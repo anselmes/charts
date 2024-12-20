@@ -34,6 +34,7 @@ jobs:
       repository-projects: read
       security-events: write
       statuses: read
+
   scorecard:
     uses: anselmes/cicd/.github/workflows/scorecard.yml@main # main https://github.com/anselmes/cicd/commit/main
     permissions:

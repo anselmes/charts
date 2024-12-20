@@ -2,7 +2,7 @@
   "name": "Charts",
   "dockerComposeFile": ["${localWorkspaceFolder}/compose-dev.yaml"],
   "service": "charts",
-  "workspaceFolder": "/home/devcontainer",
+  "workspaceFolder": "/home/devcontainer/workspace",
   "postCreateCommand": "${containerWorkspaceFolder}/scripts/configure.sh",
   "remoteUser": "devcontainer"
 }
