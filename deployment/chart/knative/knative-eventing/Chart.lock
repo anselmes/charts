@@ -1,6 +1,0 @@
-dependencies:
-- name: knative-operator
-  repository: file://../knative-operator
-  version: 0.2.0
-digest: sha256:a2074302e2ad9007c4fef9251c46342a2826b9617f77683a0db5483e9999860e
-generated: "2024-06-06T17:25:50.97842-04:00"

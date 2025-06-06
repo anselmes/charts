@@ -1,8 +1,0 @@
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: operator-webhook-certs
-  labels:
-    {{- include "knative-operator.webhook.labels" . | nindent 4 }}
-# The data is populated at install time.

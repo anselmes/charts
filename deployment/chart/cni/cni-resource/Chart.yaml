@@ -1,5 +1,0 @@
-apiVersion: v2
-description: CNI resoures
-name: cni-resource
-type: application
-version: 0.1.0
