@@ -1,0 +1,18 @@
+---
+core: cluster-api:v1.8.3
+# bootstrap: kubeadm:v1.8.3
+# controlPlane: kubeadm:v1.8.3
+# infrastructure: docker:v1.8.3
+# addon: helm:v0.2.5
+manager: {}
+# featureGates:
+#   core:
+#     ClusterTopology: true
+#     MachinePool: true
+#   docker:
+#     ClusterTopology: true
+#     MachinePool: true
+#   kubeadm:
+#     ClusterTopology: true
+#     MachinePool: true
+configSecret: {}

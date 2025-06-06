@@ -1,0 +1,174 @@
+{{- if and .Values.vsphere.enabled .Values.kubeadm.enabled }}
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: capi-vsphere-kubeadm
+spec:
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: VSphereClusterTemplate
+      name: capi-vsphere-cluster
+  controlPlane:
+    {{- with .Values.machineHealthCheck }}
+    machineHealthCheck:
+      {{ . | toYaml | nindent 6 }}
+    {{- end }}
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: capi-kubeadm-control-plane
+    machineInfrastructure:
+      ref:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: VSphereMachineTemplate
+        name: capi-vsphere-control-plane
+  workers:
+    machineDeployments:
+      - class: default-worker
+        {{- with .Values.machineHealthCheck }}
+        machineHealthCheck:
+          {{ . | toYaml | nindent 10 }}
+        {{- end }}
+        template:
+          bootstrap:
+            ref:
+              apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+              kind: KubeadmConfigTemplate
+              name: capi-kubeadm-bootstrap
+          infrastructure:
+            ref:
+              apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+              kind: VSphereMachineTemplate
+              name: capi-vsphere-machine
+  variables:
+    - name: infraServer
+      required: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            thumbprint:
+              type: string
+              description: Thumbprint of the infra server.
+              example: 4F:1D:8C:5A:3B:9F:3F:3B:5D:5D:3C:3A:5D:5D:3C:3A:5D:5D:3C:3A
+            url:
+              type: string
+              description: URL of the infra server.
+              example: vsphere.local
+    - name: controlPlaneIpAddr
+      required: true
+      schema:
+        openAPIV3Schema:
+          type: string
+          description: Floating VIP for the control plane.
+          example: 10.0.0.1
+  patches:
+    - name: infraClusterSubstitutions
+      description: Substitutions for the infra cluster.
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: VSphereClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/controlPlaneEndpoint
+              valueFrom:
+                template: |
+                  host: '{{ `{{ .controlPlaneIpAddr }}` }}'
+                  port: 6443
+            - op: add
+              path: /spec/template/spec/server
+              valueFrom:
+                variable: infraServer.url
+            - op: add
+              path: /spec/template/spec/thumbprint
+              valueFrom:
+                variable: infraServer.thumbprint
+    - name: infraMachineSubstitutions
+      description: Substitutions for the infra machines.
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: VSphereMachineTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/server
+              valueFrom:
+                variable: infraServer.url
+            - op: add
+              path: /spec/template/spec/thumbprint
+              valueFrom:
+                variable: infraServer.thumbprint
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: VSphereMachineTemplate
+            matchResources:
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/server
+              valueFrom:
+                variable: infraServer.url
+            - op: add
+              path: /spec/template/spec/thumbprint
+              valueFrom:
+                variable: infraServer.thumbprint
+    - name: kubeVipPodManifest
+      description: Adds kube-vip to the control plane.
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+            kind: KubeadmControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/kubeadmConfigSpec/files/-
+              value:
+                path: /etc/kubernetes/manifests/kube-vip.yaml
+                content: |
+                  apiVersion: v1
+                  kind: Pod
+                  metadata:
+                    creationTimestamp: null
+                    name: kube-vip
+                    namespace: kube-system
+                  spec:
+                    containers:
+                    - args:
+                      - manager
+                      env:
+                      - name: cp_enable
+                        value: "true"
+                      image: ghcr.io/kube-vip/kube-vip:v0.5.0
+                      imagePullPolicy: IfNotPresent
+                      name: kube-vip
+                      resources: {}
+                      securityContext:
+                        capabilities:
+                          add:
+                          - NET_ADMIN
+                          - NET_RAW
+                      volumeMounts:
+                      - mountPath: /etc/kubernetes/admin.conf
+                        name: kubeconfig
+                    hostNetwork: true
+                    hostAliases:
+                      - hostnames:
+                          - kubernetes
+                        ip: {{ `{{ .controlPlaneIpAddr }}` }}
+                    volumes:
+                    - hostPath:
+                        path: /etc/kubernetes/admin.conf
+                        type: FileOrCreate
+                      name: kubeconfig
+                  status: {}
+{{- end }}

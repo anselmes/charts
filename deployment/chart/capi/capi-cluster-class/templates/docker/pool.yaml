@@ -1,0 +1,11 @@
+{{- if .Values.docker.enabled }}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachinePoolTemplate
+metadata:
+  name: capi-capd-machine-pool
+spec:
+  template:
+    spec:
+      template: {}
+{{- end }}

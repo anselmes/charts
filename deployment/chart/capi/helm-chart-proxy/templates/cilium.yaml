@@ -1,0 +1,25 @@
+{{- if .Values.cilium.enabled }}
+---
+apiVersion: addons.cluster.x-k8s.io/v1alpha1
+kind: HelmChartProxy
+metadata:
+  name: cilium
+  labels:
+    {{- include "helm-chart-proxy.labels" . | nindent 4 }}
+spec:
+  namespace: kube-system
+  chartName: cilium
+  releaseName: cilium
+  repoURL: {{ .Values.cilium.repoURL }}
+  version: {{ .Values.cilium.version }}
+  clusterSelector:
+    {{- toYaml .Values.cilium.selector | nindent 4 }}
+  options:
+    timeout: {{ .Values.cilium.timeout }}
+    wait: {{ .Values.cilium.wait }}
+    waitForJobs: {{ .Values.cilium.waitForJobs }}
+  {{- with .Values.cilium.valuesTemplate }}
+  valuesTemplate: |
+    {{ toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
