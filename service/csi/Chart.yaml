@@ -25,3 +25,8 @@ dependencies:
     description: A Helm chart that references official "rook-ceph-cluster" Helm chart.
     version: v1.17.3
     condition: rook-ceph-cluster.enabled
+  - name: vsphere-csi-driver
+    repository: https://charts.mirantis.com
+    description: A Helm chart that references official "vsphere-csi-driver" Helm chart.
+    version: 0.0.3
+    condition: vsphere-csi-driver.enabled

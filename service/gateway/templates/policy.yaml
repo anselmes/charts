@@ -1,0 +1,22 @@
+{{- range .Values.policies }}
+---
+apiVersion: gateway.networking.k8s.io/v1alpha3
+kind: BackendTLSPolicy
+metadata:
+  name: {{ .name }}
+spec:
+  validation:
+    hostname: {{ .validation.hostname }}
+    {{- if .validation.wellKnownCACertificates }}
+    wellKnownCACertificates: {{ .validation.wellKnownCACertificates }}
+    {{- else }}
+    {{- with .validation.caCertificateRefs }}
+    caCertificateRefs:
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- end }}
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: dev
+{{- end }}

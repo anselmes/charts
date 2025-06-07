@@ -1,0 +1,10 @@
+---
+openstack-cloud-controller-manager:
+  # Enable or disable the OpenStack Cloud Controller Manager.
+  # Set to true to deploy the OpenStack Cloud Controller Manager in your Kubernetes cluster.
+  enabled: false
+
+vsphere-cpi:
+  # Enable or disable the vSphere Cloud Provider Interface (CPI).
+  # Set to true to deploy the vSphere CPI in your Kubernetes cluster.
+  enabled: false

@@ -1,0 +1,27 @@
+{{- range .Values.certificates }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .name }}-cert
+spec:
+  secretName: {{ .name }}-tls
+  duration: {{ .duration }}
+  renewBefore: {{ .renewal }}
+  commonName: {{ .dns.name }}
+  issuerRef:
+    name: {{ .issuerRef.name }}
+    kind: {{ .issuerRef.kind }}
+  dnsNames:
+  {{- range .dns.aliases }}
+    - {{ . }}
+  {{- end }}
+  ipAddresses:
+  {{- range .dns.addresses }}
+    - {{ . }}
+  {{- end }}
+  usages:
+  {{- range .dns.usages }}
+    - {{ . }}
+  {{- end }}
+{{- end }}

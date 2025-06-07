@@ -133,6 +133,7 @@ rook-ceph:
     # Enable or disable the creation of Custom Resource Definitions (CRDs)
     enabled: true
 
+# Configuration for Rook Ceph cluster
 rook-ceph-cluster:
   # Enable or disable the Rook Ceph cluster
   # Set to true to deploy a Ceph cluster managed by Rook.
@@ -235,16 +236,66 @@ rook-ceph-cluster:
           # Region for the object store
           region: us-east-1
   cephBlockPoolsVolumeSnapshotClass:
-    # Enable or disable the volume snapshot class for block pools
+    # Enable or disable the volume snapshot class for block pools.
+    # Set to true to allow snapshots for Ceph block pools.
     enabled: false
-    # Name of the volume snapshot class
+    # Name of the volume snapshot class for Ceph block pools.
+    # This name will be used to reference the snapshot class in Kubernetes.
     name: ceph-block
-    # Set the snapshot class as the default
+    # Set the snapshot class as the default for block pools.
+    # If true, this snapshot class will be used by default for block pool snapshots.
     isDefault: false
   cephFileSystemVolumeSnapshotClass:
-    # Enable or disable the volume snapshot class for filesystems
+    # Enable or disable the volume snapshot class for Ceph filesystems.
+    # Set to true to allow snapshots for Ceph filesystems.
     enabled: false
-    # Name of the volume snapshot class
+    # Name of the volume snapshot class for Ceph filesystems.
+    # This name will be used to reference the snapshot class in Kubernetes.
     name: ceph-filesystem
-    # Set the snapshot class as the default
+    # Set the snapshot class as the default for filesystems.
+    # If true, this snapshot class will be used by default for filesystem snapshots.
     isDefault: true
+
+# Configuration for the vSphere CSI driver
+vsphere-csi-driver:
+  # Enable or disable the vSphere CSI driver.
+  # Set to true to deploy the vSphere CSI driver in your Kubernetes cluster.
+  enabled: false
+  vcenterConfig:
+    # Enable or disable the vCenter configuration.
+    # Set to true to use a vCenter configuration for the vSphere CSI driver.
+    enabled: false
+    # Name of the Kubernetes secret containing vCenter credentials.
+    secretName: vcenter-config-secret
+    # Cluster ID for the vSphere environment.
+    # Specify the unique identifier for the vSphere cluster.
+    clusterID: null
+    # Thumbprint of the vCenter server certificate.
+    # Used for secure communication with the vCenter server.
+    thumbprint: null
+    # Address of the vCenter server.
+    # Specify the hostname or IP address of the vCenter server.
+    vcenter: null
+    # Allow or disallow insecure communication with the vCenter server.
+    # Set to "true" to allow insecure communication (not recommended for production).
+    insecure: "true"
+    # Username for vCenter authentication.
+    user: null
+    # Password for vCenter authentication.
+    password: null
+    # Port number for vCenter communication.
+    # Default is 443 for HTTPS communication.
+    port: 443
+    # List of datacenters in the vSphere environment.
+    # Specify the names of the datacenters to be used by the CSI driver.
+    datacenters: null
+  defaultStorageClass:
+    # Name of the default storage class.
+    # Specify the name of the storage class to be used as the default.
+    name: vsphere-csi
+    # Enable or disable the default storage class.
+    # Set to true to make this storage class the default for dynamic provisioning.
+    enabled: true
+    # Allow or disallow volume expansion for the default storage class.
+    # Set to true to enable resizing of persistent volumes created by this storage class.
+    allowVolumeExpansion: true

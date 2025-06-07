@@ -1,0 +1,122 @@
+---
+routes: []
+# Define the routes for the Gateway API.
+# Each route specifies the type of traffic (e.g., HTTP, TLS, gRPC) and the backend services to route to.
+# Example:
+# - name: nginx
+#   kind: HTTPRoute
+#   hostnames:
+#     - nginx.local
+#   rules:
+#     - backendRefs:
+#         - name: nginx-svc
+#           port: 80
+#   gateways:
+#     - name: default-gateway
+#       namespace: default
+# - name: kafka
+#   kind: TLSRoute
+#   rules:
+#     - backendRefs:
+#         - name: kafka-svc
+#           port: 9092
+#   gateways:
+#     - name: tls-gateway
+# - name: hello-world
+#   kind: GRPCRoute
+#   rules:
+#     - backendRefs:
+#         - name: hello-world-svc
+#           port: 8080
+#   gateways:
+#     - name: grpc-gateway
+
+policies: []
+# Define policies for the Gateway API.
+# Policies can include validation rules, such as hostname validation or certificate references.
+# Example:
+# - name: tls-upstream-dev
+#   validation:
+#     hostname: dev.example.com
+#     wellKnownCACertificates: System
+#     # caCertificateRefs:
+#     #   - group: ""
+#     #     kind: ConfigMap
+#     #     name: auth-cert
+
+grants: []
+# Define resource grants for the Gateway API.
+# Grants specify which resources (e.g., Secrets) can be referenced by Gateways.
+# Example:
+# - name: allow-ns1-gateways-to-ref-secrets
+#   to:
+#     - group: ""
+#       kind: Secret
+#   from:
+#     - group: gateway.networking.k8s.io
+#       kind: Gateway
+
+gateways:
+# Define the Gateway configurations.
+# Each Gateway specifies its name, class, and listeners for handling traffic.
+- name: default-gateway
+  className: cilium
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+    # Example for HTTPS listener:
+    # - name: https
+    #   port: 443
+    #   protocol: HTTPS
+    #   hostname: "*.local"
+    #   allowedRoutes:
+    #     namespaces:
+    #       from: All
+    #   tls:
+    #     mode: Terminate
+    #     certificateRefs:
+    #       - name: default-gw-cert
+    #         issuer: self-signed-ca-issuer
+- name: tls-gateway
+  className: cilium
+  listeners:
+    - name: tls
+      port: 443
+      protocol: TLS
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: TLSRoute
+      tls:
+        mode: Passthrough
+- name: grpc-gateway
+  className: cilium
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: GRPCRoute
+    # Example for gRPC listener:
+    # - name: grpc
+    #   port: 443
+    #   protocol: HTTPS
+    #   hostname: "*.svc.local"
+    #   allowedRoutes:
+    #     namespaces:
+    #       from: All
+    #     kinds:
+    #       - kind: GRPCRoute
+    #   tls:
+    #     mode: Terminate
+    #     certificateRefs:
+    #       - name: grpc-gw-cert
+    #         issuer: self-signed-ca-issuer

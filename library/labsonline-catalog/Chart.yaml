@@ -1,0 +1,6 @@
+apiVersion: v2
+appVersion: 1.0.0
+description: Supported ServiceTemplates for labsonline
+name: labsonline-catalog
+type: application
+version: 1.0.0

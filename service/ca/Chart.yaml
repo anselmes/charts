@@ -1,0 +1,17 @@
+---
+apiVersion: v2
+type: application
+name: ca
+description: A Helm chart that deploys cert-manager and its dependencies.
+version: 1.0.0
+dependencies:
+  - name: cert-manager
+    repository: https://charts.jetstack.io
+    description: A Helm chart that references official "cert-manager" Helm chart.
+    version: 1.17.2
+    condition: cert-manager.enabled
+  - name: trust-manager
+    repository: https://charts.jetstack.io
+    description: A Helm chart that references official "trust-manager" Helm chart.
+    version: 0.17.1
+    condition: trust-manager.enabled

@@ -1,0 +1,106 @@
+---
+# List of certificates to be managed by cert-manager.
+# Each certificate defines the desired state of a TLS certificate.
+certificates: []
+# - name: example-certificate  # Name of the certificate resource.
+#   duration: 2160h            # Validity duration of the certificate (90 days).
+#   renewal: 360h              # Time before expiration to renew the certificate (15 days).
+#   dns:
+#     name: example.com        # Common name (CN) for the certificate.
+#     aliases:
+#       - example.com          # Primary DNS name for the certificate.
+#       - www.example.com      # Additional DNS names (aliases).
+#     addresses:
+#       - 192.168.1.1          # Optional: IP addresses for the certificate.
+#     usages:
+#       - digital signature    # Key usage: Digital signature.
+#       - key encipherment     # Key usage: Key encipherment.
+#       - server auth          # Key usage: Server authentication.
+#       - client auth          # Key usage: Client authentication.
+#   issuerRef:
+#     name: ca-clusterissuer-self-signed  # Name of the issuer or ClusterIssuer.
+#     kind: ClusterIssuer                 # Kind of the issuer (Issuer or ClusterIssuer).
+
+# List of issuers to configure for cert-manager.
+# Each issuer defines how certificates are issued and managed.
+issuers:
+  # Example of a self-signed ClusterIssuer.
+  - name: ca-clusterissuer-self-signed
+    clustered: true   # Indicates that this is a ClusterIssuer.
+    selfSigned: true  # Specifies that this issuer is self-signed.
+    secret:
+      create: false
+
+  # Example of a CA issuer.
+  # - name: ca-issuer
+  #   certManagerNamespace: cert-manager  # Namespace where cert-manager is deployed.
+  #   type: ca                            # Specifies the type of issuer as CA.
+  #   secret:
+  #     name: ca-secret   # Name of the secret containing CA credentials.
+  #     create: true
+  #     ca:
+  #       crt: null  # CA certificate.
+  #       key: null  # CA private key.
+
+  # Example of an ACME issuer using RFC2136 DNS provider.
+  # - name: ca-issuer-rfc2136
+  #   certManagerNamespace: cert-manager  # Namespace where cert-manager is deployed.
+  #   type: acme                          # Specifies the type of issuer as ACME.
+  #   secret:
+  #     name: ca-rfc2136-secret   # Name of the secret containing ACME credentials.
+  #     create: true
+  #     tsig: null                # TSIG credentials for RFC2136.
+  #   acme:
+  #     email: admin@kubernetes.io                              # Email address for ACME registration.
+  #     server: https://acme-v02.api.letsencrypt.org/directory  # ACME server URL.
+  #     provider:
+  #       type: rfc2136               # Specifies the DNS provider type as RFC2136.
+  #       rfc2136:
+  #         nameserver: 127.0.0.1:53  # DNS server address.
+  #         tsig:
+  #           algo: HMACSHA512        # TSIG algorithm.
+  #           keyName: tsig-cred      # TSIG key name.
+  #           secretKey: token        # TSIG secret key.
+
+  # Example of an ACME issuer using a webhook DNS provider.
+  # - name: ca-issuer-webhook
+  #   certManagerNamespace: cert-manager  # Namespace where cert-manager is deployed.
+  #   type: acme                          # Specifies the type of issuer as ACME.
+  #   secret:
+  #     name: ca-webhook-secret  # Name of the secret containing ACME credentials.
+  #     create: true
+  #     token: null  # Token for ACME account.
+  #   acme:
+  #     email: admin@kubernetes.io                              # Email address for ACME registration.
+  #     server: https://acme-v02.api.letsencrypt.org/directory  # ACME server URL.
+  #     provider:
+  #       type: webhook  # Specifies the DNS provider type as webhook.
+  #       webhook:
+  #         group: acme.kubernetes.io       # Webhook group name.
+  #         solver: pdns                    # Webhook solver type.
+  #         config:
+  #           host: http://127.0.0.1:8081   # Webhook server host.
+  #           secretKey: token              # Webhook secret key.
+
+# Configuration for cert-manager.
+cert-manager:
+  # Enable or disable cert-manager.
+  # Set to true to deploy cert-manager in your Kubernetes cluster.
+  enabled: false
+  # Enable or disable the Certificate Owner Reference feature.
+  # Set to true to enable automatic garbage collection of certificates.
+  enableCertificateOwnerRef: true
+  crds:
+    # Enable or disable the installation of Custom Resource Definitions (CRDs).
+    # Set to true to install CRDs required by cert-manager.
+    enabled: true
+  config:
+    apiVersion: controller.config.cert-manager.io/v1alpha1
+    kind: ControllerConfiguration
+    enableGatewayAPI: false  # Enable or disable Gateway API support.
+
+# Configuration for trust-manager.
+trust-manager:
+  # Enable or disable trust-manager.
+  # Set to true to deploy trust-manager in your Kubernetes cluster.
+  enabled: false

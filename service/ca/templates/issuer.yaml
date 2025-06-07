@@ -1,0 +1,43 @@
+{{- range .Values.issuers }}
+---
+{{- if .clustered }}
+kind: ClusterIssuer
+{{- else }}
+kind: Issuer
+{{- end }}
+apiVersion: cert-manager.io/v1
+metadata:
+  name: {{ .name }}
+spec:
+  {{- if .selfSigned }}
+  selfSigned: {}
+  {{- else if eq .type "ca" }}
+  ca:
+    secretName: {{ .secret.name }}
+  {{- else if eq .type "acme" }}
+  acme:
+    email: {{ .acme.email }}
+    server: {{ .acme.server }}
+    privateKeySecretRef:
+      name: {{ .name }}-account-key
+    solvers:
+      - dns01:
+          {{- if eq .acme.provider.type "rfc2136" }}
+          rfc2136:
+            nameserver: {{ .acme.provider.rfc2136.nameserver }}
+            tsigKeyName: {{ .acme.provider.rfc2136.tsig.keyName }}
+            tsigAlgorithm: {{ .acme.provider.rfc2136.tsig.algo }}
+            tsigSecretRef:
+              name: {{ .secret.name }}
+              key: {{ .acme.provider.rfc2136.tsig.secretKey }}
+          {{- else if eq .acme.provider.type "webhook" }}
+          webhook:
+            groupName: {{ .acme.provider.webhook.group }}
+            solverName: {{ .acme.provider.webhook.solver }}
+            {{- with .acme.provider.webhook.config }}
+            config:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+          {{- end }}
+  {{- end }}
+{{- end }}
