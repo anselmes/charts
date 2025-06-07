@@ -1,0 +1,10 @@
+apiVersion: v2
+name: edns
+type: application
+description: ExternalDNS service for managing DNS records in Kubernetes clusters.
+version: 1.0.0
+dependencies:
+  - name: external-dns
+    repository: https://kubernetes-sigs.github.io/external-dns/
+    version: 1.16.1
+    condition: external-dns.enabled

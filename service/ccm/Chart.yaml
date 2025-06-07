@@ -9,9 +9,7 @@ dependencies:
     repository: https://kubernetes.github.io/cloud-provider-openstack
     version: 2.30.2
     condition: openstack-cloud-controller-manager.enabled
-    description: A Helm chart that references official "openstack-cloud-controller-manager" Helm chart.
   - name: vsphere-cpi
     repository: https://kubernetes.github.io/cloud-provider-vsphere
     version: 1.33.0
     condition: vsphere-cpi.enabled
-    description: A Helm chart that references official "vsphere-cpi" Helm chart.

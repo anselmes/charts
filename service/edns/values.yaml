@@ -1,0 +1,136 @@
+---
+endpoints:
+  # Define DNS endpoints to be managed by ExternalDNS.
+  # Each endpoint specifies a name and a list of DNS records to create or manage.
+  # Example endpoints can include A, CNAME, MX, TXT, or NS records.
+  - name: examplearecord
+    # List of DNS records for this endpoint.
+    records:
+      - name: example.com
+        # Targets specify the IP addresses or hostnames for the DNS record.
+        # For A records, targets are typically IP addresses.
+        targets:
+          - 10.0.0.1
+  # - name: examplecnamerecord
+  #   records:
+  #     - name: test-a.example.com
+  #       # Specify the type of DNS record (e.g., A, CNAME, NS, etc.).
+  #       # CNAME records map one domain name to another.
+  #       type: CNAME
+  #       # Time-to-live (TTL) for the DNS record in seconds.
+  #       # TTL defines how long the record is cached by DNS resolvers.
+  #       ttl: 300
+  #       targets:
+  #         - example.com
+  # - name: examplemxrecord
+  #   records:
+  #     - name: example.com
+  #       # Specify the type of DNS record as MX for mail exchange.
+  #       type: MX
+  #       # Time-to-live (TTL) for the DNS record in seconds.
+  #       ttl: 180
+  #       # Targets specify the priority and mail server for the MX record.
+  #       targets:
+  #         - 10 mailhost1.example.com
+  #         - 20 mailhost2.example.com
+  # - name: exampletxtrecord
+  #   records:
+  #     - name: example.com
+  #       # Specify the type of DNS record as TXT for text-based information.
+  #       type: TXT
+  #       # Time-to-live (TTL) for the DNS record in seconds.
+  #       ttl: 180
+  #       # Targets specify the text data for the TXT record.
+  #       targets:
+  #         - SOMETXT
+  #         - ANOTHERTXT
+  # - name: ns-record
+  #   records:
+  #     - name: zone.example.com
+  #       # Specify the type of DNS record as NS for nameserver delegation.
+  #       type: NS
+  #       # Time-to-live (TTL) for the DNS record in seconds.
+  #       ttl: 300
+  #       # Targets specify the authoritative nameservers for the NS record.
+  #       targets:
+  #         - ns1.example.com
+  #         - ns2.example.com
+
+external-dns:
+  # Enable or disable the ExternalDNS integration.
+  # Set to true to deploy ExternalDNS and manage DNS records dynamically.
+  # ExternalDNS automatically updates DNS records based on Kubernetes resources.
+  enabled: false
+  # Policy for managing DNS records. Options include:
+  # - "sync": Synchronize DNS records with the current state of Kubernetes resources.
+  # - "upsert-only": Only create or update DNS records, but do not delete them.
+  # - "create-only": Only create DNS records, but do not update or delete them.
+  policy: sync
+  # Define the sources of DNS records for ExternalDNS.
+  # Examples include Kubernetes CRDs, Gateway API routes, and services.
+  sources:
+    - crd
+    - gateway-grpcroute
+    - gateway-httproute
+    - gateway-tcproute
+    - gateway-tlsroute
+    - gateway-udproute
+    - service
+  provider:
+    # Specify the DNS provider to use. Example: "webhook".
+    name: webhook
+    env:
+      # Define environment variables for the DNS provider.
+      # Example: Infoblox credentials for managing DNS records.
+      - name: INFOBLOX_HOST
+        valueFrom:
+          secretKeyRef:
+            name: infoblox-credentials
+            key: host
+      - name: INFOBLOX_WAPI_USER
+        valueFrom:
+          secretKeyRef:
+            name: infoblox-credentials
+            key: username
+      - name: INFOBLOX_WAPI_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: infoblox-credentials
+            key: password
+      # Uncomment and configure additional environment variables as needed.
+      # - name: CF_API_TOKEN
+      #   valueFrom:
+      #     secretKeyRef:
+      #       name: cloudflare-api-key
+      #       key: apiKey
+      # - name: EXTERNAL_DNS_RFC2136_TSIG_SECRET
+      #   valueFrom:
+      #     secretKeyRef:
+      #       name: rfc2136-keys
+      #       key: rfc2136-tsig-secret
+      # - name: EXTERNAL_DNS_RFC2136_TSIG_KEYNAME
+      #   valueFrom:
+      #     secretKeyRef:
+      #       name: rfc2136-keys
+      #       key: rfc2136-tsig-keyname
+    webhook:
+      # Configuration for the webhook provider.
+      image:
+        repository: null
+        tag: null
+      # Uncomment and configure extra volume mounts if needed.
+      # extraVolumeMounts:
+      #   - name: oscloudsyaml
+      #     mountPath: /etc/openstack/
+  # Uncomment and configure additional arguments for ExternalDNS as needed.
+  # extraArgs:
+  #   - --rfc2136-host=dns-host-1.yourdomain.com
+  #   - --rfc2136-port=53
+  #   - --rfc2136-tsig-axfr
+  #   - --rfc2136-tsig-secret-alg=hmac-sha256
+  #   - --rfc2136-zone=example.com
+  # Uncomment and configure extra volumes if needed.
+  # extraVolumes:
+  #   - name: oscloudsyaml
+  #     secret:
+  #       secretName: oscloudsyaml

@@ -11,11 +11,13 @@ SERVICES=(
   ccm
   cni
   csi
+  edns
   gateway
 )
 TEMPLATES=(
   ca-service-template
   crd-service-template
+  edns-service-template
   gateway-service-template
 )
 

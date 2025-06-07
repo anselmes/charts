@@ -77,7 +77,7 @@ issuers:
   #       type: webhook  # Specifies the DNS provider type as webhook.
   #       webhook:
   #         group: acme.kubernetes.io       # Webhook group name.
-  #         solver: pdns                    # Webhook solver type.
+  #         solver: infoblox                # Webhook solver type.
   #         config:
   #           host: http://127.0.0.1:8081   # Webhook server host.
   #           secretKey: token              # Webhook secret key.

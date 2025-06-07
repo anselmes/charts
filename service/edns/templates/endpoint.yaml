@@ -1,0 +1,20 @@
+{{- range .Values.endpoints }}
+---
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: {{ .name }}
+spec:
+  {{- range .records }}
+  endpoints:
+    - dnsName: {{ .name }}
+      recordTTL: {{ .ttl | default 60 }}
+      recordType: {{ .type | default "A" }}
+      {{- if .targets }}
+      targets:
+      {{- range .targets }}
+        - {{ . }}
+      {{- end }}
+      {{- end }}
+  {{- end }}
+{{- end }}
