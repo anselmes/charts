@@ -3,9 +3,8 @@
 apiVersion: cilium.io/v2alpha1
 kind: CiliumBGPAdvertisement
 metadata:
-  name: {{ include "cni-resources.fullname" . }}-advert
+  name: bgp-advert
   labels:
-    {{- include "cni-resources.labels" . | nindent 4 }}
     {{- range .Values.cilium.bgp.peer.addressFamilies }}
     {{- .advertisements.matchLabels | toYaml | nindent 4 }}
     {{- end }}

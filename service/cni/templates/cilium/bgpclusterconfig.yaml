@@ -3,9 +3,7 @@
 apiVersion: cilium.io/v2alpha1
 kind: CiliumBGPClusterConfig
 metadata:
-  name: {{ include "cni-resources.fullname" . }}-cluster-config
-  labels:
-    {{- include "cni-resources.labels" . | nindent 4 }}
+  name: bgp-cluster-config
 spec:
   {{- if .Values.cilium.bgp.nodeSelector }}
   nodeSelector: {{ .Values.cilium.bgp.nodeSelector | toYaml | nindent 4 }}

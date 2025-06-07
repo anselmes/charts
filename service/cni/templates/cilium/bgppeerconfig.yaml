@@ -3,9 +3,7 @@
 apiVersion: cilium.io/v2alpha1
 kind: CiliumBGPPeerConfig
 metadata:
-  name: {{ include "cni-resources.fullname" . }}-peer-config
-  labels:
-    {{- include "cni-resources.labels" . | nindent 4 }}
+  name: bgp-peer-config
 spec:
   authSecretRef: {{ .Values.cilium.bgp.peer.authSecretRef }}
   ebgpMultihop: {{ .Values.cilium.bgp.peer.multiHop }}

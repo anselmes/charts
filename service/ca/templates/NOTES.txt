@@ -1,0 +1,47 @@
+# NOTES
+
+Thank you for installing the CA Helm chart!
+
+This chart deploys the Certificate Authority (CA) service and its associated resources, enabling secure certificate management for your Kubernetes cluster.
+
+## Next Steps
+
+1. **Verify Installation**:
+   - Check the status of the CA pods to ensure they are running:
+     ```bash
+     kubectl get pods -n <namespace> -l app=ca
+     ```
+
+2. **Validate CA Functionality**:
+   - Ensure that the CA service is properly configured and operational:
+     - Check the logs of the CA pods for any errors:
+       ```bash
+       kubectl logs -n <namespace> -l app=ca
+       ```
+     - Verify that certificates are being issued correctly:
+       ```bash
+       kubectl describe certificates -n <namespace>
+       ```
+
+3. **Monitor CA Health**:
+   - Inspect the status of the CA resources to ensure all components are healthy:
+     ```bash
+     kubectl get certificates -n <namespace>
+     kubectl get certificaterequests -n <namespace>
+     ```
+
+4. **Uninstallation**:
+   - To uninstall the chart and remove all associated resources, run:
+     ```bash
+     helm uninstall <release-name> -n <namespace>
+     ```
+
+## Additional Information
+
+- For more details on managing certificates in Kubernetes, refer to the [Kubernetes Certificate Management Documentation](https://kubernetes.io/docs/tasks/tls/managing-tls-in-a-cluster/).
+- If you encounter any issues:
+  - Check the events in the namespace where the CA is deployed:
+    ```bash
+    kubectl get events -n <namespace>
+    ```
+  - Review the logs of the CA pods for troubleshooting.

@@ -5,9 +5,7 @@
 apiVersion: cilium.io/v2alpha1
 kind: CiliumBGPNodeConfigOverride
 metadata:
-  name: {{ include "cni-resources.fullname" $ }}-node-config-override-{{ .name }}
-  labels:
-    {{- include "cni-resources.labels" $ | nindent 4 }}
+  name: bgp-node-config-override-{{ .name }}
 spec:
   bgpInstances:
     - name: {{ .name }}

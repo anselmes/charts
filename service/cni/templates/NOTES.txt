@@ -1,41 +1,61 @@
-# NOTES.txt
+# NOTES
 
 Thank you for installing the CNI Helm chart!
 
-This chart deploys the Cilium CNI plugin and its associated resources.
+This chart deploys the Cilium CNI plugin and its associated resources, enabling advanced networking and security features for your Kubernetes cluster.
 
 ## Next Steps
 
 1. **Verify Installation**:
-   - Check the status of the Cilium pods:
+   - Check the status of the Cilium pods to ensure they are running:
      ```bash
      kubectl get pods -n kube-system -l k8s-app=cilium
      ```
 
 2. **Validate CNI Functionality**:
-   - Ensure that the CNI is properly configured and networking is functional.
-   - Test pod-to-pod communication:
-     ```bash
-     kubectl run test-pod --image=busybox --restart=Never -- sleep 3600
-     kubectl exec -it test-pod -- ping <another-pod-ip>
-     ```
+   - Ensure that the CNI is properly configured and networking is functional:
+     - Test pod-to-pod communication:
+       ```bash
+       kubectl run test-pod --image=busybox --restart=Never -- sleep 3600
+       kubectl exec -it test-pod -- ping <another-pod-ip>
+       ```
+     - Test pod-to-service communication (if applicable):
+       ```bash
+       kubectl exec -it test-pod -- wget -qO- http://<service-name>
+       ```
 
 3. **BGP Configuration** (if enabled):
-   - Verify BGP advertisements:
+   - Verify BGP advertisements and ensure proper configuration:
      ```bash
      kubectl logs -n kube-system -l k8s-app=cilium | grep BGP
      ```
 
-4. **Uninstallation**:
-   - To uninstall the chart, run:
+4. **Monitor Cilium Health**:
+   - Check the Cilium status to ensure all components are healthy:
+     ```bash
+     cilium status
+     ```
+   - Inspect the Cilium network policies (if applied):
+     ```bash
+     cilium policy get
+     ```
+
+5. **Uninstallation**:
+   - To uninstall the chart and remove all associated resources, run:
      ```bash
      helm uninstall <release-name>
      ```
 
 ## Additional Information
 
-- For more details on Cilium, visit the [official documentation](https://docs.cilium.io/).
-- If you encounter any issues, check the logs of the Cilium pods:
-  ```bash
-  kubectl logs -n kube-system -l k8s-app=cilium
-  ```
+- For more details on Cilium and its features, visit the [official documentation](https://docs.cilium.io/).
+- If you encounter any issues:
+  - Check the logs of the Cilium pods:
+    ```bash
+    kubectl logs -n kube-system -l k8s-app=cilium
+    ```
+  - Review the events in the `kube-system` namespace:
+    ```bash
+    kubectl get events -n kube-system
+    ```
+- For troubleshooting and debugging, refer to the [Cilium troubleshooting guide](https://docs.cilium.io/en/stable/troubleshooting/).

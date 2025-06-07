@@ -3,9 +3,7 @@
 apiVersion: cilium.io/v2alpha1
 kind: CiliumLoadBalancerIPPool
 metadata:
-  name: {{ include "cni-resources.fullname" . }}-ip-pool
-  labels:
-    {{- include "cni-resources.labels" . | nindent 4 }}
+  name: lb-ip-pool
 spec:
   allowFirstLastIPs: {{ .Values.cilium.pool.allowFirstLastIPs | quote }}
   blocks:
