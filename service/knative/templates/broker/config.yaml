@@ -1,0 +1,22 @@
+{{- $vhost := .Values.resources.rabbitmq.clusterRef.vhost }}
+{{- $clusterName := .Values.resources.rabbitmq.clusterRef.name }}
+{{- $clusterNamespace := .Values.resources.rabbitmq.clusterRef.namespace | default "default" }}
+{{- if and .Values.resources.rabbitmq.enabled }}
+{{- range .Values.resources.rabbitmq.brokers }}
+{{- if .config.create }}
+---
+apiVersion: eventing.knative.dev/v1alpha1
+kind: RabbitmqBrokerConfig
+metadata:
+  name: {{ .config.name }}
+spec:
+  queueType: {{ .config.queueType }}
+  {{- if $vhost }}
+  vhost: {{ $vhost }}
+  {{- end }}
+  rabbitmqClusterReference:
+    name: {{ $clusterName }}
+    namespace: {{ $clusterNamespace }}
+{{- end }}
+{{- end }}
+{{- end }}

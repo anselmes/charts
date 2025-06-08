@@ -13,12 +13,14 @@ SERVICES=(
   csi
   edns
   gateway
+  knative
 )
 TEMPLATES=(
   ca-service-template
   crd-service-template
   edns-service-template
   gateway-service-template
+  knative-service-template
 )
 
 mkdir -p "${BUILD_DIR}"

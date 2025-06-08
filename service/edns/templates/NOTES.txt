@@ -1,0 +1,46 @@
+# NOTES
+
+Thank you for installing the ExternalDNS Helm chart!
+
+This chart deploys ExternalDNS and its associated resources, enabling dynamic DNS management for your Kubernetes cluster.
+
+## Next Steps
+
+1. **Verify Installation**:
+   - Check the status of the ExternalDNS pods to ensure they are running:
+     ```bash
+     kubectl get pods -n <namespace> -l app.kubernetes.io/name=external-dns
+     ```
+
+2. **Validate ExternalDNS Functionality**:
+   - Ensure that ExternalDNS is properly configured and operational:
+     - Check the logs of the ExternalDNS pods for any errors:
+       ```bash
+       kubectl logs -n <namespace> -l app.kubernetes.io/name=external-dns
+       ```
+     - Verify that DNS records are being created or updated as expected:
+       ```bash
+       kubectl describe endpoints -n <namespace>
+       ```
+
+3. **Monitor DNS Records**:
+   - Inspect the DNS records managed by ExternalDNS to ensure they are accurate:
+     ```bash
+     kubectl get endpoints -n <namespace>
+     ```
+
+4. **Uninstallation**:
+   - To uninstall the chart and remove all associated resources, run:
+     ```bash
+     helm uninstall <release-name> -n <namespace>
+     ```
+
+## Additional Information
+
+- For more details on ExternalDNS and its configuration, refer to the [official documentation](https://github.com/kubernetes-sigs/external-dns).
+- If you encounter any issues:
+  - Check the events in the namespace where ExternalDNS is deployed:
+    ```bash
+    kubectl get events -n <namespace>
+    ```
+  - Review the logs of the ExternalDNS pods for troubleshooting.

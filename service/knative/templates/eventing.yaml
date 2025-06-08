@@ -1,0 +1,46 @@
+{{- if .Values.event.enabled }}
+---
+apiVersion: operator.knative.dev/v1beta1
+kind: KnativeEventing
+metadata:
+  name: knative-eventing
+spec:
+  version: {{ .Values.version | quote }}
+  defaultBrokerClass: {{ .Values.event.defaultBrokerClass }}
+  {{- if .Values.event.config.enabled }}
+  config:
+    {{- with .Values.event.config.channel }}
+    default-ch-webhook:
+      {{- . | toYaml | nindent 6 }}
+    {{- end }}
+    {{- with .Values.event.config.broker }}
+    config-br-default-channel:
+      {{- . | toYaml | nindent 6 }}
+    {{- end }}
+  {{- end }}
+  {{- if .Values.event.sources.enabled }}
+  source:
+    ceph:
+      enabled: {{ .Values.event.sources.ceph }}
+    github:
+      enabled: {{ .Values.event.sources.github }}
+    gitlab:
+      enabled: {{ .Values.event.sources.gitlab }}
+    kafka:
+      enabled: {{ .Values.event.sources.kafka }}
+    natss:
+      enabled: {{ .Values.event.sources.natss }}
+    rabbitmq:
+      enabled: {{ .Values.event.sources.rabbitmq }}
+    redis:
+      enabled: {{ .Values.event.sources.redis }}
+  {{- end }}
+  {{- if .Values.event.backstage.enabled }}
+  additionalManifests:
+    - URL: https://github.com/knative-extensions/backstage-plugins/releases/{{ .Values.event.backstage.version }}/download/eventmesh.yaml
+  {{- end }}
+  {{- with .Values.event.deployments }}
+  deployments:
+    {{- . | toYaml | nindent 4 }}
+  {{- end }}
+{{- end }}

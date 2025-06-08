@@ -1,0 +1,27 @@
+{{- $vhost := .Values.resources.rabbitmq.clusterRef.vhost }}
+{{- $clusterName := .Values.resources.rabbitmq.clusterRef.name }}
+{{- $clusterNamespace := .Values.resources.rabbitmq.clusterRef.namespace | default "default" }}
+{{- if .Values.resources.rabbitmq.enabled }}
+{{- range .Values.resources.rabbitmq.sources }}
+---
+apiVersion: sources.knative.dev/v1alpha1
+kind: RabbitmqSource
+metadata:
+  name: {{ .name }}
+spec:
+  {{- if $vhost }}
+  vhost: {{ $vhost }}
+  {{- end }}
+  rabbitmqClusterReference:
+    name: {{ $clusterName }}
+    namespace: {{ $clusterNamespace }}
+  rabbitmqResourcesConfig:
+    exchangeName: {{ .exchangeName }}
+    queueName: {{ .queueName }}
+  {{- with .sinkRef }}
+  sink:
+    ref:
+      {{- toYaml . | nindent 6 }}
+  {{- end }}
+{{- end }}
+{{- end }}

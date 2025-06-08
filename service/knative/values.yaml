@@ -1,0 +1,107 @@
+---
+version: 1.16.0
+
+resources:
+  # Configuration for RabbitMQ integration with Knative.
+  rabbitmq:
+    enabled: false
+    # Define RabbitMQ brokers for Knative.
+    brokers:
+      - name: default-broker
+        config:
+          name: default-config
+          queueType: quorum # Options include "quorum" or "classic".
+          create: false
+        # Define the sink for dead-lettered messages.
+        deadLetterSink:
+          ref:
+            apiVersion: serving.knative.dev/v1
+            kind: Service
+            name: event-display
+    # Define RabbitMQ event sources for Knative.
+    sources: []
+    # - name: rabbitmq-source
+    #   exchangeName: eventing-rabbitmq-source
+    #   queueName: eventing-rabbitmq-source
+    #   sinkRef:
+    #     apiVersion: serving.knative.dev/v1
+    #     kind: Service
+    #     name: event-display
+    clusterRef:
+      name: rabbitmq
+      # vhost: you-rabbitmq-vhost
+
+# Configuration for Knative Eventing.
+event:
+  enabled: false
+  defaultBrokerClass: MTChannelBasedBroker # Options include "MTChannelBasedBroker" or "KafkaBroker".
+  config:
+    enabled: false
+    # Define custom channel configurations for Knative Eventing.
+    channel: {}
+    # default-ch-config: |
+    #   clusterDefault:
+    #     apiVersion: messaging.knative.dev/v1beta1
+    #     kind: InMemoryChannel
+    #     spec:
+    #       delivery:
+    #           backoffDelay: PT0.5S
+    #           backoffPolicy: exponential
+    #           retry: 5
+    # Define custom broker configurations for Knative Eventing.
+    broker: {}
+    # channel-template-spec: |
+    #   apiVersion: messaging.knative.dev/v1beta1
+    #   kind: InMemoryChannel
+    #   spec:
+    #       delivery:
+    #           backoffDelay: PT0.5S
+    #           backoffPolicy: exponential
+    #           retry: 5
+  # Configuration for Knative Eventing sources.
+  sources:
+    enabled: false
+    ceph: false
+    github: false
+    gitlab: false
+    kafka: false
+    natss: false
+    rabbitmq: true
+    redis: false
+
+  # Configuration for Backstage integration with Knative.
+  backstage:
+    enabled: false
+    version: v1.16.0
+
+# Configuration for the Knative server.
+server:
+  enabled: false
+  domain: svc.local
+  replicas: 1
+  security:
+    enabled: false
+    guard: false
+  network:
+    gatewayAPI:
+      install: false        # Set to true to install Gateway API support.
+      external: {}
+      internal: {}
+    # Configuration for Kourier ingress.
+    kourier:
+      service:
+        type: NodePort  # Options include "ClusterIP", "NodePort", or "LoadBalancer".
+  ingress:
+    type: kourier           # Options include "gateway-api" or "kourier".
+  # Configuration for Cert-Manager integration.
+  certmanager:
+    enabled: false
+    issuerRef:
+      clusterIssuer:
+        name: self-signed-ca-issuer
+      localIssuer:
+        name: self-signed-ca-issuer
+
+# Configuration for the Knative operator.
+operator:
+  enabled: true

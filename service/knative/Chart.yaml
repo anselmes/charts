@@ -1,0 +1,11 @@
+---
+apiVersion: v2
+name: knative
+type: application
+description:
+version: 1.0.0
+dependencies:
+  - name: knative-operator
+    repository: https://knative.github.io/operator
+    version: 1.17.4
+    condition: operator.enabled

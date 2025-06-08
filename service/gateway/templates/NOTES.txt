@@ -1,0 +1,46 @@
+# NOTES.txt
+
+Thank you for installing the Gateway Helm chart!
+
+This chart deploys Gateway API resources, enabling advanced traffic routing and management for your Kubernetes cluster.
+
+## Next Steps
+
+1. **Verify Installation**:
+   - Check the status of the Gateway resources to ensure they are created:
+     ```bash
+     kubectl get gateways -n <namespace>
+     ```
+
+2. **Validate Gateway Functionality**:
+   - Ensure that the Gateway is properly configured and operational:
+     - Check the logs of the Gateway controller for any errors:
+       ```bash
+       kubectl logs -n <namespace> -l app=gateway-controller
+       ```
+     - Verify that routes are correctly attached to the Gateway:
+       ```bash
+       kubectl describe gateway <gateway-name> -n <namespace>
+       ```
+
+3. **Monitor Gateway Resources**:
+   - Inspect the status of the Gateway and its associated routes:
+     ```bash
+     kubectl get httproutes,tcproutes,tlsroutes,udproutes -n <namespace>
+     ```
+
+4. **Uninstallation**:
+   - To uninstall the chart and remove all associated resources, run:
+     ```bash
+     helm uninstall <release-name> -n <namespace>
+     ```
+
+## Additional Information
+
+- For more details on the Gateway API, refer to the [official documentation](https://gateway-api.sigs.k8s.io/).
+- If you encounter any issues:
+  - Check the events in the namespace where the Gateway is deployed:
+    ```bash
+    kubectl get events -n <namespace>
+    ```
+  - Review the logs of the Gateway controller for troubleshooting.
