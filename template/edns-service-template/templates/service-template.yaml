@@ -2,7 +2,7 @@
 apiVersion: k0rdent.mirantis.com/v1beta1
 kind: ServiceTemplate
 metadata:
-  name: edns-1-0-0
+  name: edns-1-0-2
   annotations:
     helm.sh/resource-policy: keep
 spec:
