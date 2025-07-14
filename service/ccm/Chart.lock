@@ -1,0 +1,9 @@
+dependencies:
+- name: openstack-cloud-controller-manager
+  repository: https://kubernetes.github.io/cloud-provider-openstack
+  version: 2.30.2
+- name: vsphere-cpi
+  repository: https://kubernetes.github.io/cloud-provider-vsphere
+  version: 1.33.0
+digest: sha256:1e6f943a065215c5e2c200822d4ee99111d4c71f305e673ec6c398bd06495f11
+generated: "2025-06-07T10:12:19.55676-04:00"

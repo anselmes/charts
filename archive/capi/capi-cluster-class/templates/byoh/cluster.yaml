@@ -1,0 +1,10 @@
+{{- if .Values.byoh.enabled }}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: ByoClusterTemplate
+metadata:
+  name: capi-byoh-cluster
+spec:
+  template:
+    spec: {}
+{{- end }}

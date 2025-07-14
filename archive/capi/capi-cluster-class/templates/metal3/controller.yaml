@@ -1,0 +1,19 @@
+{{- if .Values.metal3.enabled }}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: Metal3MachineTemplate
+metadata:
+  name: capi-baremetal-control-plane
+spec:
+  nodeReuse: false
+  template:
+    spec:
+      automatedCleaningMode: metadata
+      image:
+        checksum: {{ .Values.metal3.image.checksum }}
+        checksumType: "" # TODO: hard-coded
+        format: "" # TODO: hard-coded
+        url: {{ .Values.metal3.image.url }}
+      dataTemplate:
+        name:  {{ .Values.metal3.templateName | default "capi-baremetal-metadata" }}
+{{- end }}
