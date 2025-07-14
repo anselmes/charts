@@ -1,0 +1,10 @@
+apiVersion: v2
+name: envoy
+type: application
+description: Envoy Proxy.
+version: 1.0.0
+dependencies:
+  - name: gateway-helm
+    repository: oci://docker.io/envoyproxy
+    version: 1.4.2
+    condition: gateway-helm.enabled
