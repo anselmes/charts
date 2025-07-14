@@ -1,0 +1,113 @@
+{{- if and .Values.docker.enabled .Values.k0s.enabled }}
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: capi-capd-k0s
+spec:
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: DockerClusterTemplate
+      name: capi-capd-cluster
+  controlPlane:
+    {{- with .Values.machineHealthCheck }}
+    machineHealthCheck:
+      {{ . | toYaml | nindent 6 }}
+    {{- end }}
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: K0sControlPlaneTemplate
+      name: capi-k0s-control-plane
+    machineInfrastructure:
+      ref:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: DockerMachineTemplate
+        name: capi-capd-control-plane
+  workers:
+    machineDeployments:
+      - class: default-worker
+        {{- with .Values.machineHealthCheck }}
+        machineHealthCheck:
+          {{ . | toYaml | nindent 10 }}
+        {{- end }}
+        template:
+          bootstrap:
+            ref:
+              apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+              kind: K0sWorkerConfigTemplate
+              name: capi-k0s-bootstrap
+          infrastructure:
+            ref:
+              apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+              kind: DockerMachineTemplate
+              name: capi-capd-machine
+    machinePools:
+      - class: default-worker
+        template:
+          bootstrap:
+            ref:
+              apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+              kind: K0sWorkerConfigTemplate
+              name: capi-k0s-bootstrap
+          infrastructure:
+            ref:
+              apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+              kind: DockerMachinePoolTemplate
+              name: capi-capd-machine-pool
+  variables:
+    - name: siteName
+      schema:
+        openAPIV3Schema:
+          type: string
+          description: SiteName is the name of the site.
+          example: dev
+    - name: domainName
+      schema:
+        openAPIV3Schema:
+          type: string
+          description: DomainName is the domain name of the cluster.
+          example: cluster.local
+  patches:
+    - name: sans
+      description: Add the cluster name to the SANs of the control plane.
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+            kind: K0sControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/k0sConfigSpec/k0s/spec/api/sans
+              valueFrom:
+                template: |
+                  - 'kubernetes.{{ `{{ .builtin.cluster.name }}` }}.{{ `{{ .siteName }}` }}.{{ `{{ .domainName }}` }}'
+    - name: version
+      description: Add the cluster topology version to the K0s version.
+      definitions:
+        - selector:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: K0sWorkerConfigTemplate
+            matchResources:
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/version
+              valueFrom:
+                template: '{{ `{{ .builtin.cluster.topology.version }}` }}+k0s.0'
+        - selector:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: K0sWorkerConfigTemplate
+            matchResources:
+              machinePoolClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/version
+              valueFrom:
+                template: '{{ `{{ .builtin.cluster.topology.version }}` }}+k0s.0'
+{{- end }}

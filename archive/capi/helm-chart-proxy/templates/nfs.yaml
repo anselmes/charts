@@ -1,0 +1,25 @@
+{{- if .Values.nfscsi.enabled }}
+---
+apiVersion: addons.cluster.x-k8s.io/v1alpha1
+kind: HelmChartProxy
+metadata:
+  name: csi-nfs
+  labels:
+    {{- include "helm-chart-proxy.labels" . | nindent 4 }}
+spec:
+  namespace: kube-system
+  chartName: csi-driver-nfs
+  releaseName: csi-nfs
+  repoURL: {{ .Values.nfscsi.repoURL }}
+  version: {{ .Values.nfscsi.version }}
+  clusterSelector:
+    {{- toYaml .Values.nfscsi.selector | nindent 4 }}
+  options:
+    timeout: {{ .Values.nfscsi.timeout }}
+    wait: {{ .Values.nfscsi.wait }}
+    waitForJobs: {{ .Values.nfscsi.waitForJobs }}
+  {{- with .Values.nfscsi.valuesTemplate }}
+  valuesTemplate: |
+    {{ toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

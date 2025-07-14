@@ -1,0 +1,12 @@
+annotations:
+  cluster.x-k8s.io/bootstrap-k0sproject-k0smotron: v1beta1
+  cluster.x-k8s.io/control-plane-k0sproject-k0smotron: v1beta1
+  cluster.x-k8s.io/infrastructure-k0sproject-k0smotron: v1beta1
+  cluster.x-k8s.io/provider: infrastructure-k0sproject-k0smotron, control-plane-k0sproject-k0smotron,
+    bootstrap-k0sproject-k0smotron
+apiVersion: v2
+description: 'A KCM template to deploy and manage remote machine-based clusters on
+  Linux hosts '
+name: remote-cluster
+type: application
+version: 1.0.0
