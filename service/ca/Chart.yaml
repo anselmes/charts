@@ -7,9 +7,9 @@ version: 1.0.0
 dependencies:
   - name: cert-manager
     repository: https://charts.jetstack.io
-    version: 1.17.2
+    version: 1.19.2
     condition: cert-manager.enabled
   - name: trust-manager
     repository: https://charts.jetstack.io
-    version: 0.17.1
+    version: 0.20.3
     condition: trust-manager.enabled
