@@ -37,7 +37,7 @@ spec:
   {{- end }}
   {{- if .Values.event.backstage.enabled }}
   additionalManifests:
-    - URL: https://github.com/knative-extensions/backstage-plugins/releases/{{ .Values.event.backstage.version }}/download/eventmesh.yaml
+    - URL: https://github.com/knative-extensions/backstage-plugins/releases/download/knative-{{ .Values.event.backstage.version | default .Values.version }}/eventmesh.yaml
   {{- end }}
   {{- with .Values.event.deployments }}
   deployments:
