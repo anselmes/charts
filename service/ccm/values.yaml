@@ -8,3 +8,8 @@ vsphere-cpi:
   # Enable or disable the vSphere Cloud Provider Interface (CPI).
   # Set to true to deploy the vSphere CPI in your Kubernetes cluster.
   enabled: false
+
+aws-cloud-controller-manager:
+  # Enable or disable the AWS Cloud Controller Manager.
+  # Set to true to deploy the AWS Cloud Controller Manager in your Kubernetes cluster.
+  enabled: false

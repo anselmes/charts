@@ -13,3 +13,7 @@ dependencies:
     repository: https://kubernetes.github.io/cloud-provider-vsphere
     version: 1.33.0
     condition: vsphere-cpi.enabled
+  - name: aws-cloud-controller-manager
+    repository: https://charts.mirantis.com
+    version: 0.0.9
+    condition: aws-cloud-controller-manager.enabled
