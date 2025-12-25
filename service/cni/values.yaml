@@ -116,7 +116,7 @@ cilium:
   bgpControlPlane:
     enabled: true  # Enable or disable the BGP control plane.
   gatewayAPI:
-    enabled: true  # Enable or disable Gateway API support.
+    enabled: false  # Enable or disable Gateway API support.
   envoy:
     securityContext:
       capabilities:
