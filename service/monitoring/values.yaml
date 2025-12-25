@@ -1,0 +1,131 @@
+---
+# Grafana k8s-monitoring Stack Configuration
+# Comprehensive observability solution for Kubernetes clusters using Grafana, Prometheus, and related tools
+k8s-monitoring:
+  # Enable or disable the entire k8s-monitoring stack deployment
+  # When enabled, deploys the observability infrastructure based on selected components
+  enabled: true
+
+  cluster:
+    # Cluster name identifier for multi-cluster observability
+    # Used to distinguish metrics, logs, and traces from different clusters
+    # Example: "production-west", "staging-east", "dev-cluster"
+    name: ""
+
+  global:
+    # Target platform for optimized configurations
+    # Supported platforms: "kubernetes", "openshift", "gke", "eks", "aks"
+    # Determines platform-specific optimizations and compatibility settings
+    platform: ""
+
+  # Cluster-level metrics collection configuration
+  # Collects system-wide metrics including node resources, cluster state, and API server metrics
+  clusterMetrics:
+    # Enable collection of cluster-wide metrics
+    # Provides insights into overall cluster health and resource utilization
+    enabled: false
+
+  # Kubernetes events collection configuration
+  # Captures and forwards cluster events for troubleshooting and auditing
+  clusterEvents:
+    # Enable collection of Kubernetes events
+    # Useful for tracking pod lifecycle, scaling events, and cluster state changes
+    enabled: false
+
+  # Node-level log collection configuration
+  # Collects system logs from cluster nodes including kubelet, container runtime logs
+  nodeLogs:
+    # Enable collection of node-level system logs
+    # Provides low-level system insights and container runtime diagnostics
+    enabled: false
+
+  # Pod log collection configuration
+  # Collects application and container logs from all pods in the cluster
+  podLogs:
+    # Enable collection of pod logs via node-based log collection
+    # More efficient for high-volume logging environments
+    enabled: false
+
+  # Alternative pod log collection via Kubernetes API
+  # Collects pod logs directly through the Kubernetes API server
+  podLogsViaKubernetesApi:
+    # Enable collection of pod logs via Kubernetes API
+    # More resource-intensive but useful for selective log collection
+    enabled: false
+
+  # Application observability and tracing configuration
+  # Enables distributed tracing and application performance monitoring
+  applicationObservability:
+    # Enable application observability features
+    # Provides distributed tracing, application metrics, and service mapping
+    enabled: false
+
+  # Automatic instrumentation for application tracing
+  # Automatically instruments applications for distributed tracing without code changes
+  autoInstrumentation:
+    # Enable automatic instrumentation of applications
+    # Supports automatic OpenTelemetry instrumentation for various languages
+    enabled: false
+
+  # Annotation-based service discovery configuration
+  # Automatically discovers and monitors services based on annotations
+  annotationAutodiscovery:
+    # Enable automatic discovery of services via annotations
+    # Allows services to opt-in to monitoring through Kubernetes annotations
+    enabled: false
+
+  # Prometheus Operator objects integration
+  # Enables integration with existing Prometheus Operator CRDs (ServiceMonitor, PodMonitor, etc.)
+  prometheusOperatorObjects:
+    # Enable support for Prometheus Operator custom resources
+    # Allows reuse of existing ServiceMonitor and PodMonitor configurations
+    enabled: false
+
+  # Continuous profiling configuration
+  # Enables collection of application performance profiles for optimization
+  profiling:
+    # Enable continuous profiling of applications
+    # Collects CPU, memory, and other performance profiles for analysis
+    enabled: false
+
+  # Profiles receiver configuration
+  # Configures the receiving endpoint for performance profiles
+  profilesReceiver:
+    # Enable profiles receiver for collecting performance data
+    # Receives and processes profiling data from applications
+    enabled: false
+
+  # Grafana Alloy metrics collection component
+  # Deploys Alloy agents for metrics collection and forwarding
+  alloy-metrics:
+    # Enable Alloy metrics collection agents
+    # Lightweight agents for collecting and forwarding Prometheus metrics
+    enabled: false
+
+  # Grafana Alloy singleton deployment
+  # Single instance Alloy deployment for centralized collection tasks
+  alloy-singleton:
+    # Enable singleton Alloy deployment
+    # Used for cluster-wide collection tasks that should run once per cluster
+    enabled: false
+
+  # Grafana Alloy logs collection component
+  # Deploys Alloy agents for log collection and forwarding
+  alloy-logs:
+    # Enable Alloy logs collection agents
+    # Collects and forwards logs to centralized logging systems
+    enabled: false
+
+  # Grafana Alloy receiver component
+  # Deploys Alloy as a receiver for telemetry data
+  alloy-receiver:
+    # Enable Alloy receiver for telemetry data
+    # Receives and processes metrics, logs, and traces from various sources
+    enabled: false
+
+  # Grafana Alloy profiles collection component
+  # Deploys Alloy agents for performance profiling data collection
+  alloy-profiles:
+    # Enable Alloy profiles collection agents
+    # Collects and forwards continuous profiling data
+    enabled: false

@@ -1,0 +1,235 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Monitoring Service Chart Values Schema",
+  "description": "Schema for validating values for the monitoring service chart that manages Grafana k8s-monitoring stack",
+  "properties": {
+    "k8s-monitoring": {
+      "type": "object",
+      "description": "Configuration for Grafana k8s-monitoring stack - comprehensive observability solution",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable or disable the entire k8s-monitoring stack deployment",
+          "default": true
+        },
+        "cluster": {
+          "type": "object",
+          "description": "Cluster identification settings",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Cluster name identifier for multi-cluster observability"
+            }
+          },
+          "additionalProperties": true
+        },
+        "global": {
+          "type": "object",
+          "description": "Global configuration settings",
+          "properties": {
+            "platform": {
+              "type": "string",
+              "description": "Target platform for optimized configurations"
+            }
+          },
+          "additionalProperties": true
+        },
+        "clusterMetrics": {
+          "type": "object",
+          "description": "Cluster-level metrics collection configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable collection of cluster-wide metrics",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "clusterEvents": {
+          "type": "object",
+          "description": "Kubernetes events collection configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable collection of Kubernetes events",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "nodeLogs": {
+          "type": "object",
+          "description": "Node-level log collection configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable collection of node-level system logs",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "podLogs": {
+          "type": "object",
+          "description": "Pod log collection configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable collection of pod logs via node-based collection",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "podLogsViaKubernetesApi": {
+          "type": "object",
+          "description": "Alternative pod log collection via Kubernetes API",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable collection of pod logs via Kubernetes API",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "applicationObservability": {
+          "type": "object",
+          "description": "Application observability and tracing configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable application observability features",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "autoInstrumentation": {
+          "type": "object",
+          "description": "Automatic instrumentation configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable automatic instrumentation of applications",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "annotationAutodiscovery": {
+          "type": "object",
+          "description": "Annotation-based service discovery configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable automatic discovery of services via annotations",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "prometheusOperatorObjects": {
+          "type": "object",
+          "description": "Prometheus Operator objects integration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable support for Prometheus Operator custom resources",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "profiling": {
+          "type": "object",
+          "description": "Continuous profiling configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable continuous profiling of applications",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "profilesReceiver": {
+          "type": "object",
+          "description": "Profiles receiver configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable profiles receiver for collecting performance data",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "alloy-metrics": {
+          "type": "object",
+          "description": "Grafana Alloy metrics collection component",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable Alloy metrics collection agents",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "alloy-singleton": {
+          "type": "object",
+          "description": "Grafana Alloy singleton deployment",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable singleton Alloy deployment",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "alloy-logs": {
+          "type": "object",
+          "description": "Grafana Alloy logs collection component",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable Alloy logs collection agents",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "alloy-receiver": {
+          "type": "object",
+          "description": "Grafana Alloy receiver component",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable Alloy receiver for telemetry data",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "alloy-profiles": {
+          "type": "object",
+          "description": "Grafana Alloy profiles collection component",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable Alloy profiles collection agents",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
