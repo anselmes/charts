@@ -1,148 +1,161 @@
 ---
-# Configuration for OpenEBS storage solutions
+# Configuration for OpenEBS - Open Source Container Attached Storage
+# OpenEBS provides dynamic local and replicated storage options for Kubernetes
 openebs:
-  # Enable or disable OpenEBS
-  # Set to true to deploy OpenEBS in your Kubernetes cluster.
+  # Enable OpenEBS storage solutions deployment
+  # When enabled, deploys OpenEBS operators and storage engines
   enabled: true
 
-  # Configuration for OpenEBS CRDs (Custom Resource Definitions)
+  # OpenEBS Custom Resource Definitions (CRDs) configuration
+  # These CRDs define the storage resources and behaviors
   openebs-crds:
     csi:
-      # Enable or disable CSI volume snapshots
-      # Set to true to enable volume snapshot functionality for CSI.
+      # CSI Volume Snapshots feature configuration
+      # Enables point-in-time snapshots of persistent volumes
       volumeSnapshots:
         enabled: false
-        # Keep or delete volume snapshot CRDs during uninstallation
-        # Set to true to retain CRDs or false to delete them.
+        # Retain CRDs during chart uninstallation
+        # true: CRDs persist after uninstall, false: CRDs are removed
         keep: false
 
-  # Configuration for ZFS LocalPV
+  # ZFS LocalPV storage engine configuration
+  # Provides high-performance local storage using ZFS datasets
   zfs-localpv:
     crds:
       zfsLocalPv:
-        # Enable or disable ZFS LocalPV CRDs
-        # Set to true to enable ZFS LocalPV functionality.
+        # Enable ZFS LocalPV Custom Resource Definitions
+        # Required for ZFS-based local persistent volume provisioning
         enabled: true
       csi:
         volumeSnapshots:
-          # Enable or disable CSI volume snapshots for ZFS LocalPV
-          # Set to true to enable snapshot functionality for ZFS LocalPV.
+          # Enable volume snapshots for ZFS LocalPV
+          # Allows creation of point-in-time snapshots of ZFS volumes
           enabled: true
 
-  # Configuration for LVM LocalPV
+  # LVM LocalPV storage engine configuration
+  # Provides local storage using Logical Volume Manager (LVM)
   lvm-localpv:
     crds:
       lvmLocalPv:
-        # Enable or disable LVM LocalPV CRDs
-        # Set to true to enable LVM LocalPV functionality.
+        # Enable LVM LocalPV Custom Resource Definitions
+        # Required for LVM-based local persistent volume provisioning
         enabled: false
       csi:
         volumeSnapshots:
-          # Enable or disable CSI volume snapshots for LVM LocalPV
-          # Set to true to enable snapshot functionality for LVM LocalPV.
+          # Enable volume snapshots for LVM LocalPV
+          # Allows creation of thin-provisioned LVM snapshots
           enabled: true
 
-  # Configuration for storage engines
+  # Storage engines configuration
+  # Defines which storage backends are enabled for different use cases
   engines:
     local:
       lvm:
-        # Enable or disable LVM as a local storage engine
-        # Set to true to use LVM for local storage provisioning.
+        # Enable LVM-based local storage engine
+        # Provides block storage using Linux Logical Volume Manager
         enabled: false
       zfs:
-        # Enable or disable ZFS as a local storage engine
-        # Set to true to use ZFS for local storage provisioning.
+        # Enable ZFS-based local storage engine
+        # Provides advanced features like compression, deduplication, and snapshots
         enabled: false
     replicated:
       mayastor:
-        # Enable or disable Mayastor as a replicated storage engine
-        # Set to true to use Mayastor for replicated storage provisioning.
+        # Enable Mayastor replicated storage engine
+        # High-performance NVMe-over-TCP based replicated storage
         enabled: false
 
-  # Configuration for the LocalPV provisioner
+  # LocalPV Provisioner configuration
+  # Handles dynamic provisioning of local persistent volumes
   localpv-provisioner:
     analytics:
-      # Enable or disable analytics for the LocalPV provisioner
-      # Set to true to enable analytics collection.
+      # Enable usage analytics collection
+      # Helps OpenEBS community understand usage patterns (anonymized)
       enabled: false
     hostpathClass:
-      # Enable or disable the HostPath storage class
-      # Set to true to use HostPath for local storage provisioning.
+      # HostPath storage class configuration
+      # Uses host filesystem directories for storage (suitable for single-node)
       enabled: true
-      # Name of the HostPath storage class
-      # Specify the name of the HostPath storage class.
+      # Storage class name for HostPath volumes
       name: openebs-hostpath
-      # Set the HostPath storage class as the default class
-      # Set to true to make HostPath the default storage class.
+      # Set as default storage class
+      # When true, this storage class is used by default for new PVCs
       isDefaultClass: true
     localpv:
-      # Enable or disable LocalPV provisioning
-      # Set to true to enable LocalPV for dynamic storage provisioning.
+      # Enable LocalPV dynamic provisioning
+      # Allows automatic creation of local persistent volumes
       enabled: true
 
-# Configuration for the Cinder CSI plugin
+# OpenStack Cinder CSI Driver configuration
+# Provides block storage integration with OpenStack Cinder volumes
 openstack-cinder-csi:
-  # Enable or disable the Cinder CSI plugin
-  # Set to true to deploy the Cinder CSI plugin in your Kubernetes cluster.
+  # Enable Cinder CSI driver deployment
+  # Allows Kubernetes to use OpenStack Cinder for persistent storage
   enabled: false
   secret:
-    # Enable or disable the use of a secret for Cinder
-    # Set to true to use a Kubernetes secret for Cinder configuration.
+    # Enable OpenStack credentials secret
+    # Required for authentication with OpenStack cloud services
     enabled: true
-    # Enable or disable mounting the secret as a host volume
-    # Set to true to mount the secret as a host volume.
+    # Mount secret as host volume
+    # Alternative to environment variable injection for credentials
     hostMount: false
-    # Name of the Kubernetes secret for Cinder configuration
-    # Specify the name of the secret containing Cinder credentials.
+    # Secret name containing OpenStack configuration
+    # Must include cloud.conf with OpenStack authentication details
     name: cinder-csi-cloud-config
   storageClass:
-    # Enable or disable the creation of a storage class for Cinder
-    # Set to true to create a storage class for Cinder volumes.
+    # Create Cinder storage classes
+    # Defines how Kubernetes provisions Cinder volumes with different policies
     enabled: true
     delete:
-      # Set the storage class as the default for deletion policy
-      # Set to true to make this the default storage class for deletion.
+      # Storage class with Delete reclaim policy
+      # Volumes are deleted when PVCs are removed
       isDefault: false
-      # Allow or disallow volume expansion for the storage class
-      # Set to true to enable volume expansion for this storage class.
+      # Allow online volume expansion
+      # Enables resizing of volumes without pod restart
       allowVolumeExpansion: true
     retain:
-      # Set the storage class as the default for retention policy
-      # Set to true to make this the default storage class for retention.
+      # Storage class with Retain reclaim policy
+      # Volumes persist after PVCs are deleted (manual cleanup required)
       isDefault: false
-      # Allow or disallow volume expansion for the storage class
-      # Set to true to enable volume expansion for this storage class.
+      # Allow online volume expansion
+      # Enables resizing of volumes without pod restart
       allowVolumeExpansion: true
 
-# Configuration for Rook Ceph
+# Rook Ceph Operator configuration
+# Rook orchestrates Ceph storage cluster in Kubernetes environments
 rook-ceph:
-  # Enable or disable Rook Ceph
-  # Set to true to deploy Rook Ceph in your Kubernetes cluster.
+  # Enable Rook Ceph operator deployment
+  # Manages Ceph clusters as Kubernetes native applications
   enabled: false
-  # Allow or disallow the use of loop devices
-  # Set to true to allow loop devices for testing purposes.
+  # Allow loop devices for storage (testing only)
+  # WARNING: Only enable for development/testing environments
   allowLoopDevices: false
   csi:
-    # Enable or disable the RBD (RADOS Block Device) CSI driver
+    # Enable RBD (RADOS Block Device) CSI driver
+    # Provides block storage volumes backed by Ceph RBD images
     enableRbdDriver: true
-    # Enable or disable the CephFS CSI driver
+    # Enable CephFS CSI driver
+    # Provides shared filesystem volumes backed by Ceph filesystem
     enableCephfsDriver: true
-    # Enable or disable CSI encryption
+    # Enable CSI volume encryption
+    # Encrypts data at rest using dm-crypt
     enableCSIEncryption: false
   crds:
-    # Enable or disable the creation of Custom Resource Definitions (CRDs)
+    # Deploy Rook Ceph Custom Resource Definitions
+    # Required for Rook to manage Ceph cluster resources
     enabled: true
 
-# Configuration for Rook Ceph cluster
+# Rook Ceph Cluster configuration
+# Defines the actual Ceph storage cluster managed by Rook operator
 rook-ceph-cluster:
-  # Enable or disable the Rook Ceph cluster
-  # Set to true to deploy a Ceph cluster managed by Rook.
+  # Enable Ceph cluster deployment
+  # Creates a production-ready Ceph cluster with specified configuration
   enabled: false
-  # Namespace for the Rook operator
+  # Rook operator namespace
+  # Must match the namespace where Rook operator is deployed
   operatorNamespace: rook-ceph
   toolbox:
-    # Enable or disable the Rook Ceph toolbox
-    # Set to true to deploy a toolbox pod for debugging and management.
+    # Enable Ceph toolbox deployment
+    # Provides debugging tools and cluster management capabilities
     enabled: false
   cephClusterSpec:
     mon:
@@ -256,46 +269,98 @@ rook-ceph-cluster:
     # If true, this snapshot class will be used by default for filesystem snapshots.
     isDefault: true
 
-# Configuration for the vSphere CSI driver
+# VMware vSphere CSI Driver configuration
+# Provides persistent storage integration with vSphere infrastructure
 vsphere-csi-driver:
-  # Enable or disable the vSphere CSI driver.
-  # Set to true to deploy the vSphere CSI driver in your Kubernetes cluster.
+  # Enable vSphere CSI driver deployment
+  # Allows Kubernetes to use vSphere datastores for persistent volumes
   enabled: false
   vcenterConfig:
-    # Enable or disable the vCenter configuration.
-    # Set to true to use a vCenter configuration for the vSphere CSI driver.
+    # Enable vCenter configuration
+    # Required for authentication and communication with vCenter server
     enabled: false
-    # Name of the Kubernetes secret containing vCenter credentials.
+    # Secret containing vCenter credentials and configuration
+    # Must include vcenter server details and authentication information
     secretName: vcenter-config-secret
-    # Cluster ID for the vSphere environment.
-    # Specify the unique identifier for the vSphere cluster.
+    # Unique cluster identifier in vSphere environment
+    # Used to identify this Kubernetes cluster in vCenter
     clusterID: null
-    # Thumbprint of the vCenter server certificate.
-    # Used for secure communication with the vCenter server.
+    # vCenter server certificate thumbprint
+    # SHA-1 fingerprint for certificate validation (required for secure connections)
     thumbprint: null
-    # Address of the vCenter server.
-    # Specify the hostname or IP address of the vCenter server.
+    # vCenter server address
+    # FQDN or IP address of the vCenter server
     vcenter: null
-    # Allow or disallow insecure communication with the vCenter server.
-    # Set to "true" to allow insecure communication (not recommended for production).
+    # Allow insecure connections to vCenter
+    # WARNING: Only use "true" for testing environments with self-signed certificates
     insecure: "true"
-    # Username for vCenter authentication.
+    # vCenter authentication username
+    # User must have required permissions for datastore and VM operations
     user: null
-    # Password for vCenter authentication.
+    # vCenter authentication password
+    # Corresponding password for the specified user
     password: null
-    # Port number for vCenter communication.
-    # Default is 443 for HTTPS communication.
+    # vCenter server port
+    # Default HTTPS port for vCenter API communication
     port: 443
-    # List of datacenters in the vSphere environment.
-    # Specify the names of the datacenters to be used by the CSI driver.
+    # List of vSphere datacenters
+    # Datacenters where the CSI driver can provision storage
     datacenters: null
   defaultStorageClass:
-    # Name of the default storage class.
-    # Specify the name of the storage class to be used as the default.
+    # Default storage class name
+    # Used for automatic volume provisioning when no storage class is specified
     name: vsphere-csi
-    # Enable or disable the default storage class.
-    # Set to true to make this storage class the default for dynamic provisioning.
+    # Enable default storage class creation
+    # Creates a storage class for vSphere volumes with standard configuration
     enabled: true
-    # Allow or disallow volume expansion for the default storage class.
-    # Set to true to enable resizing of persistent volumes created by this storage class.
+    # Allow online volume expansion
+    # Enables resizing of persistent volumes without downtime
     allowVolumeExpansion: true
+
+# AWS EBS CSI Driver configuration
+# Provides persistent storage using Amazon Elastic Block Store (EBS) volumes
+aws-ebs-csi-driver:
+  # Enable AWS EBS CSI driver deployment
+  # Allows Kubernetes to use AWS EBS volumes for persistent storage
+  enabled: false
+  # Enable FIPS 140-2 cryptographic compliance
+  # Required for government and regulated environments
+  fips: false
+  # AWS credentials configuration
+  # Required for EBS API authentication and authorization
+  awsAccessSecret:
+    # Secret name containing AWS credentials
+    name: aws-secret
+    # AWS Access Key ID field name in secret
+    keyId: key_id
+    # AWS Secret Access Key field name in secret
+    accessKey: access_key
+  controller:
+    # Default filesystem type for EBS volumes
+    # Used when no fsType is specified in storage class
+    defaultFsType: ext4
+    # AWS region for EBS operations
+    # Must match the region where Kubernetes cluster is deployed
+    region:
+  # Custom storage classes for different EBS volume types
+  # Define multiple storage classes with specific EBS configurations
+  storageClasses: []
+  # Example storage class configuration:
+  # - name: ebs-sc
+  #   # Storage class annotations
+  #   annotations:
+  #     storageclass.kubernetes.io/is-default-class: "true"
+  #   # Storage class labels
+  #   labels:
+  #     my-label-is: supercool
+  #   # Volume binding mode (WaitForFirstConsumer recommended for topology awareness)
+  #   volumeBindingMode: WaitForFirstConsumer
+  #   # Reclaim policy for volumes (Delete or Retain)
+  #   reclaimPolicy: Retain
+  #   # EBS-specific parameters
+  #   parameters:
+  #     encrypted: "true"
+  defaultStorageClass:
+    # Enable default EBS storage class creation
+    # Creates a general-purpose storage class for EBS volumes
+    enabled: false
