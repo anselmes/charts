@@ -1,0 +1,3 @@
+[submodule "upstream/aws-ebs-csi-driver"]
+	path = upstream/aws-ebs-csi-driver
+	url = https://github.com/kubernetes-sigs/aws-ebs-csi-driver.git
