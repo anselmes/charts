@@ -1,6 +1,0 @@
-dependencies:
-- name: labsonline-catalog
-  repository: ""
-  version: 1.0.0
-digest: sha256:9309dbe57bd2944b67292de736e43441ef1bd8a0303afcff56413a1aa6c6db63
-generated: "2025-07-14T17:52:43.403725-04:00"
