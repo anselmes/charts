@@ -7,5 +7,5 @@ version: 1.0.0
 dependencies:
   - name: knative-operator
     repository: https://knative.github.io/operator
-    version: v1.20.0
+    version: 1.20.0
     condition: operator.enabled
