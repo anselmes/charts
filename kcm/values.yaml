@@ -1,0 +1,158 @@
+---
+# version: 1.2.2  # Enterprise
+# version: 1.6.0  # OSS
+
+templates: {}
+# Enterprise
+# capi: cluster-api-1-0-7
+# kcm: kcm-1-2-2
+# OSS
+# capi: cluster-api-1-0-8
+# kcm: kcm-1-6-0
+
+management:
+  enabled: false
+  access:
+    enabled: false
+    rules: []
+  providers: []
+  # - name: cluster-api-provider-aws
+  # - name: cluster-api-provider-azure
+  # - name: cluster-api-provider-docker
+  # - name: cluster-api-provider-gcp
+  # - name: cluster-api-provider-infoblox
+  # - name: cluster-api-provider-ipam
+  # - name: cluster-api-provider-k0sproject-k0smotron
+  # - name: cluster-api-provider-openstack
+  # - name: cluster-api-provider-vsphere
+  # - name: projectsveltos
+  capi: {}
+  kcm: {}
+
+release:
+  enabled: false
+  providers: []
+  # - name: cluster-api-provider-aws
+  #   template: cluster-api-provider-aws-1-0-9
+  # - name: cluster-api-provider-gcp
+  #   template: cluster-api-provider-gcp-1-0-6
+  # - name: cluster-api-provider-infoblox
+  #   template: cluster-api-provider-infoblox-1-0-2
+  # - name: cluster-api-provider-ipam
+  #   template: cluster-api-provider-ipam-1-0-3
+  # - name: cluster-api-provider-vsphere
+  #   template: cluster-api-provider-vsphere-1-0-6
+  # - name: projectsveltos
+  #   template: projectsveltos-1-1-1
+
+  # Enterprise
+  # - name: cluster-api-provider-azure
+  #   template: cluster-api-provider-azure-1-0-9
+  # - name: cluster-api-provider-docker
+  #   template: cluster-api-provider-docker-1-0-5
+  # - name: cluster-api-provider-k0sproject-k0smotron
+  #   template: cluster-api-provider-k0sproject-k0smotron-1-0-12
+  # - name: cluster-api-provider-openstack
+  #   template: cluster-api-provider-openstack-1-0-10
+
+
+  # OSS
+  # - name: cluster-api-provider-azure
+  #   template: cluster-api-provider-azure-1-0-11
+  # - name: cluster-api-provider-docker
+  #   template: cluster-api-provider-docker-1-0-6
+  # - name: cluster-api-provider-k0sproject-k0smotron
+  #   template: cluster-api-provider-k0sproject-k0smotron-1-0-11
+  # - name: cluster-api-provider-openstack
+  #   template: cluster-api-provider-openstack-1-0-11
+
+common: &common
+  replicas: 1
+  controller:
+    createAccessManagement: false
+    createManagement: false
+    createRelease: false
+    createTemplates: true
+    enableTelemetry: false          # FIXME: telemetry
+    affinity: {}
+    nodeSelector: {}
+    tolerations: []
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+  cert-manager:
+    enableCertificateOwnerRef: true
+    crds:
+      enabled: true
+      keep: false
+    # config:
+    #   apiVersion: controller.config.cert-manager.io/v1alpha1
+    #   kind: ControllerConfiguration
+    #   enableGatewayAPI: true
+  flux2:
+    helmController:
+      create: true
+      container:
+        additionalArgs:
+          - --watch-label-selector=k0rdent.mirantis.com/managed=true
+    kustomizeController:
+      create: true
+      container:
+        additionalArgs:
+          - --watch-label-selector=k0rdent.mirantis.com/managed=true
+    sourceController:
+      create: true
+      persistence:
+        enabled: true
+      container:
+        additionalArgs:
+          - --watch-label-selector=k0rdent.mirantis.com/managed=true
+
+kcm:
+  <<: *common
+  install: false
+  controller:
+    templatesRepoURL: "oci://ghcr.io/k0rdent/kcm/charts"
+  image:
+    repository: ghcr.io/k0rdent/kcm/controller
+    tag: 1.6.0
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+
+k0rdent-enterprise:
+  <<: *common
+  install: false
+  controller:
+    templatesRepoURL: "oci://registry.mirantis.com/k0rdent-enterprise/charts"
+    globalRegistry: "registry.mirantis.com/k0rdent-enterprise"
+    globalK0sURL: "https://get.mirantis.com/k0rdent-enterprise/k0s"
+  image:
+    repository: registry.mirantis.com/k0rdent-enterprise/kcm-controller
+    tag: 1.2.2
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  k0rdent-ui:
+    enabled: true
+    nextAuth:
+      secretKeyRef:
+        name: k0rdent-nextauth
+        key: NEXTAUTH_SECRET
+    auth:
+      basic:
+        enabled: true
+      keycloak:
+        enabled: false
+        issuer: ""
+        secretKeyRef:
+          name: ""
+          clientIDKey: ""
+          clientSecretKey: ""

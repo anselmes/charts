@@ -1,0 +1,26 @@
+{{- if .Values.management.enabled }}
+---
+apiVersion: k0rdent.mirantis.com/v1beta1
+kind: Management
+metadata:
+  name: kcm
+  labels:
+    k0rdent.mirantis.com/component: kcm
+spec:
+  release: {{ .Values.templates.kcm }}
+  {{- with .Values.management.providers }}
+  providers:
+    {{- range . }}
+    - name: {{ .name }}
+    {{- end }}
+  {{- end }}
+  {{- if or (and (hasKey .Values.management "capi") (not (empty .Values.management.capi))) (and (hasKey .Values.management "kcm") (not (empty .Values.management.kcm))) }}
+  core:
+    {{- with .Values.management.capi }}
+    capi: {{ toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.management.kcm }}
+    kcm: {{ toYaml . | nindent 6 }}
+    {{- end }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,12 @@
+{{- if .Values.management.access.enabled }}
+---
+apiVersion: k0rdent.mirantis.com/v1beta1
+kind: AccessManagement
+metadata:
+  name: kcm
+{{- with .Values.management.access.rules }}
+spec:
+  accessRules:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+{{- end }}
