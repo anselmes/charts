@@ -1,0 +1,11 @@
+# Ignore everything
+*
+
+# Except these files
+!.gitignore
+
+!mke-demo-app/
+!build.sh
+
+# ...even if they are in subdirectories
+!*/

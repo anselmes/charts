@@ -1,1 +1,35 @@
-modules/dotfiles/.commitlintrc
+{
+  "extends": [
+    "@commitlint/config-conventional"
+  ],
+  "rules": {
+    "body-max-line-length": [
+      1,
+      "always",
+      150
+    ],
+    "subject-case": [
+      1,
+      "always",
+      "sentence-case"
+    ],
+    "type-enum": [
+      1,
+      "always",
+      [
+        "build",
+        "chore",
+        "ci",
+        "devcontainer",
+        "docs",
+        "feature",
+        "fix",
+        "issue",
+        "refactor",
+        "revert",
+        "security",
+        "test"
+      ]
+    ]
+  }
+}
