@@ -1,0 +1,175 @@
+{{- if .Values.deployment.create }}
+---
+apiVersion: lcm.mirantis.com/v1alpha1
+kind: OpenStackDeployment
+metadata:
+  name: {{ .Values.deployment.name }}
+spec:
+  openstack_version: {{ .Values.deployment.region.version }}
+  public_domain_name: {{ .Values.deployment.region.domain }}
+  region_name: {{ .Values.deployment.region.name }}
+  preset: {{ .Values.deployment.region.preset }}
+  size: {{ .Values.deployment.region.size }}
+  local_volume_storage_class: {{ .Values.deployment.storage.local }}
+  persistent_volume_storage_class: {{ .Values.deployment.storage.persistent }}
+  services:
+    {{- with .Values.keystone.values }}
+    identity:
+      keystone:
+        values:
+          {{- toYaml . | nindent 10 }}
+    {{- end }}
+    {{- with .Values.cinder.values }}
+    block-storage:
+      cinder:
+        values:
+          {{- toYaml . | nindent 10 }}
+    {{- end }}
+    {{- with .Values.nova.values }}
+    compute:
+      nova:
+        values:
+          {{- toYaml . | nindent 10 }}
+    {{- end }}
+    {{- if or .Values.neutron.values .Values.openvswitch.values }}
+    networking:
+      {{- with .Values.neutron.values }}
+      neutron:
+        values:
+          {{- toYaml . | nindent 10 }}
+      {{- end }}
+      {{- with .Values.openvswitch.values }}
+      openvswitch:
+        values:
+          {{- toYaml . | nindent 10 }}
+      {{- end }}
+    {{- end }}
+    {{- with .Values.heat.values }}
+    orchestration:
+      heat:
+        values:
+          {{- toYaml . | nindent 10 }}
+    {{- end }}
+  features:
+    keystone:
+      keycloak:
+        enabled: {{ .Values.keystone.keycloak.enabled }}
+        url: {{ .Values.keystone.keycloak.url }}
+        oidc:
+          OIDCOAuthSSLValidateServer: {{ .Values.keystone.keycloak.sslServerValidation }}
+          OIDCSSLValidateServer: {{ .Values.keystone.keycloak.sslAuthValidation }}
+    glance:
+      signature:
+        enabled: {{ .Values.glance.signature.enabled }}
+      {{- if eq .Values.glance.backend "file" }}
+      backends:
+        file:
+          pvcstore:
+            default: {{ .Values.glance.pvcstore.default }}
+            pvc:
+              size: {{ .Values.glance.pvcstore.size }}
+              storage_class_name: {{ .Values.glance.pvcstore.class }}
+      {{- end }}
+    {{- if eq .Values.cinder.backends "lvm" }}
+    cinder:
+      volume:
+        backends:
+          lvm:
+            lvm:
+              volume_group: {{ .Values.cinder.volumeGroup }}
+    {{- end }}
+    nova:
+      live_migration_interface: {{ .Values.nova.migrationInterface }}
+      vcpu_type: {{ .Values.nova.cpuType }}
+      {{- with .Values.nova.allocation }}
+      allocation_ratios:
+        cpu: {{ .cpu }}
+        disk: {{ .disk }}
+        ram: {{ .ram }}
+      {{- end }}
+      console:
+        novnc:
+          enabled: {{ .Values.nova.console.enabled }}
+          tls:
+            enabled: {{ .Values.nova.console.tls.enabled }}
+      libvirt:
+        tls:
+          enabled: {{ .Values.nova.libvirt.tls.enabled }}
+      images:
+        backend: {{ .Values.nova.images.backend }}
+        {{- if eq .Values.nova.images.backend "lvm" }}
+        lvm:
+          volume_group: {{ .Values.nova.images.lvm.volumeGroup }}
+        {{- end }}
+        encryption:
+          enabled: {{ .Values.nova.images.encryption.enabled }}
+          cipher: {{ .Values.nova.images.encryption.cipher }}
+          key_size: {{ .Values.nova.images.encryption.keySize }}
+    neutron:
+      tunnel_interface: {{ .Values.neutron.tunnelInterface }}
+      ipsec:
+        enabled: {{ .Values.neutron.ipsec.enabled }}
+      dvr:
+        enabled: {{ .Values.neutron.dvr.enabled }}
+      dns_servers:
+      {{- range .Values.neutron.nameservers }}
+        - {{ . }}
+      {{- end }}
+      external_networks:
+      {{- range .Values.neutron.networks.external }}
+        - bridge: {{ .bridge }}
+          interface: {{ .interface | default "fip" }}
+          mtu: {{ .mtu | default 1500 }}
+          physnet: {{ .physnet | default "physnet1" }}
+          vlan_ranges: {{ .vlan_ranges | default "null" }}
+          network_types:
+          {{- range .networkTypes }}
+            - {{ . }}
+          {{- end }}
+      {{- end }}
+      {{- if .Values.neutron.networks.floating.enabled }}
+      floating_network:
+        enabled: true
+        physnet: {{ .Values.neutron.networks.floating.physnet | default "physnet1" }}
+        subnet:
+          range: {{ .Values.neutron.networks.floating.subnet.range }}
+          gateway: {{ .Values.neutron.networks.floating.subnet.gateway }}
+          pool_start: {{ .Values.neutron.networks.floating.subnet.pool.start }}
+          pool_end: {{ .Values.neutron.networks.floating.subnet.pool.end }}
+      {{- end }}
+    {{- with .Values.octavia.subnets }}
+    octavia:
+      lb_network:
+        subnets:
+          {{- range . }}
+          - range: {{ .range }}
+            pool_start: {{ .pool.start }}
+            pool_end: {{ .pool.end }}
+          {{- end }}
+    {{- end }}
+    ssl:
+      public_endpoints:
+        api_cert:
+          value_from:
+            secret_key_ref:
+              key: api_cert
+              name: {{ .Values.certificate.name }}
+        api_key:
+          value_from:
+            secret_key_ref:
+              key: api_key
+              name: {{ .Values.certificate.name }}
+        ca_cert:
+          value_from:
+            secret_key_ref:
+              key: ca_cert
+              name: {{ .Values.certificate.name }}
+    network_policies:
+      enabled: {{ .Values.policies.network }}
+    policies:
+      strict_admin:
+        enabled: {{ .Values.policies.admin }}
+    database:
+      backup:
+        enabled: {{ .Values.backup }}
+{{- end }}

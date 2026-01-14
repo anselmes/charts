@@ -1,0 +1,159 @@
+backup: false
+
+operator:
+  enabled: false
+
+certificate:
+  create: false
+  name: openstack-ssl-secret
+  # ca: |
+  #   -----BEGIN CERTIFICATE-----
+  #   ...
+  #   -----END CERTIFICATE----
+  # cert: |
+  #   -----BEGIN CERTIFICATE-----
+  #   ...
+  #   -----END CERTIFICATE-----
+  # key: |
+  #   -----BEGIN RSA PRIVATE KEY-----
+  #   ...
+  #   -----END RSA PRIVATE KEY-----
+
+deployment:
+  create: true
+  name: osdpl
+  region:
+    domain: os.dev.local
+    name: RegionOne
+    preset: core #compute
+    size: single #tiny
+    version: caracal
+  storage:
+    local: general
+    persistent: general
+
+keystone:
+  keycloak:
+    enabled: false
+    url: https://keycloak.dev.local
+    sslServerValidation: true
+    sslAuthValidation: true
+  values:
+    conf:
+      keystone:
+        resource:
+          admin_project_name: admin
+          admin_project_domain_name: Default
+
+glance:
+  backend: file
+  signature:
+    enabled: true
+  pvcstore:
+    default: true
+    class: standard
+    size: 10Gi
+
+cinder:
+  # backends: lvm
+  volumeGroup: cinder-vol
+  # values:
+  #   conf:
+  #     cinder:
+  #       DEFAULT:
+  #         default_volume_type: volumes-hdd-luks
+  #   bootstrap:
+  #     volume_types:
+  #       volumes-hdd-luks:
+  #         volume_backend_name: volumes-hdd
+  #         arguments:
+  #           encryption-cipher: aes-xts-plain64
+  #           encryption-control-location: front-end
+  #           encryption-key-size: 256
+  #           encryption-provider: luks
+
+nova:
+  migrationInterface: oam
+  cpuType: host-passthrough
+  # allocation:
+  #   cpu: 4
+  #   disk: 1
+  #   ram: 1
+  console:
+    enabled: true
+    tls:
+      enabled: true
+  libvirt:
+    tls:
+      enabled: true
+  images:
+    backend: qcow2
+    # backend: ceph
+    # backend: lvm
+    lvm:
+      volumeGroup: nova-vol
+    encryption:
+      enabled: false
+      cipher: aes-xts-plain64
+      key_size: 256
+  values:
+    conf:
+      nova:
+        filter_scheduler:
+          enabled_filters:
+            - ~AvailabilityZoneFilter
+
+neutron:
+  tunnelInterface: oam
+  ipsec:
+    enabled: false
+  dvr:
+    enabled: false
+  nameservers:
+    - 1.1.1.1
+    - 9.9.9.9
+  networks:
+    external:
+      - bridge: br-ext
+        networkTypes:
+          - flat
+    floating:
+      enabled: true
+      subnet:
+        range: 192.168.125.0/24
+        gateway: 192.168.125.11
+        pool:
+          start: 192.168.125.100
+          end: 192.168.125.200
+  # values:
+  #   conf:
+  #     neutron:
+  #       DEFAULT:
+  #         global_physnet_mtu: 1480
+  #         support_sync_ha_routers_info: false
+  #         support_sync_ovs_info: false
+
+openvswitch: {}
+# values:
+#   conf:
+#     neutron:
+#       DEFAULT:
+#         support_sync_ovs_info: false
+
+octavia:
+  subnets: []
+  # - range: 172.31.240.0/20
+  #   pool:
+  #     start: 172.31.240.10
+  #     end: 172.31.255.250
+
+heat: {}
+# values:
+#   conf:
+#     heat:
+#       clients_heat:
+#         insecure: true
+
+policies:
+  network: true
+  admin: true

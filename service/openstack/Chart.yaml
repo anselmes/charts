@@ -1,0 +1,11 @@
+---
+apiVersion: v2
+name: openstack
+type: application
+description: OpenStack Helm Chart
+version: 1.0.0
+dependencies:
+  - condition: operator.enabled
+    name: rockoon
+    repository: oci://ghcr.io/labsonline/charts
+    version: 0.1.0

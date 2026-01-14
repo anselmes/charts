@@ -1,0 +1,111 @@
+# NOTES
+
+Thank you for installing the OpenStack Helm chart!
+
+This chart deploys OpenStack services and their associated resources, providing a complete cloud infrastructure platform for your Kubernetes cluster.
+
+## Next Steps
+
+1. **Verify Installation**:
+   - Check the status of OpenStack service pods to ensure they are running:
+     ```bash
+     kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/name=openstack
+     ```
+
+2. **Validate OpenStack Services**:
+   - Ensure that OpenStack services are properly configured and operational:
+     - Check the logs of OpenStack service pods for any errors:
+       ```bash
+       kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=keystone
+       kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=nova
+       kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=neutron
+       ```
+     - Verify that OpenStack deployments are running:
+       ```bash
+       kubectl get deployment -n {{ .Release.Namespace }}
+       ```
+
+3. **Access OpenStack Dashboard**:
+   - Get the Horizon dashboard service details:
+     ```bash
+     kubectl get svc -n {{ .Release.Namespace }} -l app.kubernetes.io/component=horizon
+     ```
+{{- if .Values.horizon.ingress.enabled }}
+   - Access the dashboard at: {{ .Values.horizon.ingress.host }}
+{{- else }}
+   - Port-forward to access the dashboard locally:
+     ```bash
+     kubectl port-forward -n {{ .Release.Namespace }} svc/horizon 8080:80
+     ```
+   - Then visit: http://localhost:8080
+{{- end }}
+
+4. **Configure OpenStack CLI**:
+   - Get admin credentials:
+     ```bash
+     kubectl get secret -n {{ .Release.Namespace }} keystone-admin -o jsonpath='{.data.password}' | base64 -d
+     ```
+   - Set up OpenStack CLI environment:
+     ```bash
+     export OS_AUTH_URL=http://<keystone-endpoint>/v3
+     export OS_PROJECT_NAME=admin
+     export OS_USERNAME=admin
+     export OS_PASSWORD=<admin-password>
+     export OS_USER_DOMAIN_NAME=Default
+     export OS_PROJECT_DOMAIN_NAME=Default
+     export OS_IDENTITY_API_VERSION=3
+     ```
+
+5. **Test OpenStack Services**:
+   - Verify Keystone authentication:
+     ```bash
+     openstack token issue
+     ```
+   - List available services:
+     ```bash
+     openstack service list
+     ```
+   - Check compute services:
+     ```bash
+     openstack compute service list
+     ```
+
+6. **Database Access**:
+{{- if .Values.mariadb.enabled }}
+   - Access MariaDB database:
+     ```bash
+     kubectl exec -it -n {{ .Release.Namespace }} deployment/mariadb -- mysql -u root -p
+     ```
+{{- end }}
+
+7. **Uninstallation**:
+   - To uninstall the chart and remove all associated resources, run:
+     ```bash
+     helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
+     ```
+
+## Important Notes
+
+- **Security**: Change default passwords in production environments
+- **Storage**: Ensure persistent volumes are configured for stateful services
+- **Networking**: Configure appropriate network policies for multi-tenant isolation
+- **Monitoring**: Consider deploying monitoring solutions for OpenStack services
+
+## Additional Information
+
+- For more details on OpenStack configuration, refer to the [official OpenStack documentation](https://docs.openstack.org/).
+- If you encounter any issues:
+  - Check the events in the namespace where OpenStack is deployed:
+    ```bash
+    kubectl get events -n {{ .Release.Namespace }}
+    ```
+  - Review the logs of individual OpenStack service pods for troubleshooting
+  - Verify database connectivity and message queue status
+  - Check service endpoints and network connectivity between components
+
+## Troubleshooting
+
+Common issues and solutions:
+- **Pod CrashLoopBackOff**: Check resource limits and database connectivity
+- **Service Unavailable**: Verify service endpoints and ingress configuration
+- **Authentication Failures**: Check Keystone configuration
