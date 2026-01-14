@@ -1,0 +1,9 @@
+apiVersion: v2
+name: openstack-service-template
+type: application
+description: labsonline service template for "OpenStack"
+version: 1.0.0
+dependencies:
+  - name: labsonline-catalog
+    repository: ""
+    version: 1.0.0

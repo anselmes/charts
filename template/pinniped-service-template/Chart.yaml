@@ -1,0 +1,9 @@
+apiVersion: v2
+name: pinniped-service-template
+type: application
+description: labsonline service template for "Pinniped"
+version: 1.0.0
+dependencies:
+  - name: labsonline-catalog
+    repository: ""
+    version: 1.0.0
