@@ -17,12 +17,25 @@ management:
   access:
     enabled: false
     rules: []
-    # - clusterTemplateChains:
-    #     - adopted-cluster
-    #     - remote-cluster
-    #   targetNamespaces:
+    # - targetNamespaces:
     #     list:
     #       - default
+    #   credentials:
+    #     - adopted-cluster-cred
+    #     - aws-cluster-cred
+    #     - openstack-cluster-cred
+    #     - remote-cluster-cred
+    #     - vsphere-cluster-cred
+    #   clusterTemplateChains:
+    #     - adopted-cluster
+    #     - aws-standalone-cp
+    #     - docker-hosted-cp
+    #     - openstack-standalone-cp
+    #     - remote-cluster
+    #     - vsphere-standalone-cp
+    #   serviceTemplateChains:
+    #     - core
+    #     - addon
   providers:
     # - name: cluster-api-provider-aws
     # - name: cluster-api-provider-azure
