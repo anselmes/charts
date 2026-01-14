@@ -2,15 +2,11 @@
     {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
-{{- define "vspheremachinetemplate.controlplane.name" -}}
-    {{- include "cluster.name" . }}-cp-mt
+{{- define "dockermachinetemplate.name" -}}
+    {{- include "cluster.name" . }}-mt
 {{- end }}
 
-{{- define "vspheremachinetemplate.worker.name" -}}
-    {{- include "cluster.name" . }}-worker-mt
-{{- end }}
-
-{{- define "k0scontrolplane.name" -}}
+{{- define "k0smotroncontrolplane.name" -}}
     {{- include "cluster.name" . }}-cp
 {{- end }}
 
