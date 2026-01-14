@@ -1,0 +1,57 @@
+# NOTES
+
+Thank you for installing the Pinniped Helm chart!
+
+This chart deploys Pinniped and its associated resources, enabling secure authentication and authorization for your Kubernetes cluster.
+
+## Next Steps
+
+1. **Verify Installation**:
+   - Check the status of the Pinniped pods to ensure they are running:
+     ```bash
+     kubectl get pods -n <namespace> -l app.kubernetes.io/name=pinniped
+     ```
+
+2. **Validate Pinniped Functionality**:
+   - Ensure that Pinniped is properly configured and operational:
+     - Check the logs of the Pinniped pods for any errors:
+       ```bash
+       kubectl logs -n <namespace> -l app.kubernetes.io/name=pinniped
+       ```
+     - Verify that the Pinniped supervisor and concierge are running:
+       ```bash
+       kubectl get deployment -n <namespace>
+       ```
+
+3. **Configure Authentication**:
+   - Set up your identity provider (OIDC, LDAP, etc.) with Pinniped:
+     ```bash
+     kubectl get federationdomain -n <namespace>
+     ```
+   - Verify webhook authenticators are configured:
+     ```bash
+     kubectl get webhookauthenticator -n <namespace>
+     ```
+
+4. **Test Authentication**:
+   - Use the Pinniped CLI to test authentication:
+     ```bash
+     pinniped get kubeconfig --static-token-env PINNIPED_TOKEN
+     ```
+
+5. **Uninstallation**:
+   - To uninstall the chart and remove all associated resources, run:
+     ```bash
+     helm uninstall <release-name> -n <namespace>
+     ```
+
+## Additional Information
+
+- For more details on Pinniped and its configuration, refer to the [official documentation](https://pinniped.dev/docs/).
+- If you encounter any issues:
+  - Check the events in the namespace where Pinniped is deployed:
+    ```bash
+    kubectl get events -n <namespace>
+    ```
+  - Review the logs of the Pinniped pods for troubleshooting.
+  - Verify your identity provider configuration and network

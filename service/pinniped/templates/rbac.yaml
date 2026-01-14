@@ -1,0 +1,26 @@
+{{- range $i, $v := .Values.rbac }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $v.name }}
+{{- $namespace := "pinniped-system" }}
+  {{- if $v.namespace }}
+  {{- $namespace = $v.namespace }}
+  {{- else if and .Release .Release.Namespace }}
+  {{- $namespace = .Release.Namespace }}
+  {{- end }}
+  namespace: {{ $namespace }}
+{{- with $v.subjects }}
+subjects:
+  {{- range $j, $subject := . }}
+  - kind: {{ $subject.kind }}
+    name: {{ $subject.name }}
+    apiGroup: {{ $subject.apiGroup | default "rbac.authorization.k8s.io" }}
+  {{- end }}
+{{- end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: {{ $v.role.kind }}
+  name: {{ $v.role.name }}
+{{- end }}

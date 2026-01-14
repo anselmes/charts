@@ -1,0 +1,122 @@
+---
+rbac: []
+# - name: kcm-ns-viewer
+#   namespace: kcm-system
+#   role:
+#     kind: ClusterRole
+#     name: kcm-namespace-viewer-role
+#   subjects:
+#     - kind: Group
+#       name: admins
+#       apiGroup: rbac.authorization.k8s.io
+
+auth:
+  enabled: true
+  name: default-supervisor-jwt-authenticator
+  audience: kubernetes
+  issuer:
+    url: https://pinniped-supervisor.ucp.svc.cluster.local/default
+    # ca: |
+    #   -----BEGIN CERTIFICATE-----
+    #   -----END CERTIFICATE-----
+
+domain:
+  enabled: false
+  name: default-federation-domain
+  providers: []
+  #   - name: vault
+  issuer:
+    url: https://pinniped-supervisor.ucp.svc.cluster.local/default
+    cert:
+      create: true
+      name: supervisor-tls-cert
+      dnsNames:
+        - pinniped-supervisor.ucp.svc.cluster.local
+      issuerRef:
+        kind: ClusterIssuer
+        name: vault-ca-issuer
+
+idp:
+  enabled: false
+  name: vault
+  issuer:
+    url: https://vault.ucp.svc.cluster.local:8200/v1/identity/oidc/provider/default
+    secret:
+      create: true
+      name: pinniped-oidc-credentials
+      clientID: null
+      clientSecret: null
+    # ca: |
+    #   -----BEGIN CERTIFICATE-----
+    #   -----END CERTIFICATE-----
+
+gateway:
+  enabled: false
+  name: tls-gateway
+  namespace: kube-system
+  hostnames:
+    - pinniped.dev.local
+
+pinniped:
+  enabled: false
+  image:
+    registry: docker.io
+    repository: bitnami/pinniped
+    tag: 0.40.0-debian-12-r2
+    digest: ""
+  concierge:
+    enabled: true
+    replicaCount: 1
+    configuration: |
+      discovery:
+        url: null
+      api:
+        servingCertificate:
+          durationSeconds: 2592000
+          renewBeforeSeconds: 2160000
+      apiGroupSuffix: pinniped.dev
+      {{- if .Values.concierge.configurationPorts.aggregatedAPIServerPort }}
+      aggregatedAPIServerPort: {{ .Values.concierge.configurationPorts.aggregatedAPIServerPort }}
+      {{- end }}
+      {{- if .Values.concierge.configurationPorts.impersonationProxyServerPort }}
+      impersonationProxyServerPort: {{ .Values.concierge.configurationPorts.impersonationProxyServerPort }}
+      {{- end }}
+      names:
+        servingCertificateSecret: {{ printf "%s-%s" (include "pinniped.concierge.api.fullname" .) "tls-serving-certificate" | trunc 63 | trimSuffix "-" }}
+        credentialIssuer: {{ template "pinniped.concierge.fullname" . }}
+        apiService: {{ template "pinniped.concierge.api.fullname" . }}
+        impersonationLoadBalancerService: {{ printf "%s-%s" (include "pinniped.concierge.impersonation-proxy.fullname" .) "load-balancer" | trunc 63 | trimSuffix "-" }}
+        impersonationClusterIPService: {{ printf "%s-%s" (include "pinniped.concierge.impersonation-proxy.fullname" .) "cluster-ip" | trunc 63 | trimSuffix "-" }}
+        impersonationTLSCertificateSecret: {{ printf "%s-%s" (include "pinniped.concierge.impersonation-proxy.fullname" .) "tls-serving-certificate" | trunc 63 | trimSuffix "-" }}
+        impersonationCACertificateSecret: {{ printf "%s-%s" (include "pinniped.concierge.impersonation-proxy.fullname" .) "ca-certificate" | trunc 63 | trimSuffix "-" }}
+        impersonationSignerSecret: {{ printf "%s-%s" (include "pinniped.concierge.impersonation-proxy.fullname" .) "signer-ca-certificate" | trunc 63 | trimSuffix "-" }}
+        impersonationProxyServiceAccount: {{ template "pinniped.concierge.impersonation-proxy.serviceAccountName" . }}
+        impersonationProxyLegacySecret: {{ template "pinniped.concierge.impersonation-proxy.serviceAccountName" . }}
+        agentServiceAccount: {{ template "pinniped.concierge.kube-cert-agent.fullname" . }}
+      labels: {"app":"pinniped-concierge","app.kubernetes.io/part-of":"pinniped", "app.kubernetes.io/component": "concierge", "app.kubernetes.io/instance": "{{ .Release.Name }}"}
+      kubeCertAgent:
+        namePrefix: {{ printf "%s-%s" (include "pinniped.concierge.fullname" .) "kube-cert-agent" | trunc 63 | trimSuffix "-" }}-
+        image: {{ template "pinniped.image" . }}
+        {{- include "pinniped.config.imagePullSecrets" (dict "images" (list .Values.image) "global" .Values.global) | nindent 2 }}
+    credentialIssuerConfig: |
+      impersonationProxy:
+        mode: auto
+        service:
+          type: LoadBalancer
+          annotations:
+            service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "4000"
+    resourcesPreset: none
+  supervisor:
+    enabled: false
+    replicaCount: 1
+    configuration: |
+      apiGroupSuffix: pinniped.dev
+      names:
+        defaultTLSCertificateSecret: {{ printf "%s-%s" (include "pinniped.supervisor.fullname" .) "default-tls-certificate" | trunc 63 | trimSuffix "-" }}
+        apiService: {{ template "pinniped.supervisor.api.fullname" . }}
+      labels: {"app.kubernetes.io/part-of":"pinniped", "app.kubernetes.io/component": "supervisor", "app.kubernetes.io/instance": "{{ .Release.Name }}"}
+      insecureAcceptExternalUnencryptedHttpRequests: false
+    resourcesPreset: none
+    service:
+      public:
+        type: ClusterIP

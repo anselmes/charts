@@ -1,0 +1,10 @@
+apiVersion: v2
+name: pinniped
+type: application
+description: Pinniped service for managing authentication in Kubernetes clusters.
+version: 1.0.0
+dependencies:
+  - condition: pinniped.enabled
+    name: pinniped
+    repository: oci://docker.io/bitnamicharts
+    version: 2.4.23

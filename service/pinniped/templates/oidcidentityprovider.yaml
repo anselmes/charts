@@ -1,0 +1,22 @@
+{{- if .Values.idp.enabled }}
+---
+apiVersion: idp.supervisor.pinniped.dev/v1alpha1
+kind: OIDCIdentityProvider
+metadata:
+  name: {{ .Values.idp.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  issuer: {{ .Values.idp.issuer.url }}
+  {{- if .Values.idp.issuer.ca }}
+  tls:
+    certificateAuthorityData: {{ .Values.idp.issuer.ca | b64enc }}
+  {{- end }}
+  authorizationConfig:
+    additionalScopes: [offline_access, groups, email]
+    allowPasswordGrant: false
+  claims:
+    username: email
+    groups: groups
+  client:
+    secretName: {{ .Values.idp.issuer.secret.name }}
+{{- end }}

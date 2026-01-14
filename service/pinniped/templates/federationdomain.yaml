@@ -1,0 +1,22 @@
+{{- if .Values.domain.enabled }}
+---
+apiVersion: config.supervisor.pinniped.dev/v1alpha1
+kind: FederationDomain
+metadata:
+  name: {{ .Values.domain.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  issuer: {{ .Values.domain.issuer.url }}
+  tls:
+    secretName: {{ .Values.domain.issuer.cert.name }}
+  {{- with .Values.domain.providers }}
+  identityProviders:
+    {{- range . }}
+    - displayName: {{ .name }}
+      objectRef:
+        apiGroup: idp.supervisor.pinniped.dev
+        kind: OIDCIdentityProvider
+        name: {{ .name }}
+    {{- end }}
+  {{- end }}
+{{- end }}
