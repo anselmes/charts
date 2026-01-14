@@ -2,7 +2,7 @@
 apiVersion: v2
 name: ccm
 type: application
-description: A Helm chart that deploys cloud controller managers for OpenStack and vSphere.
+description: A Helm chart that deploys various Cloud Controller Managers and their dependencies.
 version: 1.0.0
 dependencies:
   - name: openstack-cloud-controller-manager
