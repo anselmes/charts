@@ -21,7 +21,6 @@ management:
     #     list:
     #       - default
     #   credentials:
-    #     - adopted-cluster-cred
     #     - aws-cluster-cred
     #     - openstack-cluster-cred
     #     - remote-cluster-cred
