@@ -12,6 +12,8 @@ spec:
     template: {{ .Values.templates.capi }}
   kcm:
     template: {{ .Values.templates.kcm }}
+  regional:
+    template: {{ .Values.templates.regional | default "" }}
   {{- with .Values.release.providers }}
   providers:
     {{- range . }}
