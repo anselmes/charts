@@ -1,774 +1,707 @@
 {
-  "$schema": "http://json-schema.org/draft-04/schema#",
-  "$comment": "https://yamllint.readthedocs.io/en/stable/configuration.html",
-  "$ref": "#/definitions/ignore",
-  "definitions": {
-    "toggle": {
-      "type": "string",
-      "enum": ["enable", "disable"]
-    },
-    "ignore": {
-      "properties": {
-        "ignore": {
-          "title": "Ignore",
-          "description": "Ignore files, so that the linter doesn't process them.",
-          "type": "string"
-        }
-      }
-    },
-    "allRules": {
-      "$ref": "#/definitions/ignore",
-      "properties": {
-        "level": {
-          "title": "Level",
-          "type": "string",
-          "default": "warning"
-        }
-      }
-    }
-  },
-  "description": "yamllint uses a set of rules to check source files for problems.",
-  "id": "https://json.schemastore.org/yamllint.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Gateway Chart Values Schema",
+  "description": "Schema for the Gateway API Helm chart values",
   "properties": {
-    "extends": {
-      "title": "Extends",
-      "type": "string"
-    },
-    "yaml-files": {
-      "title": "YAML Files",
+    "routes": {
       "type": "array",
+      "description": "Define routes for the Gateway API",
       "items": {
-        "title": "YAML File",
-        "type": "string"
-      },
-      "default": ["*.yaml", "*.yml", ".yamllint"]
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the route",
+            "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Type of route",
+            "enum": ["HTTPRoute", "HTTPSRoute", "TLSRoute", "TCPRoute", "UDPRoute", "GRPCRoute"]
+          },
+          "hostnames": {
+            "type": "array",
+            "description": "Hostnames for the route",
+            "items": {
+              "type": "string",
+              "description": "Hostname pattern",
+              "pattern": "^(\\*\\.)?([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?[.])*[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$"
+            }
+          },
+          "parentRefs": {
+            "type": "array",
+            "description": "References to parent Gateways",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name of the parent Gateway"
+                },
+                "namespace": {
+                  "type": "string",
+                  "description": "Namespace of the parent Gateway",
+                  "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                },
+                "sectionName": {
+                  "type": "string",
+                  "description": "Section name within the Gateway"
+                },
+                "port": {
+                  "type": "integer",
+                  "description": "Port number",
+                  "minimum": 1,
+                  "maximum": 65535
+                }
+              },
+              "required": ["name"],
+              "additionalProperties": false
+            }
+          },
+          "gateways": {
+            "type": "array",
+            "description": "Legacy gateway references (deprecated in favor of parentRefs)",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name of the Gateway"
+                },
+                "namespace": {
+                  "type": "string",
+                  "description": "Namespace of the Gateway",
+                  "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                }
+              },
+              "required": ["name"],
+              "additionalProperties": false
+            }
+          },
+          "rules": {
+            "type": "array",
+            "description": "Routing rules",
+            "items": {
+              "type": "object",
+              "properties": {
+                "matches": {
+                  "type": "array",
+                  "description": "Route matching criteria",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "object",
+                        "description": "Path matching criteria",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": ["Exact", "PathPrefix", "RegularExpression"]
+                          },
+                          "value": {
+                            "type": "string",
+                            "description": "Path value to match"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "headers": {
+                        "type": "array",
+                        "description": "Header matching criteria",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": ["Exact", "RegularExpression"]
+                            },
+                            "name": {
+                              "type": "string",
+                              "description": "Header name"
+                            },
+                            "value": {
+                              "type": "string",
+                              "description": "Header value"
+                            }
+                          },
+                          "required": ["name", "value"],
+                          "additionalProperties": false
+                        }
+                      },
+                      "queryParams": {
+                        "type": "array",
+                        "description": "Query parameter matching criteria",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": ["Exact", "RegularExpression"]
+                            },
+                            "name": {
+                              "type": "string",
+                              "description": "Query parameter name"
+                            },
+                            "value": {
+                              "type": "string",
+                              "description": "Query parameter value"
+                            }
+                          },
+                          "required": ["name", "value"],
+                          "additionalProperties": false
+                        }
+                      },
+                      "method": {
+                        "type": "string",
+                        "description": "HTTP method to match",
+                        "enum": ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "CONNECT", "OPTIONS", "TRACE"]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "filters": {
+                  "type": "array",
+                  "description": "Route filters to apply",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": ["RequestHeaderModifier", "ResponseHeaderModifier", "RequestMirror", "RequestRedirect", "URLRewrite", "ExtensionRef"]
+                      },
+                      "requestHeaderModifier": {
+                        "type": "object",
+                        "description": "Request header modification",
+                        "properties": {
+                          "set": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {"type": "string"},
+                                "value": {"type": "string"}
+                              },
+                              "required": ["name", "value"]
+                            }
+                          },
+                          "add": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {"type": "string"},
+                                "value": {"type": "string"}
+                              },
+                              "required": ["name", "value"]
+                            }
+                          },
+                          "remove": {
+                            "type": "array",
+                            "items": {"type": "string"}
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "responseHeaderModifier": {
+                        "type": "object",
+                        "description": "Response header modification",
+                        "properties": {
+                          "set": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {"type": "string"},
+                                "value": {"type": "string"}
+                              },
+                              "required": ["name", "value"]
+                            }
+                          },
+                          "add": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {"type": "string"},
+                                "value": {"type": "string"}
+                              },
+                              "required": ["name", "value"]
+                            }
+                          },
+                          "remove": {
+                            "type": "array",
+                            "items": {"type": "string"}
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "requestRedirect": {
+                        "type": "object",
+                        "description": "Request redirect configuration",
+                        "properties": {
+                          "scheme": {
+                            "type": "string",
+                            "enum": ["http", "https"]
+                          },
+                          "hostname": {
+                            "type": "string",
+                            "description": "Redirect hostname"
+                          },
+                          "path": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": ["ReplaceFullPath", "ReplacePrefixMatch"]
+                              },
+                              "replaceFullPath": {"type": "string"},
+                              "replacePrefixMatch": {"type": "string"}
+                            }
+                          },
+                          "port": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 65535
+                          },
+                          "statusCode": {
+                            "type": "integer",
+                            "enum": [301, 302]
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "urlRewrite": {
+                        "type": "object",
+                        "description": "URL rewrite configuration",
+                        "properties": {
+                          "hostname": {
+                            "type": "string",
+                            "description": "Rewrite hostname"
+                          },
+                          "path": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": ["ReplaceFullPath", "ReplacePrefixMatch"]
+                              },
+                              "replaceFullPath": {"type": "string"},
+                              "replacePrefixMatch": {"type": "string"}
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": ["type"],
+                    "additionalProperties": false
+                  }
+                },
+                "backendRefs": {
+                  "type": "array",
+                  "description": "Backend service references",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Name of the backend service"
+                      },
+                      "namespace": {
+                        "type": "string",
+                        "description": "Namespace of the backend service",
+                        "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "description": "Kind of backend resource",
+                        "default": "Service"
+                      },
+                      "port": {
+                        "type": "integer",
+                        "description": "Backend service port",
+                        "minimum": 1,
+                        "maximum": 65535
+                      },
+                      "weight": {
+                        "type": "integer",
+                        "description": "Weight for load balancing",
+                        "minimum": 0,
+                        "maximum": 1000000,
+                        "default": 1
+                      }
+                    },
+                    "required": ["name"],
+                    "additionalProperties": false
+                  },
+                  "minItems": 1
+                }
+              },
+              "additionalProperties": false
+            },
+            "minItems": 1
+          }
+        },
+        "required": ["name", "kind", "rules"],
+        "additionalProperties": false
+      }
     },
-    "locale": {
-      "title": "Locale",
-      "description": "This is passed to Python's locale.setlocale.",
-      "type": "string"
+    "policies": {
+      "type": "array",
+      "description": "Define policies for the Gateway API",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the policy",
+            "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+          },
+          "validation": {
+            "type": "object",
+            "description": "Validation policy configuration",
+            "properties": {
+              "hostname": {
+                "type": "string",
+                "description": "Hostname to validate",
+                "pattern": "^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?[.])*[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$"
+              },
+              "wellKnownCACertificates": {
+                "type": "string",
+                "description": "Well-known CA certificates to use",
+                "enum": ["System"]
+              },
+              "caCertificateRefs": {
+                "type": "array",
+                "description": "CA certificate references",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "group": {
+                      "type": "string",
+                      "description": "API group"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "description": "Resource kind"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Resource name"
+                    },
+                    "namespace": {
+                      "type": "string",
+                      "description": "Resource namespace",
+                      "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                    }
+                  },
+                  "required": ["kind", "name"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": ["name"],
+        "additionalProperties": false
+      }
     },
-    "rules": {
-      "properties": {
-        "braces": {
-          "title": "Braces",
-          "description": "Use this rule to control the use of flow mappings or number of spaces inside braces ({ and }).",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
+    "grants": {
+      "type": "array",
+      "description": "Define resource grants for the Gateway API",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the grant",
+            "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+          },
+          "to": {
+            "type": "array",
+            "description": "Resources that can be referenced",
+            "items": {
               "type": "object",
               "properties": {
-                "forbid": {
-                  "title": "Forbid",
-                  "description": "Used to forbid the use of flow mappings which are denoted by surrounding braces ({ and }).",
-                  "anyOf": [
-                    {
-                      "type": "boolean"
-                    },
-                    {
-                      "type": "string",
-                      "enum": ["non-empty"]
-                    }
-                  ],
-                  "default": false
+                "group": {
+                  "type": "string",
+                  "description": "API group"
                 },
-                "min-spaces-inside": {
-                  "title": "Minimum Spaces Inside",
-                  "description": "Defines the minimal number of spaces required inside braces.",
-                  "type": "number",
-                  "default": 0
+                "kind": {
+                  "type": "string",
+                  "description": "Resource kind"
                 },
-                "max-spaces-inside": {
-                  "title": "Max Spaces Inside",
-                  "description": "Defines the maximal number of spaces allowed inside braces.",
-                  "type": "number",
-                  "default": 0
+                "name": {
+                  "type": "string",
+                  "description": "Resource name"
                 },
-                "min-spaces-inside-empty": {
-                  "title": "Minimum Spaces Inside Empty",
-                  "description": "Defines the minimal number of spaces required inside empty braces.",
-                  "type": "number",
-                  "default": -1
-                },
-                "max-spaces-inside-empty": {
-                  "title": "Max Spaces Inside Empty",
-                  "description": "Defines the maximal number of spaces allowed inside empty braces.",
-                  "type": "number",
-                  "default": -1
+                "namespace": {
+                  "type": "string",
+                  "description": "Resource namespace",
+                  "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
                 }
-              }
-            }
-          ],
-          "default": "enable"
-        },
-        "brackets": {
-          "title": "Brackets",
-          "description": "Use this rule to control the use of flow sequences or the number of spaces inside brackets ([ and ]).",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
+              },
+              "required": ["kind"],
+              "additionalProperties": false
             },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
+            "minItems": 1
+          },
+          "from": {
+            "type": "array",
+            "description": "Resources that can make references",
+            "items": {
               "type": "object",
               "properties": {
-                "forbid": {
-                  "title": "Forbid",
-                  "description": "Used to forbid the use of flow sequences which are denoted by surrounding brackets ([ and ]).",
-                  "anyOf": [
-                    {
-                      "type": "boolean"
-                    },
-                    {
-                      "type": "string",
-                      "enum": ["non-empty"]
-                    }
-                  ],
-                  "default": false
+                "group": {
+                  "type": "string",
+                  "description": "API group"
                 },
-                "min-spaces-inside": {
-                  "title": "Minimum Spaces Inside",
-                  "description": "Defines the minimal number of spaces required inside brackets.",
-                  "type": "number",
-                  "default": 0
+                "kind": {
+                  "type": "string",
+                  "description": "Resource kind"
                 },
-                "max-spaces-inside": {
-                  "title": "Max Spaces Inside",
-                  "description": "Defines the maximal number of spaces allowed inside brackets.",
-                  "type": "number",
-                  "default": 0
-                },
-                "min-spaces-inside-empty": {
-                  "title": "Minimum Spaces Inside Empty",
-                  "description": "Defines the minimal number of spaces required inside empty brackets.",
-                  "type": "number",
-                  "default": -1
-                },
-                "max-spaces-inside-empty": {
-                  "title": "Max Spaces Inside Empty",
-                  "description": "Defines the maximal number of spaces allowed inside empty brackets.",
-                  "type": "number",
-                  "default": -1
+                "namespace": {
+                  "type": "string",
+                  "description": "Resource namespace",
+                  "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
                 }
-              }
-            }
-          ],
-          "default": "enable"
-        },
-        "colons": {
-          "title": "Colons",
-          "description": "Use this rule to control the number of spaces before and after colons (:).",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
+              },
+              "required": ["group", "kind"],
+              "additionalProperties": false
             },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "max-spaces-before": {
-                  "title": "Max Spaces Before",
-                  "description": "Defines the maximal number of spaces allowed before colons (use -1 to disable).",
-                  "type": "number",
-                  "default": 0
-                },
-                "max-spaces-after": {
-                  "title": "Max Spaces After",
-                  "description": "Defines the maximal number of spaces allowed after colons (use -1 to disable).",
-                  "type": "number",
-                  "default": 1
-                }
-              }
-            }
-          ],
-          "default": "enable"
-        },
-        "commas": {
-          "title": "Commas",
-          "description": "Use this rule to control the number of spaces before and after commas (,).",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "max-spaces-before": {
-                  "title": "Max Spaces Before",
-                  "description": "Defines the maximal number of spaces allowed before commas (use -1 to disable).",
-                  "type": "number",
-                  "default": 0
-                },
-                "min-spaces-after": {
-                  "title": "Minimum Spaces After",
-                  "description": "Defines the minimal number of spaces required after commas.",
-                  "type": "number",
-                  "default": 1
-                },
-                "max-spaces-after": {
-                  "title": "Max Spaces After",
-                  "description": "Defines the maximal number of spaces allowed after commas (use -1 to disable).",
-                  "type": "number",
-                  "default": 1
-                }
-              }
-            }
-          ],
-          "default": "enable"
-        },
-        "comments": {
-          "title": "Comments",
-          "description": "Use this rule to control the position and formatting of comments.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "require-starting-space": {
-                  "title": "Require Starting Space",
-                  "description": "Require a space character right after the #.",
-                  "type": "boolean",
-                  "default": true
-                },
-                "ignore-shebangs": {
-                  "title": "Ignore Shebangs",
-                  "description": "Ignore a shebang at the beginning of the file when require-starting-space is set.",
-                  "type": "boolean",
-                  "default": true
-                },
-                "min-spaces-from-content": {
-                  "title": "Minimum Spaces from Content",
-                  "description": "Used to visually separate inline comments from content.",
-                  "type": "number",
-                  "default": 2
-                }
-              }
-            }
-          ],
-          "default": {
-            "level": "warning"
+            "minItems": 1
           }
         },
-        "comments-indentation": {
-          "title": "Comments Indentation",
-          "description": "Use this rule to force comments to be indented like content.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object"
-            }
-          ],
-          "default": {
-            "level": "warning"
-          }
-        },
-        "document-end": {
-          "title": "Document End",
-          "description": "Use this rule to require or forbid the use of document end marker (...).",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "present": {
-                  "title": "Present",
-                  "description": "True when the document end marker is required, or to false when it is forbidden.",
-                  "type": "boolean",
-                  "default": true
-                }
-              }
-            }
-          ],
-          "default": "disable"
-        },
-        "document-start": {
-          "title": "Document Start",
-          "description": "Use this rule to require or forbid the use of document start marker (---).",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "present": {
-                  "title": "Present",
-                  "description": "True when the document start marker is required, or to false when it is forbidden.",
-                  "type": "boolean",
-                  "default": true
-                }
-              }
-            }
-          ],
-          "default": {
-            "level": "warning"
-          }
-        },
-        "empty-lines": {
-          "title": "Empty Lines",
-          "description": "Use this rule to set a maximal number of allowed consecutive blank lines.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "max": {
-                  "title": "Max",
-                  "description": "Defines the maximal number of empty lines allowed in the document.",
-                  "type": "number",
-                  "default": 2
-                },
-                "max-start": {
-                  "title": "Max Start",
-                  "description": "Defines the maximal number of empty lines allowed at the beginning of the file.",
-                  "type": "number",
-                  "default": 0
-                },
-                "max-end": {
-                  "title": "Max End",
-                  "description": "",
-                  "type": "number",
-                  "default": 0
-                }
-              }
-            }
-          ],
-          "default": "enable"
-        },
-        "empty-values": {
-          "title": "Empty Values",
-          "description": "Use this rule to prevent nodes with empty content, that implicitly result in null values.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "forbid-in-block-mappings": {
-                  "title": "Forbid in Block Mappings",
-                  "description": "Prevent empty values in block mappings.",
-                  "type": "boolean",
-                  "default": true
-                },
-                "forbid-in-flow-mappings": {
-                  "title": "Forbid in Flow Mappings",
-                  "description": "Prevent empty values in flow mappings.",
-                  "type": "boolean",
-                  "default": true
-                }
-              }
-            }
-          ],
-          "default": "disable"
-        },
-        "hyphens": {
-          "title": "Hyphens",
-          "description": "Use this rule to control the number of spaces after hyphens (-).",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "max-spaces-after": {
-                  "title": "Max Spaces After",
-                  "description": "Defines the maximal number of spaces allowed after hyphens.",
-                  "type": "number",
-                  "default": 1
-                }
-              }
-            }
-          ],
-          "default": "enable"
-        },
-        "indentation": {
-          "title": "Indentation",
-          "description": "Use this rule to control the indentation.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "spaces": {
-                  "title": "Spaces",
-                  "description": "Defines the indentation width, in spaces.",
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "string",
-                      "enum": ["consistent"]
-                    }
-                  ],
-                  "default": "consistent"
-                },
-                "indent-sequences": {
-                  "title": "Indent Sequences",
-                  "description": "Defines whether block sequences should be indented or not (when in a mapping, this indentation is not mandatory – some people perceive the - as part of the indentation).",
-                  "anyOf": [
-                    {
-                      "type": "boolean"
-                    },
-                    {
-                      "type": "string",
-                      "enum": ["whatever", "consistent"]
-                    }
-                  ],
-                  "default": true
-                },
-                "check-multi-line-strings": {
-                  "title": "Check Multi Line Strings",
-                  "description": "Defines whether to lint indentation in multi-line strings.",
-                  "type": "boolean",
-                  "default": false
-                }
-              }
-            }
-          ],
-          "default": "enable"
-        },
-        "key-duplicates": {
-          "title": "Key Duplicates",
-          "description": "Use this rule to prevent multiple entries with the same key in mappings.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object"
-            }
-          ],
-          "default": "enable"
-        },
-        "key-ordering": {
-          "title": "Key Ordering",
-          "description": "Use this rule to enforce alphabetical ordering of keys in mappings.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object"
-            }
-          ],
-          "default": "disable"
-        },
-        "line-length": {
-          "title": "Line Length",
-          "description": "Use this rule to set a limit to lines length.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "max": {
-                  "title": "Max",
-                  "description": "Defines the maximal (inclusive) length of lines.",
-                  "type": "number",
-                  "default": 80
-                },
-                "allow-non-breakable-words": {
-                  "title": "Allow Non-Breakable Words",
-                  "description": "Used to allow non breakable words (without spaces inside) to overflow the limit.",
-                  "type": "boolean",
-                  "default": true
-                },
-                "allow-non-breakable-inline-mappings": {
-                  "title": "Allow Non-Breakable Inline Mappings",
-                  "description": "Implies allow-non-breakable-words and extends it to also allow non-breakable words in inline mappings.",
-                  "type": "boolean",
-                  "default": true
-                }
-              }
-            }
-          ],
-          "default": "enable"
-        },
-        "new-line-at-end-of-file": {
-          "title": "New Line at End of File",
-          "description": "Use this rule to require a new line character (\n) at the end of files.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object"
-            }
-          ],
-          "default": "enable"
-        },
-        "new-lines": {
-          "title": "New Lines",
-          "description": "Use this rule to force the type of new line characters.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
+        "required": ["name", "to", "from"],
+        "additionalProperties": false
+      }
+    },
+    "gateways": {
+      "type": "array",
+      "description": "Define Gateway configurations",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the Gateway",
+            "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+          },
+          "className": {
+            "type": "string",
+            "description": "Gateway class name"
+          },
+          "addresses": {
+            "type": "array",
+            "description": "Gateway addresses",
+            "items": {
               "type": "object",
               "properties": {
                 "type": {
-                  "title": "Type",
-                  "description": "Unix to use UNIX-typed new line characters (\n), or dos to use DOS-typed new line characters (\r\n).",
                   "type": "string",
-                  "enum": ["unix", "dos", "platform"],
-                  "default": "unix"
+                  "enum": ["IPAddress", "Hostname", "NamedAddress"]
+                },
+                "value": {
+                  "type": "string",
+                  "description": "Address value"
                 }
-              }
+              },
+              "required": ["value"],
+              "additionalProperties": false
             }
-          ],
-          "default": "enable"
-        },
-        "octal-values": {
-          "title": "Octal Values",
-          "description": "Use this rule to prevent values with octal numbers.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
+          },
+          "listeners": {
+            "type": "array",
+            "description": "Gateway listeners",
+            "items": {
               "type": "object",
               "properties": {
-                "forbid-implicit-octal": {
-                  "title": "Forbid Implicit Octal",
-                  "description": "Prevent numbers starting with 0.",
-                  "type": "boolean",
-                  "default": true
-                },
-                "forbid-explicit-octal": {
-                  "title": "Forbid Explicit Octal",
-                  "description": "Prevent numbers starting with 0o.",
-                  "type": "boolean",
-                  "default": true
-                }
-              }
-            }
-          ],
-          "default": "disable"
-        },
-        "quoted-strings": {
-          "title": "Quoted Strings",
-          "description": "Use this rule to forbid any string values that are not quoted, or to prevent quoted strings without needing it.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "quote-type": {
-                  "title": "Quote Type",
-                  "description": "Defines allowed quotes.",
+                "name": {
                   "type": "string",
-                  "enum": ["single", "double", "any"],
-                  "default": "any"
+                  "description": "Name of the listener",
+                  "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
                 },
-                "required": {
-                  "title": "Required",
-                  "description": "Defines whether using quotes in string values is required.",
-                  "anyOf": [
-                    {
-                      "type": "boolean"
-                    },
-                    {
+                "hostname": {
+                  "type": "string",
+                  "description": "Hostname for the listener",
+                  "pattern": "^(\\*\\.)?([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?[.])*[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$"
+                },
+                "port": {
+                  "type": "integer",
+                  "description": "Port number",
+                  "minimum": 1,
+                  "maximum": 65535
+                },
+                "protocol": {
+                  "type": "string",
+                  "description": "Protocol for the listener",
+                  "enum": ["HTTP", "HTTPS", "TLS", "TCP", "UDP"]
+                },
+                "tls": {
+                  "type": "object",
+                  "description": "TLS configuration",
+                  "properties": {
+                    "mode": {
                       "type": "string",
-                      "enum": ["only-when-needed"]
+                      "description": "TLS mode",
+                      "enum": ["Terminate", "Passthrough"]
+                    },
+                    "certificateRefs": {
+                      "type": "array",
+                      "description": "Certificate references",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "group": {
+                            "type": "string",
+                            "description": "API group"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "description": "Resource kind",
+                            "default": "Secret"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Certificate name"
+                          },
+                          "namespace": {
+                            "type": "string",
+                            "description": "Certificate namespace",
+                            "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                          },
+                          "issuer": {
+                            "type": "string",
+                            "description": "Certificate issuer (custom field)"
+                          }
+                        },
+                        "required": ["name"],
+                        "additionalProperties": false
+                      }
+                    },
+                    "options": {
+                      "type": "object",
+                      "description": "TLS options",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
                     }
-                  ],
-                  "default": true
-                },
-                "extra-required": {
-                  "title": "Extra Required",
-                  "description": "List of PCRE regexes to force string values to be quoted, if they match any regex.",
-                  "type": "array",
-                  "items": {
-                    "title": "Pattern",
-                    "type": "string"
                   },
-                  "default": []
+                  "additionalProperties": false
                 },
-                "extra-allowed": {
-                  "title": "Extra Allowed",
-                  "description": "List of PCRE regexes to allow quoted string values, even if required: only-when-needed is set.",
-                  "type": "array",
-                  "items": {
-                    "title": "Pattern",
-                    "type": "string"
+                "allowedRoutes": {
+                  "type": "object",
+                  "description": "Routes allowed to attach to this listener",
+                  "properties": {
+                    "namespaces": {
+                      "type": "object",
+                      "description": "Namespace selector",
+                      "properties": {
+                        "from": {
+                          "type": "string",
+                          "description": "Namespace selection strategy",
+                          "enum": ["All", "Selector", "Same"]
+                        },
+                        "selector": {
+                          "type": "object",
+                          "description": "Label selector for namespaces",
+                          "properties": {
+                            "matchLabels": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "string"
+                              }
+                            },
+                            "matchExpressions": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "operator": {
+                                    "type": "string",
+                                    "enum": ["In", "NotIn", "Exists", "DoesNotExist"]
+                                  },
+                                  "values": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "required": ["key", "operator"]
+                              }
+                            }
+                          },
+                          "additionalProperties": false
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "kinds": {
+                      "type": "array",
+                      "description": "Route kinds allowed",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "group": {
+                            "type": "string",
+                            "description": "API group"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "description": "Route kind"
+                          }
+                        },
+                        "required": ["kind"],
+                        "additionalProperties": false
+                      }
+                    }
                   },
-                  "default": []
+                  "additionalProperties": false
                 }
-              }
-            }
-          ],
-          "default": "disable"
+              },
+              "required": ["name", "port", "protocol"],
+              "additionalProperties": false
+            },
+            "minItems": 1
+          }
         },
-        "trailing-spaces": {
-          "title": "Tailing Spaces",
-          "description": "Use this rule to forbid trailing spaces at the end of lines.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object"
-            }
-          ],
-          "default": "enable"
+        "required": ["name", "listeners"],
+        "additionalProperties": false
+      }
+    },
+    "global": {
+      "type": "object",
+      "description": "Global configuration that applies to all components",
+      "properties": {
+        "imageRegistry": {
+          "type": "string",
+          "description": "Global Docker image registry"
         },
-        "truthy": {
-          "title": "Truthy",
-          "description": "Use this rule to forbid non-explictly typed truthy values other than allowed ones (by default: true and false), for example YES or off.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "allowed-values": {
-                  "title": "Allowed Values",
-                  "description": "Defines the list of truthy values which will be ignored during linting.",
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "enum": [
-                      "TRUE",
-                      "True",
-                      "true",
-                      "FALSE",
-                      "False",
-                      "false",
-                      "YES",
-                      "Yes",
-                      "yes",
-                      "NO",
-                      "No",
-                      "no",
-                      "ON",
-                      "On",
-                      "on",
-                      "OFF",
-                      "Off",
-                      "off"
-                    ]
-                  },
-                  "default": ["true", "false"]
-                },
-                "check-keys": {
-                  "title": "Check Keys",
-                  "description": "Disables verification for keys in mappings.",
-                  "type": "boolean",
-                  "default": true
-                }
+        "imagePullSecrets": {
+          "type": "array",
+          "description": "Global image pull secrets",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the image pull secret"
               }
-            }
-          ],
-          "default": {
-            "level": "warning"
+            },
+            "required": ["name"],
+            "additionalProperties": false
           }
         }
-      }
+      },
+      "additionalProperties": true
     }
   },
-  "title": "yamllint",
-  "type": "object"
+  "additionalProperties": false
 }

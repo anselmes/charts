@@ -1,4 +1,7 @@
 ---
+
+# MARK: Routes
+
 # Define the routes for the Gateway API.
 # Each route specifies the type of traffic (e.g., HTTP, TLS, gRPC) and the backend services to route to.
 routes: []
@@ -30,6 +33,8 @@ routes: []
 #   gateways:
 #     - name: grpc-gateway
 
+# MARK: Policies
+
 # Define policies for the Gateway API.
 # Policies can include validation rules, such as hostname validation or certificate references.
 policies: []
@@ -42,6 +47,8 @@ policies: []
 #     #     kind: ConfigMap
 #     #     name: auth-cert
 
+# MARK: Grants
+
 # Define resource grants for the Gateway API.
 # Grants specify which resources (e.g., Secrets) can be referenced by Gateways.
 grants: []
@@ -52,6 +59,8 @@ grants: []
 #   from:
 #     - group: gateway.networking.k8s.io
 #       kind: Gateway
+
+# MARK: Gateways
 
 # Define the Gateway configurations.
 # Each Gateway specifies its name, class, and listeners for handling traffic.

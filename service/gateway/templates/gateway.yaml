@@ -8,6 +8,8 @@ metadata:
   {{- if .tls }}
   {{- range .tls.certificateRefs }}
   {{- if .issuer }}
+  labels:
+    {{- include "gateway.labels" . | nindent 4 }}
   annotations:
     cert-manager.io/cluster-issuer: {{ .issuer }}
   {{- end }}

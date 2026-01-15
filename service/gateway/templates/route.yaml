@@ -8,6 +8,8 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: {{ .kind }}
 metadata:
   name: {{ .name }}
+  labels:
+    {{- include "gateway.labels" . | nindent 4 }}
   {{- range .hostnames }}
   annotations:
     external-dns.alpha.kubernetes.io/hostname: {{ join "," . }}

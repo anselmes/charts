@@ -4,6 +4,8 @@ apiVersion: gateway.networking.k8s.io/v1alpha3
 kind: BackendTLSPolicy
 metadata:
   name: {{ .name }}
+  labels:
+    {{- include "gateway.labels" . | nindent 4 }}
 spec:
   validation:
     hostname: {{ .validation.hostname }}
