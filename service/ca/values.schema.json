@@ -1,6 +1,8 @@
 {
-  "$schema": "http://json-schema.org/schema#",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
+  "title": "CA Chart Values Schema",
+  "description": "Schema for the CA Helm chart values",
   "properties": {
     "certificates": {
       "type": "array",
@@ -10,39 +12,47 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "Name of the certificate resource"
+            "description": "Name of the certificate resource",
+            "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
           },
           "duration": {
             "type": "string",
-            "description": "Validity duration of the certificate"
+            "description": "Validity duration of the certificate (e.g., '2160h' for 90 days)",
+            "pattern": "^[0-9]+[hms]$"
           },
           "renewal": {
             "type": "string",
-            "description": "Time before expiration to renew the certificate"
+            "description": "Time before expiration to renew the certificate (e.g., '360h' for 15 days)",
+            "pattern": "^[0-9]+[hms]$"
           },
           "dns": {
             "type": "object",
+            "description": "DNS configuration for the certificate",
             "properties": {
               "name": {
                 "type": "string",
-                "description": "Common name (CN) for the certificate"
+                "description": "Common name (CN) for the certificate",
+                "format": "hostname"
               },
               "aliases": {
                 "type": "array",
+                "description": "DNS names for the certificate",
                 "items": {
-                  "type": "string"
-                },
-                "description": "Additional DNS names (aliases)"
+                  "type": "string",
+                  "format": "hostname"
+                }
               },
               "addresses": {
                 "type": "array",
+                "description": "Optional IP addresses for the certificate",
                 "items": {
-                  "type": "string"
-                },
-                "description": "IP addresses for the certificate"
+                  "type": "string",
+                  "format": "ipv4"
+                }
               },
               "usages": {
                 "type": "array",
+                "description": "Key usage for the certificate",
                 "items": {
                   "type": "string",
                   "enum": [
@@ -50,31 +60,50 @@
                     "key encipherment",
                     "server auth",
                     "client auth",
-                    "key agreement",
-                    "content commitment"
+                    "code signing",
+                    "email protection",
+                    "s/mime",
+                    "ipsec end system",
+                    "ipsec tunnel",
+                    "ipsec user",
+                    "timestamping",
+                    "ocsp signing",
+                    "microsoft sgc",
+                    "netscape sgc"
                   ]
-                },
-                "description": "Key usages for the certificate"
+                }
               }
-            }
+            },
+            "required": ["name"],
+            "additionalProperties": false
           },
           "issuerRef": {
             "type": "object",
+            "description": "Reference to the issuer",
             "properties": {
               "name": {
                 "type": "string",
-                "description": "Name of the issuer or ClusterIssuer"
+                "description": "Name of the issuer or ClusterIssuer",
+                "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
               },
               "kind": {
                 "type": "string",
+                "description": "Kind of the issuer",
                 "enum": ["Issuer", "ClusterIssuer"],
-                "description": "Kind of the issuer"
+                "default": "Issuer"
+              },
+              "group": {
+                "type": "string",
+                "description": "API group of the issuer",
+                "default": "cert-manager.io"
               }
             },
-            "required": ["name", "kind"]
+            "required": ["name"],
+            "additionalProperties": false
           }
         },
-        "required": ["name"]
+        "required": ["name", "dns", "issuerRef"],
+        "additionalProperties": false
       }
     },
     "issuers": {
@@ -85,93 +114,110 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "Name of the issuer"
+            "description": "Name of the issuer",
+            "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
           },
           "clustered": {
             "type": "boolean",
-            "description": "Whether this is a ClusterIssuer"
+            "description": "Whether this is a ClusterIssuer",
+            "default": false
           },
           "selfSigned": {
             "type": "boolean",
-            "description": "Whether this issuer is self-signed"
-          },
-          "certManagerNamespace": {
-            "type": "string",
-            "description": "Namespace where cert-manager is deployed"
+            "description": "Whether this is a self-signed issuer",
+            "default": false
           },
           "type": {
             "type": "string",
-            "enum": ["ca", "acme", "selfsigned"],
-            "description": "Type of the issuer"
+            "description": "Type of the issuer",
+            "enum": ["ca", "acme", "venafi"]
+          },
+          "certManagerNamespace": {
+            "type": "string",
+            "description": "Namespace where cert-manager is deployed",
+            "default": "cert-manager",
+            "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
           },
           "secret": {
             "type": "object",
+            "description": "Secret configuration for the issuer",
             "properties": {
               "name": {
                 "type": "string",
-                "description": "Name of the secret"
+                "description": "Name of the secret",
+                "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
               },
               "create": {
                 "type": "boolean",
-                "description": "Whether to create the secret"
+                "description": "Whether to create the secret",
+                "default": false
               },
               "ca": {
                 "type": "object",
+                "description": "CA certificate and key for CA issuers",
                 "properties": {
                   "crt": {
                     "type": ["string", "null"],
-                    "description": "CA certificate"
+                    "description": "CA certificate in PEM format"
                   },
                   "key": {
                     "type": ["string", "null"],
-                    "description": "CA private key"
+                    "description": "CA private key in PEM format"
                   }
-                }
+                },
+                "additionalProperties": false
               },
               "tsig": {
                 "type": ["string", "null"],
-                "description": "TSIG credentials"
+                "description": "TSIG credentials for RFC2136"
               },
               "token": {
                 "type": ["string", "null"],
-                "description": "Token for authentication"
+                "description": "Token for ACME account"
               }
-            }
+            },
+            "additionalProperties": false
           },
           "acme": {
             "type": "object",
+            "description": "ACME configuration for ACME issuers",
             "properties": {
               "email": {
                 "type": "string",
-                "format": "email",
-                "description": "Email address for ACME registration"
+                "description": "Email address for ACME registration",
+                "format": "email"
               },
               "server": {
                 "type": "string",
-                "format": "uri",
-                "description": "ACME server URL"
+                "description": "ACME server URL",
+                "format": "uri"
               },
               "provider": {
                 "type": "object",
+                "description": "DNS provider configuration",
                 "properties": {
                   "type": {
                     "type": "string",
-                    "enum": ["rfc2136", "webhook"],
-                    "description": "DNS provider type"
+                    "description": "DNS provider type",
+                    "enum": ["rfc2136", "webhook"]
                   },
                   "rfc2136": {
                     "type": "object",
+                    "description": "RFC2136 DNS provider configuration",
                     "properties": {
                       "nameserver": {
                         "type": "string",
-                        "description": "DNS server address"
+                        "description": "DNS server address",
+                        "pattern": "^[a-zA-Z0-9.-]+:[0-9]+$"
                       },
                       "tsig": {
                         "type": "object",
+                        "description": "TSIG configuration",
                         "properties": {
                           "algo": {
                             "type": "string",
-                            "description": "TSIG algorithm"
+                            "description": "TSIG algorithm",
+                            "enum": ["HMACSHA1", "HMACSHA256", "HMACSHA512"]
                           },
                           "keyName": {
                             "type": "string",
@@ -181,12 +227,17 @@
                             "type": "string",
                             "description": "TSIG secret key"
                           }
-                        }
+                        },
+                        "required": ["algo", "keyName", "secretKey"],
+                        "additionalProperties": false
                       }
-                    }
+                    },
+                    "required": ["nameserver", "tsig"],
+                    "additionalProperties": false
                   },
                   "webhook": {
                     "type": "object",
+                    "description": "Webhook DNS provider configuration",
                     "properties": {
                       "group": {
                         "type": "string",
@@ -198,76 +249,126 @@
                       },
                       "config": {
                         "type": "object",
+                        "description": "Webhook configuration",
                         "properties": {
                           "host": {
                             "type": "string",
-                            "description": "Webhook server host"
+                            "description": "Webhook server host",
+                            "format": "uri"
                           },
                           "secretKey": {
                             "type": "string",
                             "description": "Webhook secret key"
                           }
-                        }
+                        },
+                        "additionalProperties": true
                       }
-                    }
+                    },
+                    "required": ["group", "solver"],
+                    "additionalProperties": false
                   }
-                }
+                },
+                "required": ["type"],
+                "additionalProperties": false
               }
-            }
+            },
+            "required": ["email", "server", "provider"],
+            "additionalProperties": false
           }
         },
-        "required": ["name"]
+        "required": ["name"],
+        "additionalProperties": false
       }
     },
-    "cert-manager": {
+    "certmanager": {
       "type": "object",
-      "description": "Configuration for cert-manager",
+      "description": "Configuration for cert-manager component",
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Enable or disable cert-manager"
+          "description": "Enable or disable cert-manager deployment",
+          "default": false
         },
         "enableCertificateOwnerRef": {
           "type": "boolean",
-          "description": "Enable Certificate Owner Reference feature"
+          "description": "Enable Certificate Owner Reference feature for automatic garbage collection of secrets",
+          "default": true
         },
         "crds": {
           "type": "object",
+          "description": "Custom Resource Definitions configuration",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Enable CRD installation"
+              "description": "Enable installation of CRDs required by cert-manager",
+              "default": true
             }
-          }
+          },
+          "additionalProperties": true
         },
         "config": {
           "type": "object",
+          "description": "cert-manager controller configuration",
           "properties": {
             "apiVersion": {
               "type": "string",
-              "description": "API version for controller configuration"
+              "description": "API version for the controller configuration",
+              "default": "controller.config.cert-manager.io/v1alpha1"
             },
             "kind": {
               "type": "string",
-              "description": "Kind of the configuration"
+              "description": "Kind for the controller configuration",
+              "default": "ControllerConfiguration"
             },
             "enableGatewayAPI": {
               "type": "boolean",
-              "description": "Enable Gateway API support"
+              "description": "Enable or disable Gateway API support",
+              "default": false
             }
-          }
+          },
+          "additionalProperties": true
         }
-      }
+      },
+      "additionalProperties": true
     },
-    "trust-manager": {
+    "trustmanager": {
       "type": "object",
-      "description": "Configuration for trust-manager",
+      "description": "Configuration for trust-manager component",
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Enable or disable trust-manager"
+          "description": "Enable or disable trust-manager deployment",
+          "default": false
         }
-      }
+      },
+      "additionalProperties": true
+    },
+    "global": {
+      "type": "object",
+      "description": "Global configuration that applies to all components",
+      "properties": {
+        "imageRegistry": {
+          "type": "string",
+          "description": "Global Docker image registry"
+        },
+        "imagePullSecrets": {
+          "type": "array",
+          "description": "Global image pull secrets",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the image pull secret"
+              }
+            },
+            "required": ["name"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": true
     }
-  }
+  },
+  "additionalProperties": false
 }

@@ -8,6 +8,8 @@ kind: Issuer
 apiVersion: cert-manager.io/v1
 metadata:
   name: {{ .name }}
+  labels:
+    {{- include "ca.labels" $ | nindent 4 }}
 spec:
   {{- if .selfSigned }}
   selfSigned: {}

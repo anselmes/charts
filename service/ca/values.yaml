@@ -1,4 +1,6 @@
 ---
+# MARK: Certificates
+
 # List of certificates to be managed by cert-manager.
 # Each certificate defines the desired state of a TLS certificate.
 certificates: []
@@ -18,14 +20,16 @@ certificates: []
 #       - server auth          # Key usage: Server authentication.
 #       - client auth          # Key usage: Client authentication.
 #   issuerRef:
-#     name: ca-clusterissuer-self-signed  # Name of the issuer or ClusterIssuer.
+#     name: ca-issuer-self-signed  # Name of the issuer or ClusterIssuer.
 #     kind: ClusterIssuer                 # Kind of the issuer (Issuer or ClusterIssuer).
+
+# MARK: - Issuers
 
 # List of issuers to configure for cert-manager.
 # Each issuer defines how certificates are issued and managed.
 issuers:
   # Example of a self-signed ClusterIssuer.
-  - name: ca-clusterissuer-self-signed
+  - name: ca-issuer-self-signed
     clustered: true   # Indicates that this is a ClusterIssuer.
     selfSigned: true  # Specifies that this issuer is self-signed.
     secret:
@@ -82,8 +86,10 @@ issuers:
   #           host: http://127.0.0.1:8081   # Webhook server host.
   #           secretKey: token              # Webhook secret key.
 
+# MARK: Cert Manager
+
 # Configuration for cert-manager.
-cert-manager:
+certmanager:
   # Enable or disable cert-manager.
   # Set to true to deploy cert-manager in your Kubernetes cluster.
   enabled: false
@@ -95,12 +101,12 @@ cert-manager:
     # Set to true to install CRDs required by cert-manager.
     enabled: true
   config:
-    apiVersion: controller.config.cert-manager.io/v1alpha1
-    kind: ControllerConfiguration
     enableGatewayAPI: false  # Enable or disable Gateway API support.
 
+# MARK: Trust Manager
+
 # Configuration for trust-manager.
-trust-manager:
+trustmanager:
   # Enable or disable trust-manager.
   # Set to true to deploy trust-manager in your Kubernetes cluster.
   enabled: false
