@@ -1,4 +1,7 @@
 ---
+
+# MARK: EDNS Endpoints
+
 endpoints:
   # Define DNS endpoints to be managed by ExternalDNS.
   # Each endpoint specifies a name and a list of DNS records to create or manage.
@@ -56,7 +59,9 @@ endpoints:
   #         - ns1.example.com
   #         - ns2.example.com
 
-external-dns:
+# MARK: External DNS
+
+externaldns:
   # Enable or disable the ExternalDNS integration.
   # Set to true to deploy ExternalDNS and manage DNS records dynamically.
   # ExternalDNS automatically updates DNS records based on Kubernetes resources.
@@ -78,50 +83,50 @@ external-dns:
     - service
   provider:
     # Specify the DNS provider to use. Example: "webhook".
-    name: webhook
-    env:
-      # Define environment variables for the DNS provider.
-      # Example: Infoblox credentials for managing DNS records.
-      - name: INFOBLOX_HOST
-        valueFrom:
-          secretKeyRef:
-            name: infoblox-credentials
-            key: host
-      - name: INFOBLOX_WAPI_USER
-        valueFrom:
-          secretKeyRef:
-            name: infoblox-credentials
-            key: username
-      - name: INFOBLOX_WAPI_PASSWORD
-        valueFrom:
-          secretKeyRef:
-            name: infoblox-credentials
-            key: password
-      # Uncomment and configure additional environment variables as needed.
-      # - name: CF_API_TOKEN
-      #   valueFrom:
-      #     secretKeyRef:
-      #       name: cloudflare-api-key
-      #       key: apiKey
-      # - name: EXTERNAL_DNS_RFC2136_TSIG_SECRET
-      #   valueFrom:
-      #     secretKeyRef:
-      #       name: rfc2136-keys
-      #       key: rfc2136-tsig-secret
-      # - name: EXTERNAL_DNS_RFC2136_TSIG_KEYNAME
-      #   valueFrom:
-      #     secretKeyRef:
-      #       name: rfc2136-keys
-      #       key: rfc2136-tsig-keyname
-    webhook:
-      # Configuration for the webhook provider.
-      image:
-        repository: null
-        tag: null
-      # Uncomment and configure extra volume mounts if needed.
-      # extraVolumeMounts:
-      #   - name: oscloudsyaml
-      #     mountPath: /etc/openstack/
+    # name: webhook
+    env: []
+    # Define environment variables for the DNS provider.
+    # Example: Infoblox credentials for managing DNS records.
+    # - name: INFOBLOX_HOST
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: infoblox-credentials
+    #       key: host
+    # - name: INFOBLOX_WAPI_USER
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: infoblox-credentials
+    #       key: username
+    # - name: INFOBLOX_WAPI_PASSWORD
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: infoblox-credentials
+    #       key: password
+    # Uncomment and configure additional environment variables as needed.
+    # - name: CF_API_TOKEN
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: cloudflare-api-key
+    #       key: apiKey
+    # - name: EXTERNAL_DNS_RFC2136_TSIG_SECRET
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: rfc2136-keys
+    #       key: rfc2136-tsig-secret
+    # - name: EXTERNAL_DNS_RFC2136_TSIG_KEYNAME
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: rfc2136-keys
+    #       key: rfc2136-tsig-keyname
+    webhook: {}
+    # Configuration for the webhook provider.
+    # image:
+    #   repository: null
+    #   tag: null
+    # Uncomment and configure extra volume mounts if needed.
+    # extraVolumeMounts:
+    #   - name: oscloudsyaml
+    #     mountPath: /etc/openstack/
   # Uncomment and configure additional arguments for ExternalDNS as needed.
   # extraArgs:
   #   - --rfc2136-host=dns-host-1.yourdomain.com
