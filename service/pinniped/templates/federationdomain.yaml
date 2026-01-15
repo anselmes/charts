@@ -5,6 +5,8 @@ kind: FederationDomain
 metadata:
   name: {{ .Values.domain.name }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "pinniped.labels" . | nindent 4 }}
 spec:
   issuer: {{ .Values.domain.issuer.url }}
   tls:

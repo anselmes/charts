@@ -4,6 +4,8 @@ apiVersion: authentication.concierge.pinniped.dev/v1alpha1
 kind: JWTAuthenticator
 metadata:
   name: {{ .Values.auth.name }}
+  labels:
+    {{- include "pinniped.labels" . | nindent 4 }}
 spec:
   issuer: {{ .Values.auth.issuer.url }}
   audience: {{ .Values.auth.audience }}

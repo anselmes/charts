@@ -1,16 +1,18 @@
 {{- range $i, $v := .Values.rbac }}
+{{- $namespace := "pinniped-system" }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: {{ $v.name }}
-{{- $namespace := "pinniped-system" }}
   {{- if $v.namespace }}
   {{- $namespace = $v.namespace }}
   {{- else if and .Release .Release.Namespace }}
   {{- $namespace = .Release.Namespace }}
   {{- end }}
   namespace: {{ $namespace }}
+  labels:
+    {{- include "pinniped.labels" . | nindent 4 }}
 {{- with $v.subjects }}
 subjects:
   {{- range $j, $subject := . }}

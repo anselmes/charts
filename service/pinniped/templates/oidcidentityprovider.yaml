@@ -5,6 +5,8 @@ kind: OIDCIdentityProvider
 metadata:
   name: {{ .Values.idp.name }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "pinniped.labels" . | nindent 4 }}
 spec:
   issuer: {{ .Values.idp.issuer.url }}
   {{- if .Values.idp.issuer.ca }}

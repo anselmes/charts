@@ -5,6 +5,8 @@ kind: TLSRoute
 metadata:
   name: pinniped
   namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "pinniped.labels" . | nindent 4 }}
 spec:
   {{- with .Values.gateway.hostnames }}
   hostnames:

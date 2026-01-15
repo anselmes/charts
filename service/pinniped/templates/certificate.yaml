@@ -5,6 +5,8 @@ kind: Certificate
 metadata:
   name: supervisor-tls-cert-request
   namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "pinniped.labels" . | nindent 4 }}
 spec:
   secretName: {{ .Values.domain.issuer.cert.name }}
   {{- if .Values.domain.issuer.cert.dnsNames }}

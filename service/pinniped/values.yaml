@@ -1,4 +1,7 @@
 ---
+
+# MARK: RBAC
+
 rbac: []
 # - name: kcm-ns-viewer
 #   namespace: kcm-system
@@ -10,6 +13,8 @@ rbac: []
 #       name: admins
 #       apiGroup: rbac.authorization.k8s.io
 
+# MARK: Authentication
+
 auth:
   enabled: true
   name: default-supervisor-jwt-authenticator
@@ -19,6 +24,8 @@ auth:
     # ca: |
     #   -----BEGIN CERTIFICATE-----
     #   -----END CERTIFICATE-----
+
+# MARK: Domain
 
 domain:
   enabled: false
@@ -36,6 +43,8 @@ domain:
         kind: ClusterIssuer
         name: vault-ca-issuer
 
+# MARK: IDP
+
 idp:
   enabled: false
   name: vault
@@ -50,6 +59,8 @@ idp:
     #   -----BEGIN CERTIFICATE-----
     #   -----END CERTIFICATE-----
 
+# MARK: Gateway
+
 gateway:
   enabled: false
   name: tls-gateway
@@ -57,8 +68,10 @@ gateway:
   hostnames:
     - pinniped.dev.local
 
+# MARK: Pinniped
+
 pinniped:
-  enabled: false
+  install: false
   image:
     registry: docker.io
     repository: bitnami/pinniped
