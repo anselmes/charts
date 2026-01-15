@@ -3,17 +3,20 @@ apiVersion: v2
 name: ccm
 type: application
 description: A Helm chart that deploys various Cloud Controller Managers and their dependencies.
-version: 1.0.0
+version: 1.0.2
 dependencies:
-  - name: openstack-cloud-controller-manager
-    repository: https://kubernetes.github.io/cloud-provider-openstack
-    version: 2.30.2
-    condition: openstack-cloud-controller-manager.enabled
-  - name: vsphere-cpi
-    repository: https://kubernetes.github.io/cloud-provider-vsphere
-    version: 1.33.0
-    condition: vsphere-cpi.enabled
-  - name: aws-cloud-controller-manager
+  - alias: aws
+    name: aws-cloud-controller-manager
     repository: https://charts.mirantis.com
     version: 0.0.9
-    condition: aws-cloud-controller-manager.enabled
+    condition: aws.enabled
+  - alias: openstack
+    name: openstack-cloud-controller-manager
+    repository: https://kubernetes.github.io/cloud-provider-openstack
+    version: 2.30.2
+    condition: openstack.enabled
+  - alias: vsphere
+    name: vsphere-cpi
+    repository: https://kubernetes.github.io/cloud-provider-vsphere
+    version: 1.33.0
+    condition: vsphere.enabled

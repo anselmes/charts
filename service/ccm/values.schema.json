@@ -1,41 +1,677 @@
 {
-  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "title": "CCM (Cloud Controller Manager) Service Chart Values Schema",
-  "description": "Schema for validating values for the CCM service chart that manages cloud controller manager deployments",
+  "title": "CCM Chart Values Schema",
+  "description": "Schema for the Cloud Controller Manager (CCM) Helm chart values",
   "properties": {
-    "openstack-cloud-controller-manager": {
+    "aws": {
       "type": "object",
-      "description": "Configuration for the OpenStack Cloud Controller Manager",
+      "description": "Configuration for AWS Cloud Controller Manager",
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Enable or disable the OpenStack Cloud Controller Manager. Set to true to deploy the OpenStack Cloud Controller Manager in your Kubernetes cluster.",
+          "description": "Enable or disable the AWS Cloud Controller Manager deployment",
           "default": false
+        },
+        "args": {
+          "type": "array",
+          "description": "Command-line arguments for the AWS Cloud Controller Manager",
+          "items": {
+            "type": "string"
+          }
+        },
+        "image": {
+          "type": "object",
+          "description": "Container image configuration",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "description": "Image repository"
+            },
+            "tag": {
+              "type": "string",
+              "description": "Image tag"
+            },
+            "pullPolicy": {
+              "type": "string",
+              "description": "Image pull policy",
+              "enum": ["Always", "IfNotPresent", "Never"]
+            }
+          },
+          "additionalProperties": false
+        },
+        "nodeSelector": {
+          "type": "object",
+          "description": "Node selector for pod placement",
+          "additionalProperties": true
+        },
+        "resources": {
+          "type": "object",
+          "description": "Resource requests and limits",
+          "properties": {
+            "limits": {
+              "type": "object",
+              "description": "Resource limits",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "requests": {
+              "type": "object",
+              "description": "Resource requests",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "env": {
+          "type": "array",
+          "description": "Environment variables",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              },
+              "valueFrom": {
+                "type": "object"
+              }
+            },
+            "required": ["name"],
+            "additionalProperties": false
+          }
+        },
+        "securityContext": {
+          "type": "object",
+          "description": "Security context for containers",
+          "additionalProperties": true
+        },
+        "podSecurityContext": {
+          "type": "object",
+          "description": "Security context for pods",
+          "additionalProperties": true
+        },
+        "podAnnotations": {
+          "type": "object",
+          "description": "Pod annotations",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "tolerations": {
+          "type": "array",
+          "description": "Pod tolerations",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "operator": {
+                "type": "string",
+                "enum": ["Equal", "Exists"]
+              },
+              "value": {
+                "type": "string"
+              },
+              "effect": {
+                "type": "string",
+                "enum": ["NoSchedule", "PreferNoSchedule", "NoExecute"]
+              },
+              "tolerationSeconds": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "extraVolumes": {
+          "type": "array",
+          "description": "Extra volumes to mount",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "extraVolumeMounts": {
+          "type": "array",
+          "description": "Extra volume mounts",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "cloudConfig": {
+          "type": "object",
+          "description": "Cloud configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "additionalProperties": true
         }
       },
       "additionalProperties": true
     },
-    "vsphere-cpi": {
+    "openstack": {
       "type": "object",
-      "description": "Configuration for the vSphere Cloud Provider Interface (CPI)",
+      "description": "Configuration for OpenStack Cloud Controller Manager",
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Enable or disable the vSphere Cloud Provider Interface (CPI). Set to true to deploy the vSphere CPI in your Kubernetes cluster.",
+          "description": "Enable or disable the OpenStack Cloud Controller Manager deployment",
           "default": false
+        },
+        "image": {
+          "type": "object",
+          "description": "Container image configuration",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "description": "Image repository"
+            },
+            "tag": {
+              "type": "string",
+              "description": "Image tag"
+            }
+          },
+          "additionalProperties": false
+        },
+        "extraInitContainers": {
+          "type": "array",
+          "description": "Additional init containers",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "extraEnv": {
+          "type": "array",
+          "description": "Additional environment variables",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": ["name"],
+            "additionalProperties": false
+          }
+        },
+        "resources": {
+          "type": "object",
+          "description": "Resource requests and limits",
+          "additionalProperties": true
+        },
+        "livenessProbe": {
+          "type": "object",
+          "description": "Liveness probe configuration",
+          "additionalProperties": true
+        },
+        "readinessProbe": {
+          "type": "object",
+          "description": "Readiness probe configuration",
+          "additionalProperties": true
+        },
+        "nodeSelector": {
+          "type": "object",
+          "description": "Node selector for pod placement",
+          "additionalProperties": true
+        },
+        "tolerations": {
+          "type": "array",
+          "description": "Pod tolerations",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "operator": {
+                "type": "string",
+                "enum": ["Equal", "Exists"]
+              },
+              "value": {
+                "type": "string"
+              },
+              "effect": {
+                "type": "string",
+                "enum": ["NoSchedule", "PreferNoSchedule", "NoExecute"]
+              }
+            }
+          }
+        },
+        "podSecurityContext": {
+          "type": "object",
+          "description": "Pod security context",
+          "additionalProperties": true
+        },
+        "enabledControllers": {
+          "type": "array",
+          "description": "List of enabled controllers",
+          "items": {
+            "type": "string"
+          }
+        },
+        "controllerExtraArgs": {
+          "type": "object",
+          "description": "Extra arguments for the controller",
+          "additionalProperties": true
+        },
+        "serviceMonitor": {
+          "type": "object",
+          "description": "Service monitor configuration",
+          "additionalProperties": true
+        },
+        "secret": {
+          "type": "object",
+          "description": "Secret configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "create": {
+              "type": "boolean",
+              "default": true
+            },
+            "name": {
+              "type": "string",
+              "default": "cloud-config"
+            }
+          },
+          "additionalProperties": false
+        },
+        "cloudConfig": {
+          "type": "object",
+          "description": "OpenStack cloud configuration",
+          "properties": {
+            "global": {
+              "type": ["object", "null"],
+              "additionalProperties": true
+            },
+            "networking": {
+              "type": ["object", "null"],
+              "additionalProperties": true
+            },
+            "loadBalancer": {
+              "type": ["object", "null"],
+              "additionalProperties": true
+            },
+            "blockStorage": {
+              "type": ["object", "null"],
+              "additionalProperties": true
+            },
+            "metadata": {
+              "type": ["object", "null"],
+              "additionalProperties": true
+            },
+            "route": {
+              "type": ["object", "null"],
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "extraVolumes": {
+          "type": "array",
+          "description": "Extra volumes to mount",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "extraVolumeMounts": {
+          "type": "array",
+          "description": "Extra volume mounts",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
         }
       },
       "additionalProperties": true
     },
-    "aws-cloud-controller-manager": {
+    "vsphere": {
       "type": "object",
-      "description": "Configuration for the AWS Cloud Controller Manager",
+      "description": "Configuration for vSphere Cloud Provider Interface (CPI)",
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Enable or disable the AWS Cloud Controller Manager. Set to true to deploy the AWS Cloud Controller Manager in your Kubernetes cluster.",
+          "description": "Enable or disable the vSphere CPI deployment",
           "default": false
+        },
+        "config": {
+          "type": "object",
+          "description": "vSphere configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "name": {
+              "type": "string",
+              "default": "vsphere-cloud-config"
+            },
+            "vcenter": {
+              "type": "string",
+              "description": "vCenter server address",
+              "default": "vcenter.local"
+            },
+            "username": {
+              "type": "string",
+              "description": "vCenter username"
+            },
+            "password": {
+              "type": "string",
+              "description": "vCenter password"
+            },
+            "datacenter": {
+              "type": "string",
+              "description": "vSphere datacenter"
+            },
+            "region": {
+              "type": "string",
+              "description": "Kubernetes region"
+            },
+            "zone": {
+              "type": "string",
+              "description": "Kubernetes zone"
+            },
+            "thumbprint": {
+              "type": "string",
+              "description": "SSL thumbprint"
+            },
+            "secret": {
+              "type": "object",
+              "description": "Secret configuration",
+              "properties": {
+                "create": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "name": {
+                  "type": "string",
+                  "default": "vsphere-cloud-secret"
+                }
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "podSecurityPolicy": {
+          "type": "object",
+          "description": "Pod security policy configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "annotations": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "securityContext": {
+          "type": "object",
+          "description": "Security context configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "runAsUser": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "fsGroup": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": true
+        },
+        "daemonset": {
+          "type": "object",
+          "description": "Daemonset configuration",
+          "properties": {
+            "annotations": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "image": {
+              "type": "string",
+              "description": "Container image repository"
+            },
+            "tag": {
+              "type": "string",
+              "description": "Container image tag"
+            },
+            "pullPolicy": {
+              "type": "string",
+              "description": "Image pull policy",
+              "enum": ["Always", "IfNotPresent", "Never"]
+            },
+            "dnsPolicy": {
+              "type": "string",
+              "description": "DNS policy",
+              "enum": ["ClusterFirst", "ClusterFirstWithHostNet", "Default", "None"]
+            },
+            "cmdline": {
+              "type": "object",
+              "description": "Command line configuration",
+              "properties": {
+                "logging": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                "cloudConfig": {
+                  "type": "object",
+                  "properties": {
+                    "dir": {
+                      "type": "string"
+                    },
+                    "file": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "additionalParams": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": false
+            },
+            "replicaCount": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "resources": {
+              "type": "object",
+              "description": "Resource requests and limits",
+              "additionalProperties": true
+            },
+            "podAnnotations": {
+              "type": "object",
+              "description": "Pod annotations",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "podLabels": {
+              "type": "object",
+              "description": "Pod labels",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "tolerations": {
+              "type": "array",
+              "description": "Pod tolerations",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "operator": {
+                    "type": "string",
+                    "enum": ["Equal", "Exists"]
+                  },
+                  "value": {
+                    "type": "string"
+                  },
+                  "effect": {
+                    "type": "string",
+                    "enum": ["NoSchedule", "PreferNoSchedule", "NoExecute"]
+                  }
+                }
+              }
+            },
+            "affinity": {
+              "type": "object",
+              "description": "Pod affinity configuration",
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": true
+    },
+    "global": {
+      "type": "object",
+      "description": "Global configuration that applies to all cloud controller managers",
+      "properties": {
+        "imageRegistry": {
+          "type": "string",
+          "description": "Global Docker image registry override"
+        },
+        "imagePullSecrets": {
+          "type": "array",
+          "description": "Global image pull secrets",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the image pull secret"
+              }
+            },
+            "required": ["name"],
+            "additionalProperties": false
+          }
+        },
+        "nodeSelector": {
+          "type": "object",
+          "description": "Global node selector for all cloud controller managers",
+          "additionalProperties": true
+        },
+        "tolerations": {
+          "type": "array",
+          "description": "Global tolerations for all cloud controller managers",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "description": "Taint key that the toleration applies to"
+              },
+              "operator": {
+                "type": "string",
+                "description": "Key's relationship to the value",
+                "enum": ["Equal", "Exists"]
+              },
+              "value": {
+                "type": "string",
+                "description": "Taint value the toleration matches"
+              },
+              "effect": {
+                "type": "string",
+                "description": "Taint effect to match",
+                "enum": ["NoSchedule", "PreferNoSchedule", "NoExecute"]
+              },
+              "tolerationSeconds": {
+                "type": "integer",
+                "description": "Period of time the toleration tolerates the taint",
+                "minimum": 0
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "affinity": {
+          "type": "object",
+          "description": "Global affinity settings for all cloud controller managers",
+          "additionalProperties": true
+        },
+        "resources": {
+          "type": "object",
+          "description": "Global resource requests and limits for all cloud controller managers",
+          "properties": {
+            "limits": {
+              "type": "object",
+              "description": "Resource limits",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "requests": {
+              "type": "object",
+              "description": "Resource requests",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "securityContext": {
+          "type": "object",
+          "description": "Global security context for all cloud controller managers",
+          "additionalProperties": true
+        },
+        "serviceAccount": {
+          "type": "object",
+          "description": "Global service account configuration",
+          "properties": {
+            "create": {
+              "type": "boolean",
+              "description": "Specifies whether a service account should be created",
+              "default": true
+            },
+            "annotations": {
+              "type": "object",
+              "description": "Annotations to add to the service account",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "name": {
+              "type": "string",
+              "description": "The name of the service account to use"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": true
