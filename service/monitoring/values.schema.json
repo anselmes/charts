@@ -1,235 +1,276 @@
 {
-  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "title": "Monitoring Service Chart Values Schema",
-  "description": "Schema for validating values for the monitoring service chart that manages Grafana k8s-monitoring stack",
   "properties": {
-    "k8s-monitoring": {
+    "monitoring": {
       "type": "object",
-      "description": "Configuration for Grafana k8s-monitoring stack - comprehensive observability solution",
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Enable or disable the entire k8s-monitoring stack deployment",
-          "default": true
-        },
         "cluster": {
           "type": "object",
-          "description": "Cluster identification settings",
           "properties": {
             "name": {
               "type": "string",
+              "anyOf": [
+                { "const": "" },
+                { "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$" }
+              ],
               "description": "Cluster name identifier for multi-cluster observability"
             }
           },
-          "additionalProperties": true
+          "required": ["name"]
         },
         "global": {
           "type": "object",
-          "description": "Global configuration settings",
           "properties": {
             "platform": {
               "type": "string",
+              "enum": ["", "openshift"],
               "description": "Target platform for optimized configurations"
             }
+          }
+        },
+        "destinations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$",
+                "description": "Destination name"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["prometheus", "loki", "otlp", "jaeger"],
+                "description": "Destination type"
+              },
+              "url": {
+                "type": "string",
+                "pattern": "^https?://.*",
+                "description": "Destination URL"
+              },
+              "auth": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["basic", "bearer", "oauth2"],
+                    "description": "Authentication type"
+                  },
+                  "username": {
+                    "type": "string",
+                    "description": "Authentication username"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "Authentication password"
+                  },
+                  "token": {
+                    "type": "string",
+                    "description": "Bearer token"
+                  },
+                  "tenantIdFrom": {
+                    "type": "string",
+                    "description": "Tenant ID source expression"
+                  }
+                },
+                "required": ["type"]
+              },
+              "metrics": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Enable metrics for this destination"
+                  }
+                }
+              },
+              "logs": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Enable logs for this destination"
+                  }
+                }
+              },
+              "traces": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Enable traces for this destination"
+                  }
+                }
+              }
+            },
+            "required": ["name", "type", "url"]
           },
-          "additionalProperties": true
+          "description": "List of observability destinations"
         },
         "clusterMetrics": {
           "type": "object",
-          "description": "Cluster-level metrics collection configuration",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Enable collection of cluster-wide metrics",
-              "default": false
+              "description": "Enable collection of cluster-wide metrics"
             }
           },
-          "additionalProperties": true
+          "required": ["enabled"]
         },
         "clusterEvents": {
           "type": "object",
-          "description": "Kubernetes events collection configuration",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Enable collection of Kubernetes events",
-              "default": false
+              "description": "Enable collection of Kubernetes events"
             }
           },
-          "additionalProperties": true
+          "required": ["enabled"]
         },
         "nodeLogs": {
           "type": "object",
-          "description": "Node-level log collection configuration",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Enable collection of node-level system logs",
-              "default": false
+              "description": "Enable collection of node-level system logs"
             }
           },
-          "additionalProperties": true
+          "required": ["enabled"]
         },
         "podLogs": {
           "type": "object",
-          "description": "Pod log collection configuration",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Enable collection of pod logs via node-based collection",
-              "default": false
+              "description": "Enable collection of pod logs via node-based collection"
             }
           },
-          "additionalProperties": true
+          "required": ["enabled"]
         },
         "podLogsViaKubernetesApi": {
           "type": "object",
-          "description": "Alternative pod log collection via Kubernetes API",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Enable collection of pod logs via Kubernetes API",
-              "default": false
+              "description": "Enable collection of pod logs via Kubernetes API"
             }
           },
-          "additionalProperties": true
+          "required": ["enabled"]
         },
         "applicationObservability": {
           "type": "object",
-          "description": "Application observability and tracing configuration",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Enable application observability features",
-              "default": false
+              "description": "Enable application observability features"
             }
           },
-          "additionalProperties": true
+          "required": ["enabled"]
         },
         "autoInstrumentation": {
           "type": "object",
-          "description": "Automatic instrumentation configuration",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Enable automatic instrumentation of applications",
-              "default": false
+              "description": "Enable automatic instrumentation of applications"
             }
           },
-          "additionalProperties": true
+          "required": ["enabled"]
         },
         "annotationAutodiscovery": {
           "type": "object",
-          "description": "Annotation-based service discovery configuration",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Enable automatic discovery of services via annotations",
-              "default": false
+              "description": "Enable automatic discovery of services via annotations"
             }
           },
-          "additionalProperties": true
+          "required": ["enabled"]
         },
         "prometheusOperatorObjects": {
           "type": "object",
-          "description": "Prometheus Operator objects integration",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Enable support for Prometheus Operator custom resources",
-              "default": false
+              "description": "Enable support for Prometheus Operator custom resources"
             }
           },
-          "additionalProperties": true
+          "required": ["enabled"]
         },
         "profiling": {
           "type": "object",
-          "description": "Continuous profiling configuration",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Enable continuous profiling of applications",
-              "default": false
+              "description": "Enable continuous profiling of applications"
             }
           },
-          "additionalProperties": true
+          "required": ["enabled"]
         },
         "profilesReceiver": {
           "type": "object",
-          "description": "Profiles receiver configuration",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Enable profiles receiver for collecting performance data",
-              "default": false
+              "description": "Enable profiles receiver for collecting performance data"
             }
           },
-          "additionalProperties": true
+          "required": ["enabled"]
         },
         "alloy-metrics": {
           "type": "object",
-          "description": "Grafana Alloy metrics collection component",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Enable Alloy metrics collection agents",
-              "default": false
+              "description": "Enable Alloy metrics collection agents"
             }
           },
-          "additionalProperties": true
+          "required": ["enabled"]
         },
         "alloy-singleton": {
           "type": "object",
-          "description": "Grafana Alloy singleton deployment",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Enable singleton Alloy deployment",
-              "default": false
+              "description": "Enable singleton Alloy deployment"
             }
           },
-          "additionalProperties": true
+          "required": ["enabled"]
         },
         "alloy-logs": {
           "type": "object",
-          "description": "Grafana Alloy logs collection component",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Enable Alloy logs collection agents",
-              "default": false
+              "description": "Enable Alloy logs collection agents"
             }
           },
-          "additionalProperties": true
+          "required": ["enabled"]
         },
         "alloy-receiver": {
           "type": "object",
-          "description": "Grafana Alloy receiver component",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Enable Alloy receiver for telemetry data",
-              "default": false
+              "description": "Enable Alloy receiver for telemetry data"
             }
           },
-          "additionalProperties": true
+          "required": ["enabled"]
         },
         "alloy-profiles": {
           "type": "object",
-          "description": "Grafana Alloy profiles collection component",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Enable Alloy profiles collection agents",
-              "default": false
+              "description": "Enable Alloy profiles collection agents"
             }
           },
-          "additionalProperties": true
+          "required": ["enabled"]
         }
       },
-      "additionalProperties": true
+      "required": ["cluster", "destinations", "clusterMetrics", "clusterEvents", "nodeLogs", "podLogs", "podLogsViaKubernetesApi", "applicationObservability", "autoInstrumentation", "annotationAutodiscovery", "prometheusOperatorObjects", "profiling", "profilesReceiver", "alloy-metrics", "alloy-singleton", "alloy-logs", "alloy-receiver", "alloy-profiles"]
     }
   },
-  "additionalProperties": false
+  "required": ["monitoring"]
 }

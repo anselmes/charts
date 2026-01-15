@@ -1,11 +1,7 @@
 ---
 # Grafana k8s-monitoring Stack Configuration
 # Comprehensive observability solution for Kubernetes clusters using Grafana, Prometheus, and related tools
-k8s-monitoring:
-  # Enable or disable the entire k8s-monitoring stack deployment
-  # When enabled, deploys the observability infrastructure based on selected components
-  enabled: true
-
+monitoring:
   cluster:
     # Cluster name identifier for multi-cluster observability
     # Used to distinguish metrics, logs, and traces from different clusters
@@ -14,16 +10,46 @@ k8s-monitoring:
 
   global:
     # Target platform for optimized configurations
-    # Supported platforms: "kubernetes", "openshift", "gke", "eks", "aks"
+    # Supported platforms: "openshift"
     # Determines platform-specific optimizations and compatibility settings
     platform: ""
+
+  destinations:
+    - name: localPrometheus
+      type: prometheus
+      url: http://prometheus:9090
+    # - name: hostedMetrics
+    #   type: prometheus
+    #   url: https://prometheus.example.com/api/prom/push
+    #   auth:
+    #     type: basic
+    #     username: username
+    #     password: password
+    # - name: hostedLogs
+    #   type: loki
+    #   url: https://loki.example.com/loki/api/v1/push
+    #   auth:
+    #     type: basic
+    #     username: username
+    #     password: password
+    #     tenantIdFrom: env("LOKI_TENANT_ID")
+    # - name: otlpGateway
+    #   type: otlp
+    #   url: https://otlp.example.com:4317/v1/traces
+    #   auth:
+    #     type: basic
+    #     username: username
+    #     password: password
+    #   metrics: { enabled: true }
+    #   logs:    { enabled: true }
+    #   traces:  { enabled: true }
 
   # Cluster-level metrics collection configuration
   # Collects system-wide metrics including node resources, cluster state, and API server metrics
   clusterMetrics:
     # Enable collection of cluster-wide metrics
     # Provides insights into overall cluster health and resource utilization
-    enabled: false
+    enabled: true
 
   # Kubernetes events collection configuration
   # Captures and forwards cluster events for troubleshooting and auditing
@@ -100,7 +126,7 @@ k8s-monitoring:
   alloy-metrics:
     # Enable Alloy metrics collection agents
     # Lightweight agents for collecting and forwarding Prometheus metrics
-    enabled: false
+    enabled: true
 
   # Grafana Alloy singleton deployment
   # Single instance Alloy deployment for centralized collection tasks
