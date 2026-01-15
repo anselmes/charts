@@ -1,77 +1,609 @@
 {
-  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "title": "CSI (Container Storage Interface) Service Chart Values Schema",
-  "description": "Schema for validating values for the CSI service chart that manages storage provider integrations",
+  "title": "CSI Chart Values Schema",
+  "description": "Schema for the CSI (Container Storage Interface) Helm chart values",
   "properties": {
     "openebs": {
       "type": "object",
-      "description": "Configuration for OpenEBS - Open Source Container Attached Storage",
+      "description": "OpenEBS configuration for container attached storage",
       "properties": {
         "enabled": {
           "type": "boolean",
           "description": "Enable OpenEBS storage solutions deployment",
           "default": true
+        },
+        "openebs-crds": {
+          "type": "object",
+          "description": "OpenEBS Custom Resource Definitions configuration",
+          "properties": {
+            "csi": {
+              "type": "object",
+              "description": "CSI Volume Snapshots feature configuration",
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "zfs-localpv": {
+          "type": "object",
+          "description": "ZFS LocalPV storage engine configuration",
+          "properties": {
+            "crds": {
+              "type": "object",
+              "description": "ZFS LocalPV CRDs configuration",
+              "properties": {
+                "zfsLocalPv": {
+                  "type": "object",
+                  "description": "ZFS LocalPV CRD settings",
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "lvm-localpv": {
+          "type": "object",
+          "description": "LVM LocalPV storage engine configuration",
+          "properties": {
+            "crds": {
+              "type": "object",
+              "description": "LVM LocalPV CRDs configuration",
+              "properties": {
+                "lvmLocalPv": {
+                  "type": "object",
+                  "description": "LVM LocalPV CRD settings",
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "engines": {
+          "type": "object",
+          "description": "Storage engines configuration",
+          "properties": {
+            "local": {
+              "type": "object",
+              "description": "Local storage engines",
+              "properties": {
+                "lvm": {
+                  "type": "object",
+                  "description": "LVM local storage configuration",
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": true
+            },
+            "replicated": {
+              "type": "object",
+              "description": "Replicated storage engines",
+              "properties": {
+                "mayastor": {
+                  "type": "object",
+                  "description": "Mayastor replicated storage configuration",
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "localpv-provisioner": {
+          "type": "object",
+          "description": "LocalPV Provisioner configuration",
+          "properties": {
+            "analytics": {
+              "type": "object",
+              "description": "Analytics configuration",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable usage analytics collection",
+                  "default": false
+                }
+              },
+              "additionalProperties": true
+            },
+            "hostpathClass": {
+              "type": "object",
+              "description": "HostPath storage class configuration",
+              "properties": {
+                "isDefaultClass": {
+                  "type": "boolean",
+                  "description": "Set as default storage class",
+                  "default": true
+                }
+              },
+              "additionalProperties": true
+            },
+            "localpv": {
+              "type": "object",
+              "description": "LocalPV settings",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable LocalPV dynamic provisioning",
+                  "default": true
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
         }
       },
       "additionalProperties": true
     },
-    "openstack-cinder-csi": {
+    "ebs": {
       "type": "object",
-      "description": "Configuration for OpenStack Cinder CSI Driver",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Enable Cinder CSI driver deployment",
-          "default": false
-        }
-      },
-      "additionalProperties": true
-    },
-    "rook-ceph": {
-      "type": "object",
-      "description": "Configuration for Rook Ceph Operator",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Enable Rook Ceph operator deployment",
-          "default": false
-        }
-      },
-      "additionalProperties": true
-    },
-    "rook-ceph-cluster": {
-      "type": "object",
-      "description": "Configuration for Rook Ceph Cluster",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Enable Ceph cluster deployment",
-          "default": false
-        }
-      },
-      "additionalProperties": true
-    },
-    "vsphere-csi-driver": {
-      "type": "object",
-      "description": "Configuration for VMware vSphere CSI Driver",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Enable vSphere CSI driver deployment",
-          "default": false
-        }
-      },
-      "additionalProperties": true
-    },
-    "aws-ebs-csi-driver": {
-      "type": "object",
-      "description": "Configuration for AWS EBS CSI Driver",
+      "description": "AWS EBS CSI Driver configuration",
       "properties": {
         "enabled": {
           "type": "boolean",
           "description": "Enable AWS EBS CSI driver deployment",
           "default": false
+        },
+        "fips": {
+          "type": "boolean",
+          "description": "Enable FIPS 140-2 cryptographic compliance",
+          "default": false
+        },
+        "awsAccessSecret": {
+          "type": "object",
+          "description": "AWS credentials configuration",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Secret name containing AWS credentials",
+              "default": "aws-secret"
+            },
+            "keyId": {
+              "type": "string",
+              "description": "AWS Access Key ID field name in secret",
+              "default": "key_id"
+            },
+            "accessKey": {
+              "type": "string",
+              "description": "AWS Secret Access Key field name in secret",
+              "default": "access_key"
+            }
+          },
+          "additionalProperties": false
+        },
+        "controller": {
+          "type": "object",
+          "description": "EBS controller configuration",
+          "properties": {
+            "defaultFsType": {
+              "type": "string",
+              "description": "Default filesystem type for EBS volumes",
+              "enum": ["ext4", "ext3", "xfs", "ntfs"],
+              "default": "ext4"
+            },
+            "region": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "description": "AWS region for EBS operations",
+                  "pattern": "^[a-z0-9-]+$"
+                }
+              ],
+              "description": "AWS region for EBS operations"
+            }
+          },
+          "additionalProperties": true
+        },
+        "storageClasses": {
+          "type": "array",
+          "description": "Custom storage classes for different EBS volume types",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Storage class name"
+              },
+              "annotations": {
+                "type": "object",
+                "description": "Storage class annotations",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "labels": {
+                "type": "object",
+                "description": "Storage class labels",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "volumeBindingMode": {
+                "type": "string",
+                "description": "Volume binding mode",
+                "enum": ["Immediate", "WaitForFirstConsumer"],
+                "default": "WaitForFirstConsumer"
+              },
+              "reclaimPolicy": {
+                "type": "string",
+                "description": "Reclaim policy for volumes",
+                "enum": ["Delete", "Retain"],
+                "default": "Delete"
+              },
+              "parameters": {
+                "type": "object",
+                "description": "EBS-specific parameters",
+                "properties": {
+                  "encrypted": {
+                    "type": "string",
+                    "enum": ["true", "false"]
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["gp2", "gp3", "io1", "io2", "st1", "sc1"]
+                  },
+                  "iops": {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  "throughput": {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  }
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["name"],
+            "additionalProperties": false
+          }
+        },
+        "defaultStorageClass": {
+          "type": "object",
+          "description": "Default EBS storage class configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable default EBS storage class creation",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "cinder": {
+      "type": "object",
+      "description": "OpenStack Cinder CSI Driver configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable Cinder CSI driver deployment",
+          "default": false
+        },
+        "secret": {
+          "type": "object",
+          "description": "OpenStack credentials secret configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable OpenStack credentials secret",
+              "default": true
+            },
+            "hostMount": {
+              "type": "boolean",
+              "description": "Mount secret as host volume",
+              "default": false
+            },
+            "name": {
+              "type": "string",
+              "description": "Secret name containing OpenStack configuration",
+              "default": "cinder-csi-cloud-config"
+            }
+          },
+          "additionalProperties": false
+        },
+        "storageClass": {
+          "type": "object",
+          "description": "Cinder storage classes configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Create Cinder storage classes",
+              "default": true
+            },
+            "delete": {
+              "type": "object",
+              "description": "Storage class with Delete reclaim policy",
+              "properties": {
+                "allowVolumeExpansion": {
+                  "type": "boolean",
+                  "description": "Allow volume expansion",
+                  "default": true
+                }
+              },
+              "additionalProperties": true
+            },
+            "retain": {
+              "type": "object",
+              "description": "Storage class with Retain reclaim policy",
+              "properties": {
+                "allowVolumeExpansion": {
+                  "type": "boolean",
+                  "description": "Allow volume expansion",
+                  "default": true
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "rook": {
+      "type": "object",
+      "description": "Rook Ceph Operator configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable Rook Ceph operator deployment",
+          "default": false
+        },
+        "allowLoopDevices": {
+          "type": "boolean",
+          "description": "Allow loop devices for storage (testing only)",
+          "default": false
+        },
+        "csi": {
+          "type": "object",
+          "description": "CSI driver configuration",
+          "properties": {
+            "enableRbdDriver": {
+              "type": "boolean",
+              "description": "Enable RBD (RADOS Block Device) CSI driver",
+              "default": true
+            },
+            "enableCephfsDriver": {
+              "type": "boolean",
+              "description": "Enable CephFS CSI driver",
+              "default": true
+            },
+            "enableCSIEncryption": {
+              "type": "boolean",
+              "description": "Enable CSI volume encryption",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "crds": {
+          "type": "object",
+          "description": "Custom Resource Definitions configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Deploy Rook Ceph Custom Resource Definitions",
+              "default": true
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "ceph": {
+      "type": "object",
+      "description": "Rook Ceph Cluster configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable Ceph cluster deployment",
+          "default": false
+        },
+        "operatorNamespace": {
+          "type": "string",
+          "description": "Rook operator namespace",
+          "default": "rook-ceph",
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+        },
+        "toolbox": {
+          "type": "object",
+          "description": "Ceph toolbox configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable Ceph toolbox deployment",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "cephClusterSpec": {
+          "type": "object",
+          "description": "Ceph cluster specification",
+          "properties": {
+            "mon": {
+              "type": "object",
+              "description": "Monitor configuration",
+              "properties": {
+                "allowMultiplePerNode": {
+                  "type": "boolean",
+                  "description": "Allow multiple monitor pods per node",
+                  "default": false
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "cephBlockPools": {
+          "type": "array",
+          "description": "Ceph block pools configuration",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Block pool name",
+                "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+              }
+            },
+            "required": ["name"],
+            "additionalProperties": true
+          }
+        },
+        "cephFileSystems": {
+          "type": "array",
+          "description": "Ceph filesystems configuration",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Filesystem name",
+                "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+              }
+            },
+            "required": ["name"],
+            "additionalProperties": true
+          }
+        },
+        "cephObjectStores": {
+          "type": "array",
+          "description": "Ceph object stores configuration",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Object store name",
+                "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+              }
+            },
+            "required": ["name"],
+            "additionalProperties": true
+          }
+        },
+        "cephBlockPoolsVolumeSnapshotClass": {
+          "type": "object",
+          "description": "Volume snapshot class for block pools",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable volume snapshot class for block pools"
+            },
+            "isDefault": {
+              "type": "boolean",
+              "description": "Set as default volume snapshot class",
+              "default": false
+            }
+          },
+          "additionalProperties": true
+        },
+        "cephFileSystemVolumeSnapshotClass": {
+          "type": "object",
+          "description": "Volume snapshot class for Ceph filesystems",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable volume snapshot class for Ceph filesystems"
+            },
+            "isDefault": {
+              "type": "boolean",
+              "description": "Set as default volume snapshot class",
+              "default": true
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "vsphere": {
+      "type": "object",
+      "description": "VMware vSphere CSI Driver configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable vSphere CSI driver deployment",
+          "default": false
+        },
+        "vcenterConfig": {
+          "type": "object",
+          "description": "vCenter configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable vCenter configuration"
+            },
+            "datacenters": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ],
+              "description": "List of vCenter datacenters"
+            }
+          },
+          "additionalProperties": true
+        },
+        "defaultStorageClass": {
+          "type": "object",
+          "description": "Default vSphere storage class configuration",
+          "properties": {
+            "allowVolumeExpansion": {
+              "type": "boolean",
+              "description": "Allow volume expansion",
+              "default": true
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "global": {
+      "type": "object",
+      "description": "Global configuration that applies to all CSI drivers",
+      "properties": {
+        "imageRegistry": {
+          "type": "string",
+          "description": "Global Docker image registry"
+        },
+        "imagePullSecrets": {
+          "type": "array",
+          "description": "Global image pull secrets",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the image pull secret"
+              }
+            },
+            "required": ["name"],
+            "additionalProperties": false
+          }
         }
       },
       "additionalProperties": true

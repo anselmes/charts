@@ -1,4 +1,7 @@
 ---
+
+# MARK: OpenEBS
+
 # Configuration for OpenEBS - Open Source Container Attached Storage
 # OpenEBS provides dynamic local and replicated storage options for Kubernetes
 openebs:
@@ -85,9 +88,61 @@ openebs:
       # Allows automatic creation of local persistent volumes
       enabled: true
 
+# MARK: AWS EBS
+
+# AWS EBS CSI Driver configuration
+# Provides persistent storage using Amazon Elastic Block Store (EBS) volumes
+ebs:
+  # Enable AWS EBS CSI driver deployment
+  # Allows Kubernetes to use AWS EBS volumes for persistent storage
+  enabled: false
+  # Enable FIPS 140-2 cryptographic compliance
+  # Required for government and regulated environments
+  fips: false
+  # AWS credentials configuration
+  # Required for EBS API authentication and authorization
+  awsAccessSecret:
+    # Secret name containing AWS credentials
+    name: aws-secret
+    # AWS Access Key ID field name in secret
+    keyId: key_id
+    # AWS Secret Access Key field name in secret
+    accessKey: access_key
+  controller:
+    # Default filesystem type for EBS volumes
+    # Used when no fsType is specified in storage class
+    defaultFsType: ext4
+    # AWS region for EBS operations
+    # Must match the region where Kubernetes cluster is deployed
+    region:
+  # Custom storage classes for different EBS volume types
+  # Define multiple storage classes with specific EBS configurations
+  storageClasses: []
+  # Example storage class configuration:
+  # - name: ebs-sc
+  #   # Storage class annotations
+  #   annotations:
+  #     storageclass.kubernetes.io/is-default-class: "true"
+  #   # Storage class labels
+  #   labels:
+  #     my-label-is: supercool
+  #   # Volume binding mode (WaitForFirstConsumer recommended for topology awareness)
+  #   volumeBindingMode: WaitForFirstConsumer
+  #   # Reclaim policy for volumes (Delete or Retain)
+  #   reclaimPolicy: Retain
+  #   # EBS-specific parameters
+  #   parameters:
+  #     encrypted: "true"
+  defaultStorageClass:
+    # Enable default EBS storage class creation
+    # Creates a general-purpose storage class for EBS volumes
+    enabled: false
+
+# MARK: Openstack Cinder
+
 # OpenStack Cinder CSI Driver configuration
 # Provides block storage integration with OpenStack Cinder volumes
-openstack-cinder-csi:
+cinder:
   # Enable Cinder CSI driver deployment
   # Allows Kubernetes to use OpenStack Cinder for persistent storage
   enabled: false
@@ -120,9 +175,11 @@ openstack-cinder-csi:
       # Enables resizing of volumes without pod restart
       allowVolumeExpansion: true
 
+# MARK: Rook Operator
+
 # Rook Ceph Operator configuration
 # Rook orchestrates Ceph storage cluster in Kubernetes environments
-rook-ceph:
+rook:
   # Enable Rook Ceph operator deployment
   # Manages Ceph clusters as Kubernetes native applications
   enabled: false
@@ -144,9 +201,11 @@ rook-ceph:
     # Required for Rook to manage Ceph cluster resources
     enabled: true
 
+# MARK: Rook Ceph
+
 # Rook Ceph Cluster configuration
 # Defines the actual Ceph storage cluster managed by Rook operator
-rook-ceph-cluster:
+ceph:
   # Enable Ceph cluster deployment
   # Creates a production-ready Ceph cluster with specified configuration
   enabled: false
@@ -269,9 +328,11 @@ rook-ceph-cluster:
     # If true, this snapshot class will be used by default for filesystem snapshots.
     isDefault: true
 
+# MARK: vSphere
+
 # VMware vSphere CSI Driver configuration
 # Provides persistent storage integration with vSphere infrastructure
-vsphere-csi-driver:
+vsphere:
   # Enable vSphere CSI driver deployment
   # Allows Kubernetes to use vSphere datastores for persistent volumes
   enabled: false
@@ -316,51 +377,3 @@ vsphere-csi-driver:
     # Allow online volume expansion
     # Enables resizing of persistent volumes without downtime
     allowVolumeExpansion: true
-
-# AWS EBS CSI Driver configuration
-# Provides persistent storage using Amazon Elastic Block Store (EBS) volumes
-aws-ebs-csi-driver:
-  # Enable AWS EBS CSI driver deployment
-  # Allows Kubernetes to use AWS EBS volumes for persistent storage
-  enabled: false
-  # Enable FIPS 140-2 cryptographic compliance
-  # Required for government and regulated environments
-  fips: false
-  # AWS credentials configuration
-  # Required for EBS API authentication and authorization
-  awsAccessSecret:
-    # Secret name containing AWS credentials
-    name: aws-secret
-    # AWS Access Key ID field name in secret
-    keyId: key_id
-    # AWS Secret Access Key field name in secret
-    accessKey: access_key
-  controller:
-    # Default filesystem type for EBS volumes
-    # Used when no fsType is specified in storage class
-    defaultFsType: ext4
-    # AWS region for EBS operations
-    # Must match the region where Kubernetes cluster is deployed
-    region:
-  # Custom storage classes for different EBS volume types
-  # Define multiple storage classes with specific EBS configurations
-  storageClasses: []
-  # Example storage class configuration:
-  # - name: ebs-sc
-  #   # Storage class annotations
-  #   annotations:
-  #     storageclass.kubernetes.io/is-default-class: "true"
-  #   # Storage class labels
-  #   labels:
-  #     my-label-is: supercool
-  #   # Volume binding mode (WaitForFirstConsumer recommended for topology awareness)
-  #   volumeBindingMode: WaitForFirstConsumer
-  #   # Reclaim policy for volumes (Delete or Retain)
-  #   reclaimPolicy: Retain
-  #   # EBS-specific parameters
-  #   parameters:
-  #     encrypted: "true"
-  defaultStorageClass:
-    # Enable default EBS storage class creation
-    # Creates a general-purpose storage class for EBS volumes
-    enabled: false

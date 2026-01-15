@@ -3,29 +3,34 @@ apiVersion: v2
 name: csi
 type: application
 description: A Helm chart that deploys various CSI drivers and their dependencies.
-version: 1.0.0
+version: 1.0.2
 dependencies:
   - name: openebs
     repository: https://openebs.github.io/openebs
     version: 4.4.0
     condition: openebs.enabled
-  - name: openstack-cinder-csi
-    repository: https://kubernetes.github.io/cloud-provider-openstack
-    version: 2.34.1
-    condition: openstack-cinder-csi.enabled
-  - name: rook-ceph
+  - alias: rook
+    name: rook-ceph
     repository: https://charts.rook.io/release
     version: v1.18.8
-    condition: rook-ceph.enabled
-  - name: rook-ceph-cluster
+    condition: rook.enabled
+  - alias: ceph
+    name: rook-ceph-cluster
     repository: https://charts.rook.io/release
     version: v1.18.8
-    condition: rook-ceph-cluster.enabled
-  - name: vsphere-csi-driver
-    repository: https://charts.mirantis.com
-    version: 0.0.3
-    condition: vsphere-csi-driver.enabled
-  - name: aws-ebs-csi-driver
+    condition: ceph.enabled
+  - alias: ebs
+    name: aws-ebs-csi-driver
     repository: file://../../upstream/aws-ebs-csi-driver/charts/aws-ebs-csi-driver
     version: 2.54.1
-    condition: aws-ebs-csi-driver.enabled
+    condition: ebs.enabled
+  - alias: cinder
+    name: openstack-cinder-csi
+    repository: https://kubernetes.github.io/cloud-provider-openstack
+    version: 2.34.1
+    condition: cinder.enabled
+  - alias: vsphere
+    name: vsphere-csi-driver
+    repository: https://charts.mirantis.com
+    version: 0.0.3
+    condition: vsphere.enabled
