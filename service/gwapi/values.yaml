@@ -1,6 +1,24 @@
 ---
-gateway-helm:
+gwapi:
   enabled: true
+
+  # MARK: Gateway Classes
+
+  classes: []
+  # - name: envoy
+  #   description: "Default Envoy Gateway class"
+  #   # controllerName: gateway.envoyproxy.io/gatewayclass-controller  # Uses default from config.envoyGateway.gateway.controllerName
+  #   # labels:
+  #   #   environment: production
+  #   # annotations:
+  #   #   example.com/config: "default-settings"
+  #   # parametersRef:
+  #   #   group: gateway.envoyproxy.io
+  #   #   kind: EnvoyProxy
+  #   #   name: default-proxy-config
+
+  # MARK: Gateway API
+
   deployment:
     envoyGateway:
       image:

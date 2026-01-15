@@ -1,0 +1,11 @@
+apiVersion: v2
+name: gwapi
+type: application
+description: A Helm chart that deploys Envoy as the Gateway API for Kubernetes.
+version: 1.0.2
+dependencies:
+  - alias: envoy
+    name: gateway-helm
+    repository: oci://docker.io/envoyproxy
+    version: 1.6.1
+    condition: gwapi.enabled
