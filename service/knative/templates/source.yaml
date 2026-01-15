@@ -1,13 +1,15 @@
-{{- $vhost := .Values.resources.rabbitmq.clusterRef.vhost }}
-{{- $clusterName := .Values.resources.rabbitmq.clusterRef.name }}
-{{- $clusterNamespace := .Values.resources.rabbitmq.clusterRef.namespace | default "default" }}
-{{- if .Values.resources.rabbitmq.enabled }}
+{{- if and .Values.resources .Values.resources.rabbitmq .Values.resources.rabbitmq.enabled .Values.resources.rabbitmq.clusterRef }}
 {{- range .Values.resources.rabbitmq.sources }}
+{{- $vhost := $.Values.resources.rabbitmq.clusterRef.vhost }}
+{{- $clusterName := $.Values.resources.rabbitmq.clusterRef.name }}
+{{- $clusterNamespace := $.Values.resources.rabbitmq.clusterRef.namespace | default "default" }}
 ---
 apiVersion: sources.knative.dev/v1alpha1
 kind: RabbitmqSource
 metadata:
   name: {{ .name }}
+  labels:
+    {{- include "knative.labels" $ | nindent 4 }}
 spec:
   {{- if $vhost }}
   vhost: {{ $vhost }}

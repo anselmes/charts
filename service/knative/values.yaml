@@ -1,6 +1,8 @@
 ---
 version: v1.20.0
 
+# MARK: Resources
+
 resources:
   # Configuration for RabbitMQ integration with Knative.
   rabbitmq:
@@ -11,7 +13,7 @@ resources:
         config:
           name: default-config
           queueType: quorum # Options include "quorum" or "classic".
-          create: false
+          create: true
         # Define the sink for dead-lettered messages.
         deadLetterSink:
           ref:
@@ -19,17 +21,19 @@ resources:
             kind: Service
             name: event-display
     # Define RabbitMQ event sources for Knative.
-    sources: []
-    # - name: rabbitmq-source
-    #   exchangeName: eventing-rabbitmq-source
-    #   queueName: eventing-rabbitmq-source
-    #   sinkRef:
-    #     apiVersion: serving.knative.dev/v1
-    #     kind: Service
-    #     name: event-display
+    sources:
+      - name: rabbitmq-source
+        exchangeName: eventing-rabbitmq-source
+        queueName: eventing-rabbitmq-source
+        sinkRef:
+          apiVersion: serving.knative.dev/v1
+          kind: Service
+          name: event-display
     clusterRef:
       name: rabbitmq
-      # vhost: you-rabbitmq-vhost
+      vhost: /
+
+# MARK: Events
 
 # Configuration for Knative Eventing.
 event:
@@ -38,26 +42,26 @@ event:
   config:
     enabled: false
     # Define custom channel configurations for Knative Eventing.
-    channel: {}
-    # default-ch-config: |
-    #   clusterDefault:
-    #     apiVersion: messaging.knative.dev/v1beta1
-    #     kind: InMemoryChannel
-    #     spec:
-    #       delivery:
-    #           backoffDelay: PT0.5S
-    #           backoffPolicy: exponential
-    #           retry: 5
+    channel:
+      default-ch-config: |
+        clusterDefault:
+          apiVersion: messaging.knative.dev/v1beta1
+          kind: InMemoryChannel
+          spec:
+            delivery:
+                backoffDelay: PT0.5S
+                backoffPolicy: exponential
+                retry: 5
     # Define custom broker configurations for Knative Eventing.
-    broker: {}
-    # channel-template-spec: |
-    #   apiVersion: messaging.knative.dev/v1beta1
-    #   kind: InMemoryChannel
-    #   spec:
-    #       delivery:
-    #           backoffDelay: PT0.5S
-    #           backoffPolicy: exponential
-    #           retry: 5
+    broker:
+      channel-template-spec: |
+        apiVersion: messaging.knative.dev/v1beta1
+        kind: InMemoryChannel
+        spec:
+            delivery:
+                backoffDelay: PT0.5S
+                backoffPolicy: exponential
+                retry: 5
   # Configuration for Knative Eventing sources.
   sources:
     enabled: false
@@ -74,6 +78,8 @@ event:
     enabled: false
     version: v1.16.0
 
+# MARK: Server
+
 # Configuration for the Knative server.
 server:
   enabled: false
@@ -84,7 +90,7 @@ server:
     guard: false
   network:
     gatewayAPI:
-      install: false        # Set to true to install Gateway API support.
+      enabled: false        # Set to true to install Gateway API support.
       external: {}
       internal: {}
     # Configuration for Kourier ingress.
@@ -98,9 +104,11 @@ server:
     enabled: false
     issuerRef:
       clusterIssuer:
-        name: self-signed-ca-issuer
+        name: ca-issuer-self-signed
       localIssuer:
-        name: self-signed-ca-issuer
+        name: ca-issuer
+
+# MARK: Operator
 
 # Configuration for the Knative operator.
 operator:

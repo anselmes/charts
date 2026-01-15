@@ -4,6 +4,8 @@ apiVersion: operator.knative.dev/v1beta1
 kind: KnativeEventing
 metadata:
   name: knative-eventing
+  labels:
+    {{- include "knative.labels" . | nindent 4 }}
 spec:
   version: {{ .Values.version | quote }}
   defaultBrokerClass: {{ .Values.event.defaultBrokerClass }}

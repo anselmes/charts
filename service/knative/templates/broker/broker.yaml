@@ -5,6 +5,8 @@ apiVersion: eventing.knative.dev/v1
 kind: Broker
 metadata:
   name: {{ .name }}
+  labels:
+    {{- include "knative.labels" $ | nindent 4 }}
   annotations:
     eventing.knative.dev/broker.class: RabbitMQBroker
 spec:

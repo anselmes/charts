@@ -4,6 +4,8 @@ apiVersion: operator.knative.dev/v1beta1
 kind: KnativeServing
 metadata:
   name: knative-serving
+  labels:
+    {{- include "knative.labels" . | nindent 4 }}
 spec:
   version: {{ .Values.version | quote }}
   high-availability:
@@ -41,15 +43,15 @@ spec:
     {{- if eq .Values.server.ingress.type "gateway-api" }}
     gateway:
       external-gateways: |
-        - class: {{ .Values.server.network.gatewayAPI.external.class | default "cilium" }}
+        - class: {{ .Values.server.network.gatewayAPI.external.class | default "envoy" }}
           gateway: {{ .Values.server.network.gatewayAPI.external.name | default "kube-system/default" }}
-          service: {{ .Values.server.network.gatewayAPI.external.service | default "kube-system/cilium-gateway-default" }}
+          service: {{ .Values.server.network.gatewayAPI.external.service | default "kube-system/envoy-gateway-default" }}
           supported-features:
             - HTTPRouteRequestTimeout
       local-gateways: |
-        - class: {{ .Values.server.network.gatewayAPI.internal.class | default "cilium" }}
+        - class: {{ .Values.server.network.gatewayAPI.internal.class | default "envoy" }}
           gateway: {{ .Values.server.network.gatewayAPI.internal.name | default "kube-system/knative" }}
-          service: {{ .Values.server.network.gatewayAPI.internal.service | default "kube-system/cilium-gateway-knative" }}
+          service: {{ .Values.server.network.gatewayAPI.internal.service | default "kube-system/envoy-gateway-knative" }}
           supported-features:
             - HTTPRouteRequestTimeout
     {{- end }}
@@ -67,7 +69,7 @@ spec:
       {{- end }}
     deployment:
       registriesSkippingTagResolving: kind.local,ko.local,dev.local,knative.registry.svc.cluster.local
-  {{- if .Values.server.network.gatewayAPI.install }}
+  {{- if .Values.server.network.gatewayAPI.enabled }}
   additionalManifests:
     - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/200-clusterrole.yaml
     - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/300-controller.yaml
