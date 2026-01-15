@@ -1,9 +1,11 @@
-{{- if and .Values.cilium.enabled .Values.cilium.pool.enabled }}
+{{- if .Values.cilium.pool.enabled }}
 ---
 apiVersion: cilium.io/v2alpha1
 kind: CiliumLoadBalancerIPPool
 metadata:
   name: lb-ip-pool
+  labels:
+    {{- include "cni.labels" . | nindent 4 }}
 spec:
   allowFirstLastIPs: {{ .Values.cilium.pool.allowFirstLastIPs | quote }}
   blocks:

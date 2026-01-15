@@ -1,9 +1,11 @@
-{{- if and .Values.cilium.enabled .Values.cilium.bgp.enabled }}
+{{- if and .Values.cilium.bgp.enabled }}
 ---
 apiVersion: cilium.io/v2alpha1
 kind: CiliumBGPPeerConfig
 metadata:
   name: bgp-peer-config
+  labels:
+    {{- include "cni.labels" $ | nindent 4 }}
 spec:
   authSecretRef: {{ .Values.cilium.bgp.peer.authSecretRef }}
   ebgpMultihop: {{ .Values.cilium.bgp.peer.multiHop }}

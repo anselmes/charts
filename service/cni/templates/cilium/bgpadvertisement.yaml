@@ -1,10 +1,11 @@
-{{- if and .Values.cilium.enabled .Values.cilium.bgp.enabled }}
+{{- if .Values.cilium.bgp.enabled }}
 ---
 apiVersion: cilium.io/v2alpha1
 kind: CiliumBGPAdvertisement
 metadata:
   name: bgp-advert
   labels:
+    {{- include "cni.labels" $ | nindent 4 }}
     {{- range .Values.cilium.bgp.peer.addressFamilies }}
     {{- .advertisements.matchLabels | toYaml | nindent 4 }}
     {{- end }}

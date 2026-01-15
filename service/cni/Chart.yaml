@@ -3,9 +3,9 @@ apiVersion: v2
 name: cni
 type: application
 description: A Helm chart that deploys Cilium as the CNI plugin for Kubernetes.
-version: 1.0.0
+version: 1.0.2
 dependencies:
   - name: cilium
     repository: https://helm.cilium.io
     version: 1.18.5
-    condition: cilium.install
+    condition: cilium.enabled

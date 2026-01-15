@@ -4,9 +4,6 @@ cilium:
   # Enable or disable the Cilium CNI plugin
   # Set to true to deploy Cilium as the CNI for your Kubernetes cluster.
   enabled: true
-  # Whether to install Cilium as part of this chart
-  # Set to true to include Cilium installation in this Helm chart deployment.
-  install: true
 
   # Configuration for BGP (Border Gateway Protocol)
   bgp:

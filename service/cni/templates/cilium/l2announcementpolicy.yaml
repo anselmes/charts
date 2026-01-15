@@ -1,9 +1,11 @@
-{{- if and .Values.cilium.enabled .Values.cilium.l2.enabled }}
+{{- if and .Values.cilium.l2.enabled }}
 ---
 apiVersion: cilium.io/v2alpha1
 kind: CiliumL2AnnouncementPolicy
 metadata:
   name: l2-announce-policy
+  labels:
+    {{- include "cni.labels" . | nindent 4 }}
 spec:
   externalIPs: {{ .Values.cilium.l2.externalIPs }}
   loadBalancerIPs: {{ .Values.cilium.l2.loadBalancerIPs }}
