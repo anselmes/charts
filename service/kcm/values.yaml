@@ -14,8 +14,8 @@ global: &global
       enableCertificateOwnerRef: true
       # config:
       #   enableGatewayAPI: true
-    # cluster-api-operator:
-    #   enabled: false
+    cluster-api-operator:
+      enabled: false
     telemetry:
       mode: disabled
   flux2: &flux2
@@ -51,6 +51,21 @@ type: "" # enterprise or community
 
 repository: false
 release: false
+
+gateway:
+  gateways: null
+  # routes:
+  #   - name: kcm-ui
+  #     kind: HTTPRoute
+  #     hostnames:
+  #       - kcm.local
+  #     rules:
+  #       - backendRefs:
+  #           - name: k0rdent-ui
+  #             port: 3000
+  #     gateways:
+  #       - name: envoy
+  #         namespace: kube-system
 
 # MARK: Management
 

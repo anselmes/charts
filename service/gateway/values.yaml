@@ -66,7 +66,7 @@ grants: []
 # Each Gateway specifies its name, class, and listeners for handling traffic.
 gateways:
   - name: default-gateway
-    className: cilium
+    className: envoy
     listeners:
       - name: http
         port: 80
@@ -87,7 +87,7 @@ gateways:
       #       - name: default-gw-cert
       #         issuer: self-signed-ca-issuer
   # - name: tls-gateway
-  #   className: cilium
+  #   className: envoy
   #   listeners:
   #     - name: tls
   #       port: 443
@@ -100,7 +100,7 @@ gateways:
   #       tls:
   #         mode: Passthrough
   # - name: grpc-gateway
-  #   className: cilium
+  #   className: envoy
   #   listeners:
   #     - name: http
   #       port: 80

@@ -14,3 +14,7 @@ dependencies:
     repository: oci://ghcr.io/k0rdent/kcm/charts
     version: 1.6.0
     condition: community.enabled
+  - name: gateway
+    repository: oci://ghcr.io/labsonline/charts
+    version: 1.0.3
+    condition: enterprise.k0rdent-ui.enabled
