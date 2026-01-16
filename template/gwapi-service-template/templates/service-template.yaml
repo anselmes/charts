@@ -2,14 +2,14 @@
 apiVersion: k0rdent.mirantis.com/v1beta1
 kind: ServiceTemplate
 metadata:
-  name: envoy-1-0-0
+  name: gwapi-1-0-2
   annotations:
     helm.sh/resource-policy: keep
 spec:
   helm:
     chartSpec:
-      chart: envoy
-      version: 1.0.0
+      chart: gwapi
+      version: 1.0.2
       interval: 10m0s
       sourceRef:
         kind: HelmRepository

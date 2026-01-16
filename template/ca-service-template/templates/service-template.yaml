@@ -2,14 +2,14 @@
 apiVersion: k0rdent.mirantis.com/v1beta1
 kind: ServiceTemplate
 metadata:
-  name: ca-1-0-2
+  name: ca-1-0-3
   annotations:
     helm.sh/resource-policy: keep
 spec:
   helm:
     chartSpec:
       chart: ca
-      version: 1.0.0
+      version: 1.0.3
       interval: 10m0s
       sourceRef:
         kind: HelmRepository
