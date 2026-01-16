@@ -1,0 +1,11 @@
+Thank you for installing the kcm Helm chart!
+
+To get started with your deployment:
+
+1. Check the status of your release:
+  helm status {{ .Release.Name }}
+
+2. To upgrade this chart:
+  helm upgrade {{ .Release.Name }} {{ .Chart.Name }} -f values.yaml
+
+Happy Helming!

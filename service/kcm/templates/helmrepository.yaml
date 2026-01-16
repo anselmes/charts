@@ -1,0 +1,19 @@
+{{- if .Values.repository }}
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: kcm-templates
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kcm.labels" . | nindent 4 }}
+spec:
+  interval: 10m0s
+  provider: generic
+  type: oci
+  {{- if eq .Values.type "enterprise" }}
+  url: {{ .Values.enterprise.templatesRepoURL }}
+  {{- else if eq .Values.type "community" }}
+  url: {{ .Values.community.templatesRepoURL }}
+  {{- end }}
+{{- end }}

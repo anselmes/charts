@@ -5,9 +5,9 @@ kind: Management
 metadata:
   name: kcm
   labels:
-    k0rdent.mirantis.com/component: kcm
+    {{- include "kcm.labels" . | nindent 4 }}
 spec:
-  release: {{ .Values.templates.kcm }}
+  release: {{ include "kcm.template.kcm" . }}
   {{- with .Values.management.providers }}
   providers:
     {{- range . }}

@@ -4,6 +4,8 @@ apiVersion: k0rdent.mirantis.com/v1beta1
 kind: AccessManagement
 metadata:
   name: kcm
+  labels:
+    {{- include "kcm.labels" . | nindent 4 }}
 {{- with .Values.management.access.rules }}
 spec:
   accessRules:

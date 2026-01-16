@@ -1,7 +1,0 @@
-{{- /* Enforce mutual exclusion between KCM OSS and Enterprise (both true not allowed) */ -}}
-{{- $oss := (default false .Values.kcm.install) -}}
-{{- $entVals := (index .Values "k0rdent-enterprise") -}}
-{{- $ent := (default false (and $entVals (index $entVals "install"))) -}}
-{{- if and $oss $ent -}}
-{{- fail "Mutually exclusive: do not enable both kcm.install and k0rdent-enterprise.install." -}}
-{{- end -}}

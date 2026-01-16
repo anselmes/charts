@@ -1,0 +1,180 @@
+---
+global: &global
+  replicas: 1
+  controller: &controller
+    createAccessManagement: false
+    createManagement: false
+    createRelease: false
+    createTemplates: true
+    affinity: {}
+    nodeSelector: {}
+    tolerations: []
+  regional: &regional
+    cert-manager:
+      enableCertificateOwnerRef: true
+      config:
+        enableGatewayAPI: true
+    # cluster-api-operator:
+    #   enabled: false
+    telemetry:
+      mode: disabled
+  flux2: &flux2
+    helmController:
+      create: true
+      container:
+        additionalArgs:
+          - --watch-label-selector=k0rdent.mirantis.com/managed=true
+    kustomizeController:
+      create: true
+      container:
+        additionalArgs:
+          - --watch-label-selector=k0rdent.mirantis.com/managed=true
+    sourceController:
+      create: true
+      container:
+        additionalArgs:
+          - --watch-label-selector=k0rdent.mirantis.com/managed=true
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+
+type: "" # enterprise or community
+
+repository: false
+release: false
+
+# MARK: Management
+
+management:
+  enabled: false
+  access:
+    enabled: false
+    rules: []
+    # - targetNamespaces:
+    #     list:
+    #       - default
+    #   credentials:
+    #     - aws-cluster-cred
+    #     - openstack-cluster-cred
+    #     - remote-cluster-cred
+    #     - vsphere-cluster-cred
+    #   clusterTemplateChains:
+    #     - adopted-cluster
+    #     - aws-standalone-cp
+    #     - openstack-standalone-cp
+    #     - remote-cluster
+    #     - vsphere-standalone-cp
+    #   serviceTemplateChains:
+    #     - core
+    #     - addon
+    #     - optional
+  providers:
+    - name: cluster-api-provider-aws
+    - name: cluster-api-provider-azure
+    - name: cluster-api-provider-gcp
+    - name: cluster-api-provider-infoblox
+    - name: cluster-api-provider-ipam
+    - name: cluster-api-provider-k0sproject-k0smotron
+    - name: cluster-api-provider-openstack
+    - name: cluster-api-provider-vsphere
+    - name: projectsveltos
+  capi: {}
+  kcm:
+    config:
+      flux2:
+        <<: *flux2
+      regional:
+        <<: *regional
+        # cluster-api-operator:
+        #   enabled: true
+
+# MARK: KCM Enterprise
+
+enterprise:
+  <<: *global
+  enabled: false
+  version: 1.2.2
+  templatesRepoURL: oci://registry.mirantis.com/k0rdent-enterprise/charts
+  templates:
+    capi: cluster-api-1-0-7
+    kcm: k0rdent-enterprise-1-2-2
+    regional: kcm-regional-1-2-2
+  providers:
+    - name: cluster-api-provider-aws
+      template: cluster-api-provider-aws-1-0-9
+    - name: cluster-api-provider-azure
+      template: cluster-api-provider-azure-1-0-9
+    - name: cluster-api-provider-gcp
+      template: cluster-api-provider-gcp-1-0-6
+    - name: cluster-api-provider-infoblox
+      template: cluster-api-provider-infoblox-1-0-2
+    - name: cluster-api-provider-ipam
+      template: cluster-api-provider-ipam-1-0-3
+    - name: cluster-api-provider-k0sproject-k0smotron
+      template: cluster-api-provider-k0sproject-k0smotron-1-0-12
+    - name: cluster-api-provider-openstack
+      template: cluster-api-provider-openstack-1-0-10
+    - name: cluster-api-provider-vsphere
+      template: cluster-api-provider-vsphere-1-0-6
+    - name: projectsveltos
+      template: projectsveltos-1-1-1
+  controller:
+    <<: *controller
+    globalK0sURL: https://get.mirantis.com/k0rdent-enterprise/k0s
+    globalRegistry: registry.mirantis.com/k0rdent-enterprise
+  k0rdent-ui:
+    enabled: false
+    nextAuth:
+      secretKeyRef:
+        name: k0rdent-nextauth
+        key: NEXTAUTH_SECRET
+    auth:
+      basic:
+        enabled: true
+      keycloak:
+        enabled: false
+        issuer: ""
+        secretKeyRef:
+          name: ""
+          clientIDKey: ""
+          clientSecretKey: ""
+
+# MARK: KCM Community
+
+community:
+  <<: *global
+  enabled: false
+  version: 1.6.0
+  templatesRepoURL: oci://ghcr.io/k0rdent/kcm/charts
+  templates:
+    capi: cluster-api-1-0-9
+    kcm: kcm-1-6-0
+    regional: kcm-regional-1-6-0
+  providers:
+    - name: cluster-api-provider-aws
+      template: cluster-api-provider-aws-1-0-10
+    - name: cluster-api-provider-azure
+      template: cluster-api-provider-azure-1-0-12
+    - name: cluster-api-provider-gcp
+      template: cluster-api-provider-gcp-1-0-7
+    - name: cluster-api-provider-infoblox
+      template: cluster-api-provider-infoblox-1-0-3
+    - name: cluster-api-provider-ipam
+      template: cluster-api-provider-ipam-1-0-4
+    - name: cluster-api-provider-k0sproject-k0smotron
+      template: cluster-api-provider-k0sproject-k0smotron-1-0-14
+    - name: cluster-api-provider-openstack
+      template: cluster-api-provider-openstack-1-0-12
+    - name: cluster-api-provider-vsphere
+      template: cluster-api-provider-vsphere-1-0-7
+    - name: projectsveltos
+      template: projectsveltos-1-1-1

@@ -1,0 +1,528 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "global": {
+      "type": "object",
+      "properties": {
+        "replicas": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of replicas"
+        },
+        "controller": {
+          "type": "object",
+          "properties": {
+            "createAccessManagement": {
+              "type": "boolean",
+              "description": "Create access management resources"
+            },
+            "createManagement": {
+              "type": "boolean",
+              "description": "Create management resources"
+            },
+            "createRelease": {
+              "type": "boolean",
+              "description": "Create release resources"
+            },
+            "createTemplates": {
+              "type": "boolean",
+              "description": "Create template resources"
+            },
+            "affinity": {
+              "type": "object",
+              "description": "Pod affinity configuration"
+            },
+            "nodeSelector": {
+              "type": "object",
+              "description": "Node selector configuration"
+            },
+            "tolerations": {
+              "type": "array",
+              "description": "Pod tolerations"
+            }
+          },
+          "required": ["createAccessManagement", "createManagement", "createRelease", "createTemplates"]
+        },
+        "regional": {
+          "type": "object",
+          "properties": {
+            "cert-manager": {
+              "type": "object",
+              "properties": {
+                "enableCertificateOwnerRef": {
+                  "type": "boolean",
+                  "description": "Enable certificate owner references"
+                },
+                "config": {
+                  "type": "object",
+                  "properties": {
+                    "enableGatewayAPI": {
+                      "type": "boolean",
+                      "description": "Enable Gateway API support"
+                    }
+                  }
+                }
+              }
+            },
+            "cluster-api-operator": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable cluster API operator"
+                }
+              }
+            },
+            "telemetry": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "enum": ["disabled", "enabled", "anonymous"],
+                  "description": "Telemetry mode"
+                }
+              },
+              "required": ["mode"]
+            }
+          }
+        },
+        "flux2": {
+          "type": "object",
+          "properties": {
+            "helmController": {
+              "type": "object",
+              "properties": {
+                "create": {
+                  "type": "boolean",
+                  "description": "Create Helm controller"
+                },
+                "container": {
+                  "type": "object",
+                  "properties": {
+                    "additionalArgs": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Additional container arguments"
+                    }
+                  }
+                }
+              },
+              "required": ["create"]
+            },
+            "kustomizeController": {
+              "type": "object",
+              "properties": {
+                "create": {
+                  "type": "boolean",
+                  "description": "Create Kustomize controller"
+                },
+                "container": {
+                  "type": "object",
+                  "properties": {
+                    "additionalArgs": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Additional container arguments"
+                    }
+                  }
+                }
+              },
+              "required": ["create"]
+            },
+            "sourceController": {
+              "type": "object",
+              "properties": {
+                "create": {
+                  "type": "boolean",
+                  "description": "Create source controller"
+                },
+                "container": {
+                  "type": "object",
+                  "properties": {
+                    "additionalArgs": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Additional container arguments"
+                    }
+                  }
+                }
+              },
+              "required": ["create"]
+            }
+          }
+        },
+        "containerSecurityContext": {
+          "type": "object",
+          "properties": {
+            "allowPrivilegeEscalation": {
+              "type": "boolean",
+              "description": "Allow privilege escalation"
+            },
+            "capabilities": {
+              "type": "object",
+              "properties": {
+                "drop": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Capabilities to drop"
+                }
+              }
+            }
+          }
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "limits": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string",
+                  "pattern": "^[0-9]+m?$",
+                  "description": "CPU limit"
+                },
+                "memory": {
+                  "type": "string",
+                  "pattern": "^[0-9]+[KMGT]i$",
+                  "description": "Memory limit"
+                }
+              }
+            },
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string",
+                  "pattern": "^[0-9]+m?$",
+                  "description": "CPU request"
+                },
+                "memory": {
+                  "type": "string",
+                  "pattern": "^[0-9]+[KMGT]i$",
+                  "description": "Memory request"
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": ["replicas"]
+    },
+    "type": {
+      "type": "string",
+      "enum": ["", "enterprise", "community"],
+      "description": "KCM deployment type"
+    },
+    "repository": {
+      "type": "boolean",
+      "description": "Enable repository management"
+    },
+    "release": {
+      "type": "boolean",
+      "description": "Enable release management"
+    },
+    "management": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable management features"
+        },
+        "access": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable access management"
+            },
+            "rules": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "targetNamespaces": {
+                    "type": "object",
+                    "properties": {
+                      "list": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                        }
+                      }
+                    }
+                  },
+                  "credentials": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "clusterTemplateChains": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "serviceTemplateChains": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "description": "Access management rules"
+            }
+          },
+          "required": ["enabled", "rules"]
+        },
+        "providers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Provider name"
+              }
+            },
+            "required": ["name"]
+          },
+          "description": "Management providers"
+        },
+        "capi": {
+          "type": "object",
+          "description": "Cluster API configuration"
+        },
+        "kcm": {
+          "type": "object",
+          "properties": {
+            "config": {
+              "type": "object",
+              "description": "KCM configuration"
+            }
+          }
+        }
+      },
+      "required": ["enabled", "providers"]
+    },
+    "enterprise": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable enterprise edition"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "description": "Enterprise version"
+        },
+        "templatesRepoURL": {
+          "type": "string",
+          "pattern": "^oci://.*",
+          "description": "Templates repository URL"
+        },
+        "templates": {
+          "type": "object",
+          "properties": {
+            "capi": {
+              "type": "string",
+              "description": "Cluster API template"
+            },
+            "kcm": {
+              "type": "string",
+              "description": "KCM template"
+            },
+            "regional": {
+              "type": "string",
+              "description": "Regional template"
+            }
+          },
+          "required": ["capi", "kcm", "regional"]
+        },
+        "providers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Provider name"
+              },
+              "template": {
+                "type": "string",
+                "description": "Provider template"
+              }
+            },
+            "required": ["name", "template"]
+          },
+          "description": "Enterprise providers"
+        },
+        "controller": {
+          "type": "object",
+          "properties": {
+            "globalK0sURL": {
+              "type": "string",
+              "pattern": "^https://.*",
+              "description": "Global K0s download URL"
+            },
+            "globalRegistry": {
+              "type": "string",
+              "description": "Global container registry"
+            }
+          }
+        },
+        "k0rdent-ui": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable K0rdent UI"
+            },
+            "nextAuth": {
+              "type": "object",
+              "properties": {
+                "secretKeyRef": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+                      "description": "Secret name"
+                    },
+                    "key": {
+                      "type": "string",
+                      "description": "Secret key"
+                    }
+                  },
+                  "required": ["name", "key"]
+                }
+              }
+            },
+            "auth": {
+              "type": "object",
+              "properties": {
+                "basic": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "Enable basic authentication"
+                    }
+                  },
+                  "required": ["enabled"]
+                },
+                "keycloak": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "Enable Keycloak authentication"
+                    },
+                    "issuer": {
+                      "type": "string",
+                      "description": "Keycloak issuer URL"
+                    },
+                    "secretKeyRef": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "anyOf": [
+                            { "const": "" },
+                            { "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$" }
+                          ],
+                          "description": "Secret name"
+                        },
+                        "clientIDKey": {
+                          "type": "string",
+                          "description": "Client ID key"
+                        },
+                        "clientSecretKey": {
+                          "type": "string",
+                          "description": "Client secret key"
+                        }
+                      },
+                      "required": ["name", "clientIDKey", "clientSecretKey"]
+                    }
+                  },
+                  "required": ["enabled"]
+                }
+              }
+            }
+          },
+          "required": ["enabled"]
+        }
+      },
+      "required": ["enabled"]
+    },
+    "community": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable community edition"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "description": "Community version"
+        },
+        "templatesRepoURL": {
+          "type": "string",
+          "pattern": "^oci://.*",
+          "description": "Templates repository URL"
+        },
+        "templates": {
+          "type": "object",
+          "properties": {
+            "capi": {
+              "type": "string",
+              "description": "Cluster API template"
+            },
+            "kcm": {
+              "type": "string",
+              "description": "KCM template"
+            },
+            "regional": {
+              "type": "string",
+              "description": "Regional template"
+            }
+          },
+          "required": ["capi", "kcm", "regional"]
+        },
+        "providers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Provider name"
+              },
+              "template": {
+                "type": "string",
+                "description": "Provider template"
+              }
+            },
+            "required": ["name", "template"]
+          },
+          "description": "Community providers"
+        }
+      },
+      "required": ["enabled"]
+    }
+  },
+  "required": ["type", "repository", "release", "management", "enterprise", "community"]
+}
