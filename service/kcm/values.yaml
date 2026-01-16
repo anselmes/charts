@@ -12,8 +12,8 @@ global: &global
   regional: &regional
     cert-manager:
       enableCertificateOwnerRef: true
-      config:
-        enableGatewayAPI: true
+      # config:
+      #   enableGatewayAPI: true
     # cluster-api-operator:
     #   enabled: false
     telemetry:
