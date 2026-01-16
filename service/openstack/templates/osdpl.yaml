@@ -4,6 +4,8 @@ apiVersion: lcm.mirantis.com/v1alpha1
 kind: OpenStackDeployment
 metadata:
   name: {{ .Values.deployment.name }}
+  labels:
+    {{- include "openstack.labels" . | nindent 4 }}
 spec:
   openstack_version: {{ .Values.deployment.region.version }}
   public_domain_name: {{ .Values.deployment.region.domain }}

@@ -30,6 +30,7 @@ This chart deploys OpenStack services and their associated resources, providing 
      ```bash
      kubectl get svc -n {{ .Release.Namespace }} -l app.kubernetes.io/component=horizon
      ```
+{{/*
 {{- if .Values.horizon.ingress.enabled }}
    - Access the dashboard at: {{ .Values.horizon.ingress.host }}
 {{- else }}
@@ -39,6 +40,7 @@ This chart deploys OpenStack services and their associated resources, providing 
      ```
    - Then visit: http://localhost:8080
 {{- end }}
+*/}}
 
 4. **Configure OpenStack CLI**:
    - Get admin credentials:
@@ -71,12 +73,14 @@ This chart deploys OpenStack services and their associated resources, providing 
      ```
 
 6. **Database Access**:
+{{/*
 {{- if .Values.mariadb.enabled }}
    - Access MariaDB database:
      ```bash
      kubectl exec -it -n {{ .Release.Namespace }} deployment/mariadb -- mysql -u root -p
      ```
 {{- end }}
+*/}}
 
 7. **Uninstallation**:
    - To uninstall the chart and remove all associated resources, run:

@@ -1,774 +1,496 @@
 {
-  "$schema": "http://json-schema.org/draft-04/schema#",
-  "$comment": "https://yamllint.readthedocs.io/en/stable/configuration.html",
-  "$ref": "#/definitions/ignore",
-  "definitions": {
-    "toggle": {
-      "type": "string",
-      "enum": ["enable", "disable"]
-    },
-    "ignore": {
-      "properties": {
-        "ignore": {
-          "title": "Ignore",
-          "description": "Ignore files, so that the linter doesn't process them.",
-          "type": "string"
-        }
-      }
-    },
-    "allRules": {
-      "$ref": "#/definitions/ignore",
-      "properties": {
-        "level": {
-          "title": "Level",
-          "type": "string",
-          "default": "warning"
-        }
-      }
-    }
-  },
-  "description": "yamllint uses a set of rules to check source files for problems.",
-  "id": "https://json.schemastore.org/yamllint.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
   "properties": {
-    "extends": {
-      "title": "Extends",
-      "type": "string"
+    "backup": {
+      "type": "boolean",
+      "description": "Enable backup functionality"
     },
-    "yaml-files": {
-      "title": "YAML Files",
-      "type": "array",
-      "items": {
-        "title": "YAML File",
-        "type": "string"
-      },
-      "default": ["*.yaml", "*.yml", ".yamllint"]
-    },
-    "locale": {
-      "title": "Locale",
-      "description": "This is passed to Python's locale.setlocale.",
-      "type": "string"
-    },
-    "rules": {
+    "policies": {
+      "type": "object",
       "properties": {
-        "braces": {
-          "title": "Braces",
-          "description": "Use this rule to control the use of flow mappings or number of spaces inside braces ({ and }).",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "forbid": {
-                  "title": "Forbid",
-                  "description": "Used to forbid the use of flow mappings which are denoted by surrounding braces ({ and }).",
-                  "anyOf": [
-                    {
-                      "type": "boolean"
-                    },
-                    {
-                      "type": "string",
-                      "enum": ["non-empty"]
-                    }
-                  ],
-                  "default": false
-                },
-                "min-spaces-inside": {
-                  "title": "Minimum Spaces Inside",
-                  "description": "Defines the minimal number of spaces required inside braces.",
-                  "type": "number",
-                  "default": 0
-                },
-                "max-spaces-inside": {
-                  "title": "Max Spaces Inside",
-                  "description": "Defines the maximal number of spaces allowed inside braces.",
-                  "type": "number",
-                  "default": 0
-                },
-                "min-spaces-inside-empty": {
-                  "title": "Minimum Spaces Inside Empty",
-                  "description": "Defines the minimal number of spaces required inside empty braces.",
-                  "type": "number",
-                  "default": -1
-                },
-                "max-spaces-inside-empty": {
-                  "title": "Max Spaces Inside Empty",
-                  "description": "Defines the maximal number of spaces allowed inside empty braces.",
-                  "type": "number",
-                  "default": -1
-                }
-              }
-            }
-          ],
-          "default": "enable"
+        "network": {
+          "type": "boolean",
+          "description": "Enable network policies"
         },
-        "brackets": {
-          "title": "Brackets",
-          "description": "Use this rule to control the use of flow sequences or the number of spaces inside brackets ([ and ]).",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "forbid": {
-                  "title": "Forbid",
-                  "description": "Used to forbid the use of flow sequences which are denoted by surrounding brackets ([ and ]).",
-                  "anyOf": [
-                    {
-                      "type": "boolean"
-                    },
-                    {
-                      "type": "string",
-                      "enum": ["non-empty"]
-                    }
-                  ],
-                  "default": false
-                },
-                "min-spaces-inside": {
-                  "title": "Minimum Spaces Inside",
-                  "description": "Defines the minimal number of spaces required inside brackets.",
-                  "type": "number",
-                  "default": 0
-                },
-                "max-spaces-inside": {
-                  "title": "Max Spaces Inside",
-                  "description": "Defines the maximal number of spaces allowed inside brackets.",
-                  "type": "number",
-                  "default": 0
-                },
-                "min-spaces-inside-empty": {
-                  "title": "Minimum Spaces Inside Empty",
-                  "description": "Defines the minimal number of spaces required inside empty brackets.",
-                  "type": "number",
-                  "default": -1
-                },
-                "max-spaces-inside-empty": {
-                  "title": "Max Spaces Inside Empty",
-                  "description": "Defines the maximal number of spaces allowed inside empty brackets.",
-                  "type": "number",
-                  "default": -1
-                }
-              }
-            }
-          ],
-          "default": "enable"
+        "admin": {
+          "type": "boolean",
+          "description": "Enable admin policies"
+        }
+      },
+      "required": ["network", "admin"]
+    },
+    "certificate": {
+      "type": "object",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Create SSL certificate secret"
         },
-        "colons": {
-          "title": "Colons",
-          "description": "Use this rule to control the number of spaces before and after colons (:).",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "max-spaces-before": {
-                  "title": "Max Spaces Before",
-                  "description": "Defines the maximal number of spaces allowed before colons (use -1 to disable).",
-                  "type": "number",
-                  "default": 0
-                },
-                "max-spaces-after": {
-                  "title": "Max Spaces After",
-                  "description": "Defines the maximal number of spaces allowed after colons (use -1 to disable).",
-                  "type": "number",
-                  "default": 1
-                }
-              }
-            }
-          ],
-          "default": "enable"
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+          "description": "Certificate secret name"
         },
-        "commas": {
-          "title": "Commas",
-          "description": "Use this rule to control the number of spaces before and after commas (,).",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "max-spaces-before": {
-                  "title": "Max Spaces Before",
-                  "description": "Defines the maximal number of spaces allowed before commas (use -1 to disable).",
-                  "type": "number",
-                  "default": 0
-                },
-                "min-spaces-after": {
-                  "title": "Minimum Spaces After",
-                  "description": "Defines the minimal number of spaces required after commas.",
-                  "type": "number",
-                  "default": 1
-                },
-                "max-spaces-after": {
-                  "title": "Max Spaces After",
-                  "description": "Defines the maximal number of spaces allowed after commas (use -1 to disable).",
-                  "type": "number",
-                  "default": 1
-                }
-              }
-            }
-          ],
-          "default": "enable"
+        "ca": {
+          "type": "string",
+          "description": "CA certificate in PEM format"
         },
-        "comments": {
-          "title": "Comments",
-          "description": "Use this rule to control the position and formatting of comments.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
+        "cert": {
+          "type": "string",
+          "description": "SSL certificate in PEM format"
+        },
+        "key": {
+          "type": "string",
+          "description": "SSL private key in PEM format"
+        }
+      },
+      "required": ["create", "name"]
+    },
+    "deployment": {
+      "type": "object",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Create OpenStack deployment"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+          "description": "Deployment name"
+        },
+        "region": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "string",
+              "pattern": "^[a-z0-9.-]+$",
+              "description": "OpenStack region domain"
             },
-            {
-              "type": "boolean"
+            "name": {
+              "type": "string",
+              "description": "OpenStack region name"
             },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "require-starting-space": {
-                  "title": "Require Starting Space",
-                  "description": "Require a space character right after the #.",
-                  "type": "boolean",
-                  "default": true
-                },
-                "ignore-shebangs": {
-                  "title": "Ignore Shebangs",
-                  "description": "Ignore a shebang at the beginning of the file when require-starting-space is set.",
-                  "type": "boolean",
-                  "default": true
-                },
-                "min-spaces-from-content": {
-                  "title": "Minimum Spaces from Content",
-                  "description": "Used to visually separate inline comments from content.",
-                  "type": "number",
-                  "default": 2
-                }
-              }
+            "preset": {
+              "type": "string",
+              "enum": ["core", "compute"],
+              "description": "OpenStack preset configuration"
+            },
+            "size": {
+              "type": "string",
+              "enum": ["single", "tiny", "small", "medium", "large"],
+              "description": "OpenStack deployment size"
+            },
+            "version": {
+              "type": "string",
+              "enum": ["antelope", "bobcat", "caracal", "dalmatian"],
+              "description": "OpenStack version"
             }
-          ],
-          "default": {
-            "level": "warning"
+          },
+          "required": ["domain", "name", "preset", "size", "version"]
+        },
+        "storage": {
+          "type": "object",
+          "properties": {
+            "local": {
+              "type": "string",
+              "description": "Local storage configuration"
+            },
+            "persistent": {
+              "type": "string",
+              "description": "Persistent storage configuration"
+            }
+          },
+          "required": ["local", "persistent"]
+        }
+      },
+      "required": ["create", "name", "region", "storage"]
+    },
+    "keystone": {
+      "type": "object",
+      "properties": {
+        "keycloak": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable Keycloak integration"
+            },
+            "url": {
+              "type": "string",
+              "pattern": "^https?://.*",
+              "description": "Keycloak URL"
+            },
+            "sslServerValidation": {
+              "type": "boolean",
+              "description": "Enable SSL server validation"
+            },
+            "sslAuthValidation": {
+              "type": "boolean",
+              "description": "Enable SSL auth validation"
+            }
+          },
+          "required": ["enabled"]
+        },
+        "values": {
+          "type": "object",
+          "description": "Keystone configuration values"
+        }
+      },
+      "required": ["keycloak"]
+    },
+    "glance": {
+      "type": "object",
+      "properties": {
+        "backend": {
+          "type": "string",
+          "enum": ["file", "swift", "ceph", "s3"],
+          "description": "Glance storage backend"
+        },
+        "signature": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable image signature verification"
+            }
+          },
+          "required": ["enabled"]
+        },
+        "pvcstore": {
+          "type": "object",
+          "properties": {
+            "default": {
+              "type": "boolean",
+              "description": "Use as default storage"
+            },
+            "class": {
+              "type": "string",
+              "description": "Storage class for PVC"
+            },
+            "size": {
+              "type": "string",
+              "pattern": "^[0-9]+[KMGT]i$",
+              "description": "PVC size"
+            }
+          },
+          "required": ["default"]
+        }
+      },
+      "required": ["backend", "signature", "pvcstore"]
+    },
+    "cinder": {
+      "type": "object",
+      "properties": {
+        "backends": {
+          "type": "string",
+          "enum": ["lvm", "ceph", "nfs"],
+          "description": "Cinder storage backend"
+        },
+        "volumeGroup": {
+          "type": "string",
+          "description": "LVM volume group name"
+        },
+        "values": {
+          "type": "object",
+          "description": "Cinder configuration values"
+        }
+      },
+      "required": ["volumeGroup"]
+    },
+    "nova": {
+      "type": "object",
+      "properties": {
+        "migrationInterface": {
+          "type": "string",
+          "description": "Network interface for migration"
+        },
+        "cpuType": {
+          "type": "string",
+          "enum": ["host-passthrough", "host-model", "custom"],
+          "description": "CPU type for VMs"
+        },
+        "allocation": {
+          "type": "object",
+          "properties": {
+            "cpu": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "CPU allocation ratio"
+            },
+            "disk": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Disk allocation ratio"
+            },
+            "ram": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "RAM allocation ratio"
+            }
           }
         },
-        "comments-indentation": {
-          "title": "Comments Indentation",
-          "description": "Use this rule to force comments to be indented like content.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
+        "console": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable console access"
             },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object"
+            "tls": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable TLS for console"
+                }
+              },
+              "required": ["enabled"]
             }
-          ],
-          "default": {
-            "level": "warning"
+          },
+          "required": ["enabled"]
+        },
+        "libvirt": {
+          "type": "object",
+          "properties": {
+            "tls": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable TLS for libvirt"
+                }
+              },
+              "required": ["enabled"]
+            }
           }
         },
-        "document-end": {
-          "title": "Document End",
-          "description": "Use this rule to require or forbid the use of document end marker (...).",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
+        "images": {
+          "type": "object",
+          "properties": {
+            "backend": {
+              "type": "string",
+              "enum": ["qcow2", "ceph", "lvm"],
+              "description": "Nova images backend"
             },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
+            "lvm": {
               "type": "object",
               "properties": {
-                "present": {
-                  "title": "Present",
-                  "description": "True when the document end marker is required, or to false when it is forbidden.",
-                  "type": "boolean",
-                  "default": true
-                }
-              }
-            }
-          ],
-          "default": "disable"
-        },
-        "document-start": {
-          "title": "Document Start",
-          "description": "Use this rule to require or forbid the use of document start marker (---).",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "present": {
-                  "title": "Present",
-                  "description": "True when the document start marker is required, or to false when it is forbidden.",
-                  "type": "boolean",
-                  "default": true
-                }
-              }
-            }
-          ],
-          "default": {
-            "level": "warning"
-          }
-        },
-        "empty-lines": {
-          "title": "Empty Lines",
-          "description": "Use this rule to set a maximal number of allowed consecutive blank lines.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "max": {
-                  "title": "Max",
-                  "description": "Defines the maximal number of empty lines allowed in the document.",
-                  "type": "number",
-                  "default": 2
-                },
-                "max-start": {
-                  "title": "Max Start",
-                  "description": "Defines the maximal number of empty lines allowed at the beginning of the file.",
-                  "type": "number",
-                  "default": 0
-                },
-                "max-end": {
-                  "title": "Max End",
-                  "description": "",
-                  "type": "number",
-                  "default": 0
-                }
-              }
-            }
-          ],
-          "default": "enable"
-        },
-        "empty-values": {
-          "title": "Empty Values",
-          "description": "Use this rule to prevent nodes with empty content, that implicitly result in null values.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "forbid-in-block-mappings": {
-                  "title": "Forbid in Block Mappings",
-                  "description": "Prevent empty values in block mappings.",
-                  "type": "boolean",
-                  "default": true
-                },
-                "forbid-in-flow-mappings": {
-                  "title": "Forbid in Flow Mappings",
-                  "description": "Prevent empty values in flow mappings.",
-                  "type": "boolean",
-                  "default": true
-                }
-              }
-            }
-          ],
-          "default": "disable"
-        },
-        "hyphens": {
-          "title": "Hyphens",
-          "description": "Use this rule to control the number of spaces after hyphens (-).",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "max-spaces-after": {
-                  "title": "Max Spaces After",
-                  "description": "Defines the maximal number of spaces allowed after hyphens.",
-                  "type": "number",
-                  "default": 1
-                }
-              }
-            }
-          ],
-          "default": "enable"
-        },
-        "indentation": {
-          "title": "Indentation",
-          "description": "Use this rule to control the indentation.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "spaces": {
-                  "title": "Spaces",
-                  "description": "Defines the indentation width, in spaces.",
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "string",
-                      "enum": ["consistent"]
-                    }
-                  ],
-                  "default": "consistent"
-                },
-                "indent-sequences": {
-                  "title": "Indent Sequences",
-                  "description": "Defines whether block sequences should be indented or not (when in a mapping, this indentation is not mandatory – some people perceive the - as part of the indentation).",
-                  "anyOf": [
-                    {
-                      "type": "boolean"
-                    },
-                    {
-                      "type": "string",
-                      "enum": ["whatever", "consistent"]
-                    }
-                  ],
-                  "default": true
-                },
-                "check-multi-line-strings": {
-                  "title": "Check Multi Line Strings",
-                  "description": "Defines whether to lint indentation in multi-line strings.",
-                  "type": "boolean",
-                  "default": false
-                }
-              }
-            }
-          ],
-          "default": "enable"
-        },
-        "key-duplicates": {
-          "title": "Key Duplicates",
-          "description": "Use this rule to prevent multiple entries with the same key in mappings.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object"
-            }
-          ],
-          "default": "enable"
-        },
-        "key-ordering": {
-          "title": "Key Ordering",
-          "description": "Use this rule to enforce alphabetical ordering of keys in mappings.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object"
-            }
-          ],
-          "default": "disable"
-        },
-        "line-length": {
-          "title": "Line Length",
-          "description": "Use this rule to set a limit to lines length.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "max": {
-                  "title": "Max",
-                  "description": "Defines the maximal (inclusive) length of lines.",
-                  "type": "number",
-                  "default": 80
-                },
-                "allow-non-breakable-words": {
-                  "title": "Allow Non-Breakable Words",
-                  "description": "Used to allow non breakable words (without spaces inside) to overflow the limit.",
-                  "type": "boolean",
-                  "default": true
-                },
-                "allow-non-breakable-inline-mappings": {
-                  "title": "Allow Non-Breakable Inline Mappings",
-                  "description": "Implies allow-non-breakable-words and extends it to also allow non-breakable words in inline mappings.",
-                  "type": "boolean",
-                  "default": true
-                }
-              }
-            }
-          ],
-          "default": "enable"
-        },
-        "new-line-at-end-of-file": {
-          "title": "New Line at End of File",
-          "description": "Use this rule to require a new line character (\n) at the end of files.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object"
-            }
-          ],
-          "default": "enable"
-        },
-        "new-lines": {
-          "title": "New Lines",
-          "description": "Use this rule to force the type of new line characters.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "type": {
-                  "title": "Type",
-                  "description": "Unix to use UNIX-typed new line characters (\n), or dos to use DOS-typed new line characters (\r\n).",
+                "volumeGroup": {
                   "type": "string",
-                  "enum": ["unix", "dos", "platform"],
-                  "default": "unix"
+                  "description": "LVM volume group for images"
                 }
-              }
-            }
-          ],
-          "default": "enable"
-        },
-        "octal-values": {
-          "title": "Octal Values",
-          "description": "Use this rule to prevent values with octal numbers.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
+              },
+              "required": ["volumeGroup"]
             },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
+            "encryption": {
               "type": "object",
               "properties": {
-                "forbid-implicit-octal": {
-                  "title": "Forbid Implicit Octal",
-                  "description": "Prevent numbers starting with 0.",
+                "enabled": {
                   "type": "boolean",
-                  "default": true
+                  "description": "Enable image encryption"
                 },
-                "forbid-explicit-octal": {
-                  "title": "Forbid Explicit Octal",
-                  "description": "Prevent numbers starting with 0o.",
-                  "type": "boolean",
-                  "default": true
-                }
-              }
-            }
-          ],
-          "default": "disable"
-        },
-        "quoted-strings": {
-          "title": "Quoted Strings",
-          "description": "Use this rule to forbid any string values that are not quoted, or to prevent quoted strings without needing it.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "quote-type": {
-                  "title": "Quote Type",
-                  "description": "Defines allowed quotes.",
+                "cipher": {
                   "type": "string",
-                  "enum": ["single", "double", "any"],
-                  "default": "any"
+                  "enum": ["aes-xts-plain64", "aes-cbc-essiv"],
+                  "description": "Encryption cipher"
                 },
-                "required": {
-                  "title": "Required",
-                  "description": "Defines whether using quotes in string values is required.",
-                  "anyOf": [
-                    {
-                      "type": "boolean"
-                    },
-                    {
-                      "type": "string",
-                      "enum": ["only-when-needed"]
-                    }
-                  ],
-                  "default": true
-                },
-                "extra-required": {
-                  "title": "Extra Required",
-                  "description": "List of PCRE regexes to force string values to be quoted, if they match any regex.",
-                  "type": "array",
-                  "items": {
-                    "title": "Pattern",
-                    "type": "string"
-                  },
-                  "default": []
-                },
-                "extra-allowed": {
-                  "title": "Extra Allowed",
-                  "description": "List of PCRE regexes to allow quoted string values, even if required: only-when-needed is set.",
-                  "type": "array",
-                  "items": {
-                    "title": "Pattern",
-                    "type": "string"
-                  },
-                  "default": []
+                "key_size": {
+                  "type": "integer",
+                  "enum": [128, 192, 256],
+                  "description": "Encryption key size"
                 }
-              }
+              },
+              "required": ["enabled"]
             }
-          ],
-          "default": "disable"
+          },
+          "required": ["backend", "encryption"]
         },
-        "trailing-spaces": {
-          "title": "Tailing Spaces",
-          "description": "Use this rule to forbid trailing spaces at the end of lines.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object"
+        "values": {
+          "type": "object",
+          "description": "Nova configuration values"
+        }
+      },
+      "required": ["migrationInterface", "cpuType", "console", "images"]
+    },
+    "neutron": {
+      "type": "object",
+      "properties": {
+        "tunnelInterface": {
+          "type": "string",
+          "description": "Network interface for tunnels"
+        },
+        "ipsec": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable IPSec"
             }
-          ],
-          "default": "enable"
+          },
+          "required": ["enabled"]
         },
-        "truthy": {
-          "title": "Truthy",
-          "description": "Use this rule to forbid non-explictly typed truthy values other than allowed ones (by default: true and false), for example YES or off.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/toggle"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "$ref": "#/definitions/allRules",
-              "type": "object",
-              "properties": {
-                "allowed-values": {
-                  "title": "Allowed Values",
-                  "description": "Defines the list of truthy values which will be ignored during linting.",
-                  "type": "array",
-                  "items": {
+        "dvr": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable Distributed Virtual Router"
+            }
+          },
+          "required": ["enabled"]
+        },
+        "nameservers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "ipv4",
+            "description": "DNS nameserver IP address"
+          },
+          "description": "List of DNS nameservers"
+        },
+        "networks": {
+          "type": "object",
+          "properties": {
+            "external": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "bridge": {
                     "type": "string",
-                    "enum": [
-                      "TRUE",
-                      "True",
-                      "true",
-                      "FALSE",
-                      "False",
-                      "false",
-                      "YES",
-                      "Yes",
-                      "yes",
-                      "NO",
-                      "No",
-                      "no",
-                      "ON",
-                      "On",
-                      "on",
-                      "OFF",
-                      "Off",
-                      "off"
-                    ]
+                    "pattern": "^br-[a-z0-9]+$",
+                    "description": "Bridge name"
                   },
-                  "default": ["true", "false"]
+                  "networkTypes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": ["flat", "vlan", "vxlan"]
+                    },
+                    "description": "Network types"
+                  }
                 },
-                "check-keys": {
-                  "title": "Check Keys",
-                  "description": "Disables verification for keys in mappings.",
-                  "type": "boolean",
-                  "default": true
-                }
+                "required": ["bridge", "networkTypes"]
               }
+            },
+            "floating": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable floating IP network"
+                },
+                "subnet": {
+                  "type": "object",
+                  "properties": {
+                    "range": {
+                      "type": "string",
+                      "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}$",
+                      "description": "Subnet CIDR range"
+                    },
+                    "gateway": {
+                      "type": "string",
+                      "format": "ipv4",
+                      "description": "Gateway IP address"
+                    },
+                    "pool": {
+                      "type": "object",
+                      "properties": {
+                        "start": {
+                          "type": "string",
+                          "format": "ipv4",
+                          "description": "Pool start IP"
+                        },
+                        "end": {
+                          "type": "string",
+                          "format": "ipv4",
+                          "description": "Pool end IP"
+                        }
+                      },
+                      "required": ["start", "end"]
+                    }
+                  },
+                  "required": ["range", "gateway", "pool"]
+                }
+              },
+              "required": ["enabled"]
             }
-          ],
-          "default": {
-            "level": "warning"
-          }
+          },
+          "required": ["external", "floating"]
+        },
+        "values": {
+          "type": "object",
+          "description": "Neutron configuration values"
+        }
+      },
+      "required": ["tunnelInterface", "ipsec", "dvr", "nameservers", "networks"]
+    },
+    "openvswitch": {
+      "type": "object",
+      "properties": {
+        "values": {
+          "type": "object",
+          "description": "Open vSwitch configuration values"
         }
       }
+    },
+    "octavia": {
+      "type": "object",
+      "properties": {
+        "subnets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "range": {
+                "type": "string",
+                "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}$",
+                "description": "Subnet CIDR range"
+              },
+              "pool": {
+                "type": "object",
+                "properties": {
+                  "start": {
+                    "type": "string",
+                    "format": "ipv4",
+                    "description": "Pool start IP"
+                  },
+                  "end": {
+                    "type": "string",
+                    "format": "ipv4",
+                    "description": "Pool end IP"
+                  }
+                },
+                "required": ["start", "end"]
+              }
+            },
+            "required": ["range", "pool"]
+          },
+          "description": "Octavia load balancer subnets"
+        }
+      },
+      "required": ["subnets"]
+    },
+    "heat": {
+      "type": "object",
+      "properties": {
+        "values": {
+          "type": "object",
+          "description": "Heat configuration values"
+        }
+      }
+    },
+    "operator": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable Rockoon operator"
+        }
+      },
+      "required": ["enabled"]
     }
   },
-  "title": "yamllint",
-  "type": "object"
+  "required": ["backup", "policies", "certificate", "deployment", "keystone", "glance", "cinder", "nova", "neutron", "openvswitch", "octavia", "heat", "operator"]
 }
