@@ -230,6 +230,89 @@
       "type": "boolean",
       "description": "Enable release management"
     },
+    "gateway": {
+      "type": "object",
+      "properties": {
+        "gateways": {
+          "anyOf": [
+            { "type": "null" },
+            { "type": "object" }
+          ],
+          "description": "Gateway configurations"
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Route name"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["HTTPRoute", "GRPCRoute", "TCPRoute", "TLSRoute", "UDPRoute"],
+                "description": "Route kind"
+              },
+              "hostnames": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Route hostnames"
+              },
+              "rules": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "backendRefs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "Backend service name"
+                          },
+                          "port": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 65535,
+                            "description": "Backend service port"
+                          }
+                        },
+                        "required": ["name", "port"]
+                      }
+                    }
+                  }
+                }
+              },
+              "gateways": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "Gateway name"
+                    },
+                    "namespace": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+                      "description": "Gateway namespace"
+                    }
+                  },
+                  "required": ["name"]
+                }
+              }
+            },
+            "required": ["name", "kind"]
+          },
+          "description": "Gateway routes configuration"
+        }
+      }
+    },
     "management": {
       "type": "object",
       "properties": {
@@ -319,6 +402,69 @@
     "enterprise": {
       "type": "object",
       "properties": {
+        "replicas": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of replicas (inherited from global)"
+        },
+        "controller": {
+          "type": "object",
+          "properties": {
+            "createAccessManagement": {
+              "type": "boolean",
+              "description": "Create access management resources"
+            },
+            "createManagement": {
+              "type": "boolean",
+              "description": "Create management resources"
+            },
+            "createRelease": {
+              "type": "boolean",
+              "description": "Create release resources"
+            },
+            "createTemplates": {
+              "type": "boolean",
+              "description": "Create template resources"
+            },
+            "affinity": {
+              "type": "object",
+              "description": "Pod affinity configuration"
+            },
+            "nodeSelector": {
+              "type": "object",
+              "description": "Node selector configuration"
+            },
+            "tolerations": {
+              "type": "array",
+              "description": "Pod tolerations"
+            },
+            "globalK0sURL": {
+              "type": "string",
+              "pattern": "^https://.*",
+              "description": "Global K0s download URL"
+            },
+            "globalRegistry": {
+              "type": "string",
+              "description": "Global container registry"
+            }
+          }
+        },
+        "regional": {
+          "type": "object",
+          "description": "Regional configuration (inherited from global)"
+        },
+        "flux2": {
+          "type": "object",
+          "description": "Flux2 configuration (inherited from global)"
+        },
+        "containerSecurityContext": {
+          "type": "object",
+          "description": "Container security context (inherited from global)"
+        },
+        "resources": {
+          "type": "object",
+          "description": "Resource configuration (inherited from global)"
+        },
         "enabled": {
           "type": "boolean",
           "description": "Enable enterprise edition"
@@ -368,20 +514,6 @@
             "required": ["name", "template"]
           },
           "description": "Enterprise providers"
-        },
-        "controller": {
-          "type": "object",
-          "properties": {
-            "globalK0sURL": {
-              "type": "string",
-              "pattern": "^https://.*",
-              "description": "Global K0s download URL"
-            },
-            "globalRegistry": {
-              "type": "string",
-              "description": "Global container registry"
-            }
-          }
         },
         "k0rdent-ui": {
           "type": "object",
@@ -470,6 +602,31 @@
     "community": {
       "type": "object",
       "properties": {
+        "replicas": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of replicas (inherited from global)"
+        },
+        "controller": {
+          "type": "object",
+          "description": "Controller configuration (inherited from global)"
+        },
+        "regional": {
+          "type": "object",
+          "description": "Regional configuration (inherited from global)"
+        },
+        "flux2": {
+          "type": "object",
+          "description": "Flux2 configuration (inherited from global)"
+        },
+        "containerSecurityContext": {
+          "type": "object",
+          "description": "Container security context (inherited from global)"
+        },
+        "resources": {
+          "type": "object",
+          "description": "Resource configuration (inherited from global)"
+        },
         "enabled": {
           "type": "boolean",
           "description": "Enable community edition"
@@ -524,5 +681,5 @@
       "required": ["enabled"]
     }
   },
-  "required": ["type", "repository", "release", "management", "enterprise", "community"]
+  "required": ["type", "repository", "release", "gateway", "management", "enterprise", "community"]
 }

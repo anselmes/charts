@@ -18,7 +18,7 @@ global: &global
       enabled: false
     telemetry:
       mode: disabled
-  flux2: &flux2
+  flux2:
     helmController:
       create: true
       container:
@@ -105,12 +105,11 @@ management:
   capi: {}
   kcm:
     config:
-      flux2:
-        <<: *flux2
+      <<: *global
       regional:
         <<: *regional
-        # cluster-api-operator:
-        #   enabled: true
+        cluster-api-operator:
+          enabled: true
 
 # MARK: KCM Enterprise
 
