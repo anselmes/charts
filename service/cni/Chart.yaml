@@ -9,3 +9,4 @@ dependencies:
     repository: https://helm.cilium.io
     version: 1.18.5
     condition: cilium.enabled
+  # TODO: calico
