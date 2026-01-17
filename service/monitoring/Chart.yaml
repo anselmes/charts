@@ -3,7 +3,7 @@ apiVersion: v2
 name: monitoring
 type: application
 description: A Helm chart that deploys Kubernetes monitoring stack using Grafana and Prometheus.
-version: 1.0.2
+version: 3.7.1
 dependencies:
   - alias: monitoring
     name: k8s-monitoring
