@@ -1,19 +1,50 @@
-{{- if .Values.repository }}
+{{- if .Values.kcm.repository.enabled }}
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
-  name: kcm-templates
+  name: kcm-catalog
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "kcm.labels" . | nindent 4 }}
+    {{- include "kcm.labels" $ | nindent 4 }}
+    # k0rdent.mirantis.com/managed: "true"
+  annotations:
+    helm.sh/hook: pre-install
+    helm.sh/resource-policy: keep
 spec:
-  interval: 10m0s
-  provider: generic
-  type: oci
-  {{- if eq .Values.type "enterprise" }}
-  url: {{ .Values.enterprise.templatesRepoURL }}
-  {{- else if eq .Values.type "community" }}
-  url: {{ .Values.community.templatesRepoURL }}
+  provider: {{ .provider | default "generic" }}
+  interval: {{ .interval | default "10m0s" }}
+  type: {{ .type | default "oci" }}
+  {{- if eq .Values.kcm.type "enterprise" }}
+  url: {{ .Values.kcm.enterprise.templatesRepoURL }}
+  {{- else if eq .Values.kcm.type "community" }}
+  url: {{ .Values.kcm.community.templatesRepoURL }}
+  {{- end }}
+  {{- with .secretRef }}
+  secretRef:
+    name: {{ .name }}
+  {{- end }}
+{{- end }}
+{{- range .Values.repositories }}
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: {{ .name }}-catalog
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "kcm.labels" $ | nindent 4 }}
+    # k0rdent.mirantis.com/managed: "true"
+  annotations:
+    helm.sh/hook: pre-install
+    helm.sh/resource-policy: keep
+spec:
+  provider: {{ .provider | default "generic" }}
+  interval: {{ .interval | default "10m0s" }}
+  type: {{ .type | default "oci" }}
+  url: {{ .url }}
+  {{- with .secretRef }}
+  secretRef:
+    name: {{ .name }}
   {{- end }}
 {{- end }}

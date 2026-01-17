@@ -1,14 +1,17 @@
-{{- $enterprise := (default false .Values.enterprise.enabled) -}}
-{{- $community := (default false .Values.community.enabled) -}}
+{{- $enterprise := (default false .Values.kcm.enterprise.enabled) -}}
+{{- $community := (default false .Values.kcm.community.enabled) -}}
 {{- if and $enterprise $community -}}
 {{- fail "Mutually exclusive: do not enable both enterprise.enabled and community.enabled." -}}
 {{- end -}}
 
-{{- if and .Values.type (or $enterprise $community) -}}
-  {{- if and $enterprise (ne .Values.type "enterprise") -}}
+{{- if and .Values.kcm.type (or $enterprise $community) -}}
+  {{- if and $enterprise (ne .Values.kcm.type "enterprise") -}}
   {{- fail "enterprise.enabled=true requires type=enterprise." -}}
   {{- end -}}
-  {{- if and $community (ne .Values.type "community") -}}
+  {{- if and $community (ne .Values.kcm.type "community") -}}
   {{- fail "community.enabled=true requires type=community." -}}
   {{- end -}}
 {{- end -}}
+---
+# Validation template - no Kubernetes resources generated
+# This comment ensures the template produces valid YAML output

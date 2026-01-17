@@ -14,13 +14,45 @@ spec:
     - name: {{ .name }}
     {{- end }}
   {{- end }}
-  {{- if or (and (hasKey .Values.management "capi") (not (empty .Values.management.capi))) (and (hasKey .Values.management "kcm") (not (empty .Values.management.kcm))) }}
   core:
-    {{- with .Values.management.capi }}
-    capi: {{ toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .Values.management.kcm }}
-    kcm: {{ toYaml . | nindent 6 }}
-    {{- end }}
-  {{- end }}
+    capi: {}
+    kcm:
+      config:
+        replicas: {{ .Values.kcm.replicas }}
+        admissionWebhook:
+          enabled: true
+        {{- with .Values.kcm.controller }}
+        controller:
+          {{- omit . "createTemplates" | toYaml | nindent 10 }}
+          createTemplates: false
+        {{- end }}
+        {{- if eq .Values.kcm.type "community" }}
+        templatesRepoURL: {{ .Values.kcm.community.templatesRepoURL }}
+        {{- else if eq .Values.kcm.type "enterprise" }}
+        templatesRepoURL: {{ .Values.kcm.enterprise.templatesRepoURL }}
+        globalK0sURL: {{ .Values.kcm.enterprise.globalK0sURL }}
+        globalRegistry: {{ .Values.kcm.enterprise.globalRegistry }}
+        {{- with .Values.kcm.enterprise.k0rdentUI }}
+        k0rdent-ui:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- end }}
+        regional:
+          cert-manager:
+            enabled: false
+          cluster-api-operator:
+            enabled: true
+          velero:
+            enabled: true
+          telemetry:
+            mode: {{ .Values.kcm.regional.telemetry.mode | default "disabled" }}
+        containerSecurityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+        {{- with .Values.kcm.resources }}
+        resources:
+          {{- toYaml . | nindent 6 }}
+        {{- end }}
 {{- end }}

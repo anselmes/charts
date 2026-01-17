@@ -1,9 +1,9 @@
-{{- if .Values.release }}
+{{- if eq (include "kcm.release" .) "true" }}
 {{- $providers := list }}
-{{- if eq .Values.type "enterprise" }}
-{{- $providers = .Values.enterprise.providers }}
-{{- else if eq .Values.type "community" }}
-{{- $providers = .Values.community.providers }}
+{{- if eq .Values.kcm.type "enterprise" }}
+{{- $providers = .Values.kcm.enterprise.providers }}
+{{- else if eq .Values.kcm.type "community" }}
+{{- $providers = .Values.kcm.community.providers }}
 {{- end }}
 ---
 apiVersion: k0rdent.mirantis.com/v1beta1
@@ -13,7 +13,7 @@ metadata:
   labels:
     {{- include "kcm.labels" . | nindent 4 }}
 spec:
-  version: {{ include "kcm.version" . }}
+  version: {{ include "kcm.chart.version" . }}
   capi:
     template: {{ include "kcm.template.capi" . }}
   kcm:

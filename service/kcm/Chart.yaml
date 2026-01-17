@@ -2,19 +2,4 @@ apiVersion: v2
 name: kcm
 type: application
 description: A Helm chart that deploys kcm and its dependencies.
-version: 1.5.0
-dependencies:
-  - alias: enterprise
-    name: k0rdent-enterprise
-    repository: oci://registry.mirantis.com/k0rdent-enterprise/charts
-    version: 1.2.2
-    condition: enterprise.enabled
-  - alias: community
-    name: kcm
-    repository: oci://ghcr.io/k0rdent/kcm/charts
-    version: 1.6.0
-    condition: community.enabled
-  - name: gateway
-    repository: oci://ghcr.io/labsonline/charts
-    version: 1.0.3
-    condition: enterprise.k0rdent-ui.enabled
+version: 1.6.0

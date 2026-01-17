@@ -52,45 +52,66 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Dynamically determine the version based on enterprise.enabled or community.enabled
+Dynamically determine the chart name
 */}}
-{{- define "kcm.version" -}}
-{{- if eq .Values.type "enterprise" -}}
-{{- .Values.enterprise.version -}}
-{{- else if eq .Values.type "community" -}}
-{{- .Values.community.version -}}
+{{- define "kcm.chart.name" -}}
+{{- if eq .Values.kcm.type "enterprise" -}}
+{{- "k0rdent-enterprise" -}}
+{{- else if eq .Values.kcm.type "community" -}}
+{{- "kcm" -}}
 {{- end -}}
 {{- end }}
 
 {{/*
-Dynamically determine the CAPI template based on enterprise.enabled or community.enabled
+Dynamically determine the chart version
+*/}}
+{{- define "kcm.chart.version" -}}
+{{- if eq .Values.kcm.type "enterprise" -}}
+{{- .Values.kcm.enterprise.version -}}
+{{- else if eq .Values.kcm.type "community" -}}
+{{- .Values.kcm.community.version -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+*/}}
+{{- define "kcm.release" -}}
+{{- if eq .Values.kcm.type "enterprise" -}}
+{{- .Values.kcm.enterprise.release.enabled -}}
+{{- else if eq .Values.kcm.type "community" -}}
+{{- .Values.kcm.community.release.enabled -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+Dynamically determine the CAPI template
 */}}
 {{- define "kcm.template.capi" -}}
-{{- if eq .Values.type "enterprise" -}}
-{{- .Values.enterprise.templates.capi -}}
-{{- else if eq .Values.type "community" -}}
-{{- .Values.community.templates.capi -}}
+{{- if eq .Values.kcm.type "enterprise" -}}
+{{- .Values.kcm.enterprise.release.templates.capi -}}
+{{- else if eq .Values.kcm.type "community" -}}
+{{- .Values.kcm.community.release.templates.capi -}}
 {{- end -}}
 {{- end }}
 
 {{/*
-Dynamically determine the KCM template based on enterprise.enabled or community.enabled
+Dynamically determine the KCM template
 */}}
 {{- define "kcm.template.kcm" -}}
-{{- if eq .Values.type "enterprise" -}}
-{{- .Values.enterprise.templates.kcm -}}
-{{- else if eq .Values.type "community" -}}
-{{- .Values.community.templates.kcm -}}
+{{- if eq .Values.kcm.type "enterprise" -}}
+{{- .Values.kcm.enterprise.release.templates.kcm -}}
+{{- else if eq .Values.kcm.type "community" -}}
+{{- .Values.kcm.community.release.templates.kcm -}}
 {{- end -}}
 {{- end }}
 
 {{/*
-Dynamically determine the regional template based on enterprise.enabled or community.enabled
+Dynamically determine the regional template
 */}}
 {{- define "kcm.template.regional" -}}
-{{- if eq .Values.type "enterprise" -}}
-{{- .Values.enterprise.templates.regional -}}
-{{- else if eq .Values.type "community" -}}
-{{- .Values.community.templates.regional -}}
+{{- if eq .Values.kcm.type "enterprise" -}}
+{{- .Values.kcm.enterprise.release.templates.regional -}}
+{{- else if eq .Values.kcm.type "community" -}}
+{{- .Values.kcm.community.release.templates.regional -}}
 {{- end -}}
 {{- end }}

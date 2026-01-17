@@ -1,0 +1,48 @@
+{{- if .Values.certmanager.enabled }}
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cert-manager
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kcm.labels" . | nindent 4 }}
+    # k0rdent.mirantis.com/managed: "true"
+spec:
+  interval: 10m0s
+  releaseName: cert-manager
+  targetNamespace: cert-manager
+  timeout: 15m0s
+  {{- if or .Values.flux.enabled .Values.gwapi.enabled }}
+  dependsOn:
+  {{- if .Values.flux.enabled }}
+    - name: flux
+  {{- end }}
+  {{- if .Values.gwapi.enabled }}
+    - name: gateway-api
+  {{- end }}
+  {{- end }}
+  chart:
+    spec:
+      chart: ca
+      version: 1.0.3
+      # metadata:
+      #   labels:
+      #     k0rdent.mirantis.com/managed: "true"
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+  install:
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  {{- with .Values.certmanager }}
+  values:
+    ca:
+      issuers: null
+      certmanager:
+        {{- toYaml . | nindent 8 }}
+        config:
+          enableGatewayAPI: {{ $.Values.gwapi.enabled }}
+  {{- end }}
+{{- end }}
