@@ -2,14 +2,14 @@
 apiVersion: k0rdent.mirantis.com/v1beta1
 kind: ServiceTemplate
 metadata:
-  name: pinniped-1-0-2
+  name: pinniped-2-4-23
   annotations:
     helm.sh/resource-policy: keep
 spec:
   helm:
     chartSpec:
       chart: pinniped
-      version: 1.0.2
+      version: 2.4.23
       interval: 10m0s
       sourceRef:
         kind: HelmRepository
