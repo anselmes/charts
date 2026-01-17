@@ -9,3 +9,5 @@ dependencies:
     repository: oci://docker.io/envoyproxy
     version: 1.6.1
     condition: gwapi.enabled
+  # TODO: nginx
+  # TODO: haproxy
