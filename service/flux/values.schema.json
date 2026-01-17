@@ -1,0 +1,526 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Flux2 Chart Configuration Schema",
+  "description": "Configuration schema for Flux2 GitOps toolkit Helm chart",
+  "properties": {
+    "multitenancy": {
+      "type": "object",
+      "description": "Multi-tenancy configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Implement the patches for Multi-tenancy lockdown"
+        },
+        "defaultServiceAccount": {
+          "type": "string",
+          "description": "Default service account for tenants without spec.serviceAccountName"
+        },
+        "privileged": {
+          "type": "boolean",
+          "description": "Run controllers with cluster-admin privileges"
+        }
+      },
+      "additionalProperties": false
+    },
+    "cli": {
+      "type": "object",
+      "description": "Flux CLI configuration",
+      "properties": {
+        "image": {
+          "type": "string",
+          "description": "Flux CLI container image"
+        },
+        "tag": {
+          "type": "string",
+          "description": "Flux CLI image tag"
+        },
+        "nodeSelector": {
+          "type": "object",
+          "description": "Node selector for CLI pods"
+        },
+        "affinity": {
+          "type": "object",
+          "description": "Affinity rules for CLI pods"
+        },
+        "tolerations": {
+          "type": "array",
+          "description": "Tolerations for CLI pods",
+          "items": {
+            "type": "object"
+          }
+        },
+        "annotations": {
+          "type": "object",
+          "description": "Annotations for CLI pods"
+        },
+        "serviceAccount": {
+          "type": "object",
+          "properties": {
+            "automount": {
+              "type": "boolean",
+              "description": "Automount service account token"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "helmController": {
+      "type": "object",
+      "description": "Helm Controller configuration",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Create Helm Controller"
+        },
+        "image": {
+          "type": "string",
+          "description": "Helm Controller container image"
+        },
+        "tag": {
+          "type": "string",
+          "description": "Helm Controller image tag"
+        },
+        "resources": {
+          "type": "object",
+          "description": "Resource requests and limits",
+          "properties": {
+            "limits": {
+              "type": "object"
+            },
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string"
+                },
+                "memory": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "priorityClassName": {
+          "type": "string",
+          "description": "Priority class name for pods"
+        },
+        "annotations": {
+          "type": "object",
+          "description": "Pod annotations"
+        },
+        "labels": {
+          "type": "object",
+          "description": "Pod labels"
+        },
+        "container": {
+          "type": "object",
+          "properties": {
+            "additionalArgs": {
+              "type": "array",
+              "description": "Additional container arguments",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "extraEnv": {
+          "type": "array",
+          "description": "Extra environment variables",
+          "items": {
+            "type": "object"
+          }
+        },
+        "serviceAccount": {
+          "type": "object",
+          "properties": {
+            "create": {
+              "type": "boolean"
+            },
+            "automount": {
+              "type": "boolean"
+            },
+            "annotations": {
+              "type": "object"
+            }
+          }
+        },
+        "imagePullPolicy": {
+          "type": "string",
+          "enum": ["Always", "Never", "IfNotPresent", ""]
+        },
+        "nodeSelector": {
+          "type": "object"
+        },
+        "affinity": {
+          "type": "object"
+        },
+        "tolerations": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "kustomizeController": {
+      "type": "object",
+      "description": "Kustomize Controller configuration",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Create Kustomize Controller"
+        },
+        "image": {
+          "type": "string",
+          "description": "Kustomize Controller container image"
+        },
+        "tag": {
+          "type": "string",
+          "description": "Kustomize Controller image tag"
+        },
+        "resources": {
+          "type": "object",
+          "description": "Resource requests and limits",
+          "properties": {
+            "limits": {
+              "type": "object"
+            },
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string"
+                },
+                "memory": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "priorityClassName": {
+          "type": "string"
+        },
+        "annotations": {
+          "type": "object"
+        },
+        "labels": {
+          "type": "object"
+        },
+        "container": {
+          "type": "object",
+          "properties": {
+            "additionalArgs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "extraEnv": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "serviceAccount": {
+          "type": "object",
+          "properties": {
+            "create": {
+              "type": "boolean"
+            },
+            "automount": {
+              "type": "boolean"
+            },
+            "annotations": {
+              "type": "object"
+            }
+          }
+        },
+        "imagePullPolicy": {
+          "type": "string",
+          "enum": ["Always", "Never", "IfNotPresent", ""]
+        },
+        "secret": {
+          "type": "object",
+          "properties": {
+            "create": {
+              "type": "boolean"
+            },
+            "name": {
+              "type": "string"
+            },
+            "data": {
+              "type": "object"
+            }
+          }
+        },
+        "envFrom": {
+          "type": "object",
+          "properties": {
+            "map": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                }
+              }
+            },
+            "secret": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "extraSecretMounts": {
+          "type": "array",
+          "description": "Additional secret mounts",
+          "items": {
+            "type": "object"
+          }
+        },
+        "nodeSelector": {
+          "type": "object"
+        },
+        "affinity": {
+          "type": "object"
+        },
+        "tolerations": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "sourceController": {
+      "type": "object",
+      "description": "Source Controller configuration",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Create Source Controller"
+        },
+        "image": {
+          "type": "string",
+          "description": "Source Controller container image"
+        },
+        "tag": {
+          "type": "string",
+          "description": "Source Controller image tag"
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "limits": {
+              "type": "object"
+            },
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string"
+                },
+                "memory": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "priorityClassName": {
+          "type": "string"
+        },
+        "annotations": {
+          "type": "object"
+        },
+        "labels": {
+          "type": "object"
+        },
+        "container": {
+          "type": "object",
+          "properties": {
+            "additionalArgs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "serviceAccount": {
+          "type": "object",
+          "properties": {
+            "create": {
+              "type": "boolean"
+            },
+            "automount": {
+              "type": "boolean"
+            },
+            "annotations": {
+              "type": "object"
+            }
+          }
+        },
+        "imagePullPolicy": {
+          "type": "string",
+          "enum": ["Always", "Never", "IfNotPresent", ""]
+        },
+        "service": {
+          "type": "object",
+          "properties": {
+            "labels": {
+              "type": "object"
+            },
+            "annotations": {
+              "type": "object"
+            }
+          }
+        },
+        "nodeSelector": {
+          "type": "object"
+        },
+        "affinity": {
+          "type": "object"
+        },
+        "tolerations": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "extraEnv": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "imageAutomationController": {
+      "type": "object",
+      "description": "Image Automation Controller configuration",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Create Image Automation Controller"
+        }
+      },
+      "additionalProperties": false
+    },
+    "imageReflectionController": {
+      "type": "object",
+      "description": "Image Reflection Controller configuration",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Create Image Reflection Controller"
+        }
+      },
+      "additionalProperties": false
+    },
+    "notificationController": {
+      "type": "object",
+      "description": "Notification Controller configuration",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Create Notification Controller"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sourceWatcher": {
+      "type": "object",
+      "description": "Source Watcher configuration",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Create Source Watcher"
+        }
+      },
+      "additionalProperties": false
+    },
+    "policies": {
+      "type": "object",
+      "description": "Policy configuration",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Create policies"
+        }
+      },
+      "additionalProperties": false
+    },
+    "logLevel": {
+      "type": "string",
+      "description": "Log level for controllers",
+      "enum": ["error", "info", "debug"]
+    },
+    "watchAllNamespaces": {
+      "type": "boolean",
+      "description": "Watch all namespaces for resources"
+    },
+    "imagePullSecrets": {
+      "type": "array",
+      "description": "Image pull secrets for all controllers",
+      "items": {
+        "type": "object"
+      }
+    },
+    "extraObjects": {
+      "type": "array",
+      "description": "Array of extra Kubernetes manifests to deploy",
+      "items": {
+        "type": "object"
+      }
+    },
+    "prometheus": {
+      "type": "object",
+      "description": "Prometheus monitoring configuration",
+      "properties": {
+        "podMonitor": {
+          "type": "object",
+          "properties": {
+            "create": {
+              "type": "boolean",
+              "description": "Create PodMonitor for Prometheus Operator"
+            },
+            "podMetricsEndpoints": {
+              "type": "array",
+              "description": "PodMonitor metrics endpoints",
+              "items": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "distro": {
+      "type": "object",
+      "description": "Distribution-specific configuration",
+      "properties": {
+        "openshift": {
+          "type": "boolean",
+          "description": "Enable OpenShift-specific configurations"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
