@@ -3,7 +3,7 @@ apiVersion: v2
 name: knative
 type: application
 description: Knative Helm Chart
-version: 1.0.3
+version: 1.20.0
 dependencies:
   - alias: operator
     name: knative-operator

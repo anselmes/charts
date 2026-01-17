@@ -3,7 +3,7 @@ apiVersion: v2
 type: application
 name: knative-service-template
 description: labsonline service template for "knative"
-version: 1.0.3
+version: 1.20.0
 dependencies:
   - name: labsonline-catalog
     version: 1.0.0

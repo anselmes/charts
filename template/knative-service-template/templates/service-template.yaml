@@ -2,14 +2,14 @@
 apiVersion: k0rdent.mirantis.com/v1beta1
 kind: ServiceTemplate
 metadata:
-  name: knative-1-0-3
+  name: knative-1-20-0
   annotations:
     helm.sh/resource-policy: keep
 spec:
   helm:
     chartSpec:
       chart: knative
-      version: 1.0.3
+      version: 1.20.0
       interval: 10m0s
       sourceRef:
         kind: HelmRepository
