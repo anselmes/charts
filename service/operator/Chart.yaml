@@ -1,0 +1,17 @@
+---
+apiVersion: v2
+name: operator
+type: application
+description: A Helm chart that deploys various Operators and their dependencies.
+version: 1.0.0
+dependencies:
+  - alias: postgres
+    name: postgres-operator
+    repository: https://opensource.zalando.com/postgres-operator/charts/postgres-operator
+    version: 1.15.1
+    condition: postgres.enabled
+  - alias: redis
+    name: redis-operator
+    repository: https://ot-container-kit.github.io/helm-charts
+    version: 0.23.0
+    condition: redis.enabled
