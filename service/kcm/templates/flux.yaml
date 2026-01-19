@@ -7,29 +7,38 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "kcm.labels" . | nindent 4 }}
-    # k0rdent.mirantis.com/managed: "true"
 spec:
   interval: 10m0s
   releaseName: flux
-  targetNamespace: flux-system
+  targetNamespace: {{ .Release.Namespace }}
   timeout: 15m0s
   chart:
+    metadata:
+      labels:
+        k0rdent.mirantis.com/managed: "true"
     spec:
       chart: flux
-      version: 1.0.2
-      # metadata:
-      #   labels:
-      #     k0rdent.mirantis.com/managed: "true"
+      version: 2.17.2
       sourceRef:
         kind: HelmRepository
         name: labsonline-catalog
   install:
+    crds: CreateReplace
     remediation:
       remediateLastFailure: true
       retries: 3
+  upgrade:
+    crds: CreateReplace
+  # TODO: images
+  # postRenderers:
+  #   - kustomize:
+  #       images:
+  #         - name: ""
+  #           newName: ""
+  #           newTag: ""
   {{- with .Values.flux }}
   values:
     flux:
-    {{- toYaml . | nindent 6 }}
+    {{- omit . "enabled" | toYaml | nindent 6 }}
   {{- end }}
 {{- end }}

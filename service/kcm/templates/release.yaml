@@ -1,9 +1,9 @@
 {{- if eq (include "kcm.release" .) "true" }}
 {{- $providers := list }}
 {{- if eq .Values.kcm.type "enterprise" }}
-{{- $providers = .Values.kcm.enterprise.providers }}
+{{- $providers = .Values.kcm.enterprise.release.providers }}
 {{- else if eq .Values.kcm.type "community" }}
-{{- $providers = .Values.kcm.community.providers }}
+{{- $providers = .Values.kcm.community.release.providers }}
 {{- end }}
 ---
 apiVersion: k0rdent.mirantis.com/v1beta1

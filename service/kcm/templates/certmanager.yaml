@@ -7,11 +7,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "kcm.labels" . | nindent 4 }}
-    # k0rdent.mirantis.com/managed: "true"
 spec:
   interval: 10m0s
   releaseName: cert-manager
-  targetNamespace: cert-manager
+  targetNamespace: {{ .Release.Namespace }}
   timeout: 15m0s
   {{- if or .Values.flux.enabled .Values.gwapi.enabled }}
   dependsOn:
@@ -23,26 +22,35 @@ spec:
   {{- end }}
   {{- end }}
   chart:
+    metadata:
+      labels:
+        k0rdent.mirantis.com/managed: "true"
     spec:
       chart: ca
       version: 1.0.3
-      # metadata:
-      #   labels:
-      #     k0rdent.mirantis.com/managed: "true"
       sourceRef:
         kind: HelmRepository
         name: labsonline-catalog
   install:
+    crds: CreateReplace
     remediation:
       remediateLastFailure: true
       retries: 3
+  upgrade:
+    crds: CreateReplace
+  # TODO: images
+  # postRenderers:
+  #   - kustomize:
+  #       images:
+  #         - name: ""
+  #           newName: ""
+  #           newTag: ""
   {{- with .Values.certmanager }}
   values:
-    ca:
-      issuers: null
-      certmanager:
-        {{- toYaml . | nindent 8 }}
-        config:
-          enableGatewayAPI: {{ $.Values.gwapi.enabled }}
+    issuers: null
+    certmanager:
+      {{- toYaml . | nindent 6 }}
+      config:
+        enableGatewayAPI: {{ $.Values.gwapi.enabled }}
   {{- end }}
 {{- end }}

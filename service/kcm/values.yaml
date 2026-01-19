@@ -25,11 +25,12 @@ flux:
   policies:
     create: false
 
-repositories: []
-# - name: labsonline
-#   url: oci://ghcr.io/labsonline/charts
-# - name: bitnami
-#   url: https://charts.bitnami.com/bitnami
+repositories:
+  []
+  # - name: labsonline
+  #   url: oci://ghcr.io/labsonline/charts
+  # - name: bitnami
+  #   url: https://charts.bitnami.com/bitnami
 
 # MARK: Gateway API
 
@@ -72,27 +73,29 @@ kcm:
     requests:
       cpu: 10m
       memory: 64Mi
-  issuer: {}
-  # name: kcm-ca-issuer
-  # selfSigned: true
-  # secret:
-  #   create: false
-  gateway: {}
-  # name: kcm-gateway
-  # className: envoy
-  # listeners:
-  #   - name: https
-  #     port: 443
-  #     protocol: HTTPS
-  #     hostname: "*.local"
-  #     allowedRoutes:
-  #       namespaces:
-  #         from: kcm-system
-  #     tls:
-  #       mode: Terminate
-  #       certificateRefs:
-  #         - name: kcm-gw-cert
-  #           issuer: kcm-ca-issuer
+  issuer:
+    {}
+    # name: kcm-ca-issuer
+    # selfSigned: true
+    # secret:
+    #   create: false
+  gateway:
+    {}
+    # name: kcm-gateway
+    # className: envoy
+    # listeners:
+    #   - name: https
+    #     port: 443
+    #     protocol: HTTPS
+    #     hostname: "*.local"
+    #     allowedRoutes:
+    #       namespaces:
+    #         from: kcm-system
+    #     tls:
+    #       mode: Terminate
+    #       certificateRefs:
+    #         - name: kcm-gw-cert
+    #           issuer: kcm-ca-issuer
 
 # MARK: KCM Enterprise
 
@@ -147,20 +150,21 @@ kcm:
           #   name: ""
           #   clientIDKey: ""
           #   clientSecretKey: ""
-      route: {}
-      # name: kcm-ui
-      # kind: HTTPRoute
-      # hostnames:
-      #   - kcm.local
-      # rules:
-      #   - backendRefs:
-      #       - name: k0rdent-ui
-      #         namespace: kcm-system
-      #         port: 3000
-      #         weight: 100
-      # gateways:
-      #   - name: envoy
-      #     namespace: kube-system
+      route:
+        {}
+        # name: kcm-ui
+        # kind: HTTPRoute
+        # hostnames:
+        #   - kcm.local
+        # rules:
+        #   - backendRefs:
+        #       - name: k0rdent-ui
+        #         namespace: kcm-system
+        #         port: 3000
+        #         weight: 100
+        # gateways:
+        #   - name: envoy
+        #     namespace: kube-system
 
 # MARK: KCM Community
 
