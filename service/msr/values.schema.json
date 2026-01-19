@@ -1,0 +1,832 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MSR Chart Values",
+  "description": "Schema for MSR (Mirantis Secure Registry) chart values that deploys Harbor and its dependencies",
+  "type": "object",
+  "properties": {
+    "msr": {
+      "type": "object",
+      "description": "Mirantis Secure Registry (Harbor) configuration",
+      "properties": {
+        "expose": {
+          "type": "object",
+          "description": "Service exposure configuration",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["ingress", "clusterIP", "nodePort", "loadBalancer"],
+              "description": "How to expose the service"
+            },
+            "tls": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable TLS or not"
+                },
+                "certSource": {
+                  "type": "string",
+                  "enum": ["auto", "secret", "none"],
+                  "description": "Source of the TLS certificate"
+                },
+                "auto": {
+                  "type": "object",
+                  "properties": {
+                    "commonName": {
+                      "type": "string",
+                      "description": "Common name used to generate the certificate"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "secret": {
+                  "type": "object",
+                  "properties": {
+                    "secretName": {
+                      "type": "string",
+                      "description": "Name of secret containing TLS certificate"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "ingress": {
+              "type": "object",
+              "properties": {
+                "hosts": {
+                  "type": "object",
+                  "properties": {
+                    "core": {
+                      "type": "string",
+                      "description": "Hostname for Harbor core service"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "controller": {
+                  "type": "string",
+                  "enum": ["default", "gce", "ncp", "alb", "f5-bigip"],
+                  "description": "Type of ingress controller"
+                },
+                "kubeVersionOverride": {
+                  "type": "string",
+                  "description": "Override KubeVersion.Version while creating ingress"
+                },
+                "className": {
+                  "type": "string",
+                  "description": "Ingress class name"
+                },
+                "annotations": {
+                  "type": "object",
+                  "description": "Ingress annotations"
+                },
+                "labels": {
+                  "type": "object",
+                  "description": "Ingress-specific labels"
+                }
+              },
+              "additionalProperties": false
+            },
+            "clusterIP": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name of ClusterIP service"
+                },
+                "staticClusterIP": {
+                  "type": "string",
+                  "description": "Static IP address for ClusterIP service"
+                },
+                "ports": {
+                  "type": "object",
+                  "properties": {
+                    "httpPort": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65535,
+                      "description": "HTTP port"
+                    },
+                    "httpsPort": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65535,
+                      "description": "HTTPS port"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "annotations": {
+                  "type": "object",
+                  "description": "ClusterIP service annotations"
+                },
+                "labels": {
+                  "type": "object",
+                  "description": "ClusterIP-specific labels"
+                }
+              },
+              "additionalProperties": false
+            },
+            "nodePort": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name of NodePort service"
+                },
+                "ports": {
+                  "type": "object",
+                  "properties": {
+                    "http": {
+                      "type": "object",
+                      "properties": {
+                        "port": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 65535
+                        },
+                        "nodePort": {
+                          "type": "integer",
+                          "minimum": 30000,
+                          "maximum": 32767
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "https": {
+                      "type": "object",
+                      "properties": {
+                        "port": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 65535
+                        },
+                        "nodePort": {
+                          "type": "integer",
+                          "minimum": 30000,
+                          "maximum": 32767
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "annotations": {
+                  "type": "object",
+                  "description": "NodePort service annotations"
+                },
+                "labels": {
+                  "type": "object",
+                  "description": "NodePort-specific labels"
+                }
+              },
+              "additionalProperties": false
+            },
+            "loadBalancer": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name of LoadBalancer service"
+                },
+                "IP": {
+                  "type": "string",
+                  "description": "IP address for LoadBalancer"
+                },
+                "ports": {
+                  "type": "object",
+                  "properties": {
+                    "httpPort": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65535,
+                      "description": "HTTP port"
+                    },
+                    "httpsPort": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65535,
+                      "description": "HTTPS port"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "annotations": {
+                  "type": "object",
+                  "description": "LoadBalancer service annotations"
+                },
+                "labels": {
+                  "type": "object",
+                  "description": "LoadBalancer-specific labels"
+                },
+                "sourceRanges": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Source IP ranges"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "logLevel": {
+          "type": "string",
+          "description": "Log level for Harbor components"
+        },
+        "harborAdminPassword": {
+          "type": "string",
+          "description": "Harbor admin password"
+        },
+        "secretKey": {
+          "type": "string",
+          "description": "Secret key for Harbor"
+        },
+        "existingSecretAdminPasswordKey": {
+          "type": "string",
+          "description": "Key for existing secret containing admin password"
+        },
+        "existingSecretSecretKey": {
+          "type": "string",
+          "description": "Key for existing secret containing secret key"
+        },
+        "caSecretName": {
+          "type": "string",
+          "description": "CA secret name"
+        },
+        "ipFamily": {
+          "type": "object",
+          "description": "IP family configuration"
+        },
+        "imagePullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "description": "Image pull policy"
+        },
+        "updateStrategy": {
+          "type": "object",
+          "description": "Update strategy for Harbor components"
+        },
+        "enableMigrateHelmHook": {
+          "type": "boolean",
+          "description": "Enable migration Helm hook"
+        },
+        "internalTLS": {
+          "type": "object",
+          "description": "Internal TLS configuration"
+        },
+        "containerSecurityContext": {
+          "type": "object",
+          "description": "Container security context"
+        },
+        "global": {
+          "type": "object",
+          "description": "Global configuration"
+        },
+        "core": {
+          "type": "object",
+          "description": "Harbor core service configuration"
+        },
+        "portal": {
+          "type": "object",
+          "description": "Harbor portal service configuration"
+        },
+        "jobservice": {
+          "type": "object",
+          "description": "Harbor jobservice configuration"
+        },
+        "registry": {
+          "type": "object",
+          "description": "Harbor registry configuration"
+        },
+        "nginx": {
+          "type": "object",
+          "description": "Harbor nginx configuration"
+        },
+        "database": {
+          "type": "object",
+          "description": "Harbor database configuration"
+        },
+        "redis": {
+          "type": "object",
+          "description": "Harbor Redis configuration"
+        },
+        "trivy": {
+          "type": "object",
+          "description": "Trivy scanner configuration"
+        },
+        "exporter": {
+          "type": "object",
+          "description": "Harbor metrics exporter configuration"
+        },
+        "metrics": {
+          "type": "object",
+          "description": "Harbor metrics configuration"
+        },
+        "trace": {
+          "type": "object",
+          "description": "Harbor tracing configuration"
+        },
+        "cache": {
+          "type": "object",
+          "description": "Harbor cache configuration"
+        },
+        "proxy": {
+          "type": "object",
+          "description": "Harbor proxy configuration"
+        },
+        "externalURL": {
+          "type": "string",
+          "format": "uri",
+          "description": "External URL for Harbor core service"
+        },
+        "persistence": {
+          "type": "object",
+          "description": "Persistence configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable persistence"
+            },
+            "resourcePolicy": {
+              "type": "string",
+              "enum": ["keep", ""],
+              "description": "Resource policy for PVCs"
+            },
+            "persistentVolumeClaim": {
+              "type": "object",
+              "properties": {
+                "registry": {
+                  "$ref": "#/$defs/persistentVolumeClaim"
+                },
+                "jobservice": {
+                  "type": "object",
+                  "properties": {
+                    "jobLog": {
+                      "$ref": "#/$defs/persistentVolumeClaim"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "database": {
+                  "$ref": "#/$defs/persistentVolumeClaim"
+                },
+                "redis": {
+                  "$ref": "#/$defs/persistentVolumeClaim"
+                },
+                "trivy": {
+                  "$ref": "#/$defs/persistentVolumeClaim"
+                }
+              },
+              "additionalProperties": false
+            },
+            "imageChartStorage": {
+              "type": "object",
+              "properties": {
+                "disableredirect": {
+                  "type": "boolean",
+                  "description": "Disable redirect for images and chart storage"
+                },
+                "caBundleSecretName": {
+                  "type": "string",
+                  "description": "Secret name containing CA bundle"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["filesystem", "azure", "gcs", "s3", "swift", "oss"],
+                  "description": "Storage backend type"
+                },
+                "filesystem": {
+                  "type": "object",
+                  "properties": {
+                    "rootdirectory": {
+                      "type": "string",
+                      "description": "Root directory for filesystem storage"
+                    },
+                    "maxthreads": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Maximum threads for filesystem storage"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "azure": {
+                  "type": "object",
+                  "description": "Azure storage configuration"
+                },
+                "s3": {
+                  "type": "object",
+                  "description": "S3 storage configuration"
+                },
+                "swift": {
+                  "type": "object",
+                  "description": "Swift storage configuration"
+                },
+                "gcs": {
+                  "type": "object",
+                  "description": "Google Cloud Storage configuration"
+                },
+                "oss": {
+                  "type": "object",
+                  "description": "Alibaba Cloud OSS storage configuration"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "ca": {
+      "type": "object",
+      "description": "Certificate Authority configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable CA dependency"
+        },
+        "issuers": {
+          "type": "array",
+          "description": "Certificate issuers configuration",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Issuer name"
+              },
+              "selfSigned": {
+                "type": "boolean",
+                "description": "Whether the issuer is self-signed"
+              },
+              "secret": {
+                "type": "object",
+                "properties": {
+                  "create": {
+                    "type": "boolean",
+                    "description": "Whether to create the secret"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "gateway": {
+      "type": "object",
+      "description": "Gateway configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable Gateway dependency"
+        },
+        "routes": {
+          "type": "array",
+          "description": "HTTP routes configuration",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Route name"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["HTTPRoute", "TCPRoute", "UDPRoute", "TLSRoute"],
+                "description": "Route kind"
+              },
+              "hostnames": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Route hostnames"
+              },
+              "rules": {
+                "type": "array",
+                "description": "Route rules",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "matches": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": ["Exact", "PathPrefix", "RegularExpression"]
+                              },
+                              "value": {
+                                "type": "string"
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "backendRefs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "port": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 65535
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "gateways": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "policies": {
+          "type": "array",
+          "description": "Gateway policies",
+          "items": {
+            "type": "object"
+          }
+        },
+        "gateways": {
+          "type": "array",
+          "description": "Gateway definitions",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Gateway name"
+              },
+              "className": {
+                "type": "string",
+                "description": "Gateway class name"
+              },
+              "listeners": {
+                "type": "array",
+                "description": "Gateway listeners",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "Listener name"
+                    },
+                    "port": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65535,
+                      "description": "Listener port"
+                    },
+                    "protocol": {
+                      "type": "string",
+                      "enum": ["HTTP", "HTTPS", "TCP", "UDP", "TLS"],
+                      "description": "Listener protocol"
+                    },
+                    "hostname": {
+                      "type": "string",
+                      "description": "Listener hostname"
+                    },
+                    "allowedRoutes": {
+                      "type": "object",
+                      "properties": {
+                        "namespaces": {
+                          "type": "object",
+                          "properties": {
+                            "from": {
+                              "type": "string",
+                              "enum": ["All", "Selector", "Same"]
+                            }
+                          },
+                          "additionalProperties": false
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "tls": {
+                      "type": "object",
+                      "properties": {
+                        "mode": {
+                          "type": "string",
+                          "enum": ["Terminate", "Passthrough"]
+                        },
+                        "certificateRefs": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "issuer": {
+                                "type": "string"
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "postgresql": {
+      "type": "object",
+      "description": "PostgreSQL configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable PostgreSQL"
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of PostgreSQL replicas"
+        },
+        "version": {
+          "type": "integer",
+          "description": "PostgreSQL version"
+        },
+        "storage": {
+          "type": "object",
+          "properties": {
+            "class": {
+              "type": "string",
+              "description": "Storage class"
+            },
+            "size": {
+              "type": "string",
+              "pattern": "^[0-9]+[KMGTPE]?i?$",
+              "description": "Storage size"
+            }
+          },
+          "additionalProperties": false
+        },
+        "tolerations": {
+          "type": "array",
+          "description": "Pod tolerations",
+          "items": {
+            "type": "object"
+          }
+        },
+        "nodeAffinity": {
+          "type": "object",
+          "description": "Node affinity configuration"
+        }
+      },
+      "additionalProperties": false
+    },
+    "redis": {
+      "type": "object",
+      "description": "Redis configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable Redis"
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of Redis replicas"
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repo": {
+              "type": "string",
+              "description": "Redis image repository"
+            },
+            "tag": {
+              "type": "string",
+              "description": "Redis image tag"
+            }
+          },
+          "additionalProperties": false
+        },
+        "secret": {
+          "type": "object",
+          "properties": {
+            "create": {
+              "type": "boolean",
+              "description": "Create Redis secret"
+            },
+            "password": {
+              "type": "string",
+              "description": "Redis password"
+            }
+          },
+          "additionalProperties": false
+        },
+        "storage": {
+          "type": "object",
+          "properties": {
+            "class": {
+              "type": "string",
+              "description": "Storage class"
+            },
+            "size": {
+              "type": "string",
+              "pattern": "^[0-9]+[KMGTPE]?i?$",
+              "description": "Storage size"
+            }
+          },
+          "additionalProperties": false
+        },
+        "tolerations": {
+          "type": "array",
+          "description": "Pod tolerations",
+          "items": {
+            "type": "object"
+          }
+        },
+        "affinity": {
+          "type": "object",
+          "description": "Pod affinity configuration"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "persistentVolumeClaim": {
+      "type": "object",
+      "properties": {
+        "existingClaim": {
+          "type": "string",
+          "description": "Use existing PVC"
+        },
+        "storageClass": {
+          "type": "string",
+          "description": "Storage class for PVC"
+        },
+        "subPath": {
+          "type": "string",
+          "description": "Sub path within the PVC"
+        },
+        "accessMode": {
+          "type": "string",
+          "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany"],
+          "description": "Access mode for PVC"
+        },
+        "size": {
+          "type": "string",
+          "pattern": "^[0-9]+[KMGTPE]?i?$",
+          "description": "PVC size"
+        },
+        "annotations": {
+          "type": "object",
+          "description": "PVC annotations"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
