@@ -1,214 +1,215 @@
 ---
-multitenancy:
-  # -- Implement the patches for Multi-tenancy lockdown.
-  # See https://fluxcd.io/docs/installation/#multi-tenancy-lockdown
-  enabled: false
-  # -- All Kustomizations and HelmReleases which don’t have spec.serviceAccountName
-  # specified, will use the default account from the tenant’s namespace.
-  # Tenants have to specify a service account in their Flux resources to be able
-  # to deploy workloads in their namespaces as the default account has no permissions.
-  defaultServiceAccount: "default"
-  # -- Both kustomize-controller and helm-controller service accounts run privileged
-  # with cluster-admin ClusterRoleBinding. Disable if you want to run them with a
-  # minimum set of permissions.
-  privileged: true
+flux:
+  multitenancy:
+    # -- Implement the patches for Multi-tenancy lockdown.
+    # See https://fluxcd.io/docs/installation/#multi-tenancy-lockdown
+    enabled: false
+    # -- All Kustomizations and HelmReleases which don’t have spec.serviceAccountName
+    # specified, will use the default account from the tenant’s namespace.
+    # Tenants have to specify a service account in their Flux resources to be able
+    # to deploy workloads in their namespaces as the default account has no permissions.
+    defaultServiceAccount: "default"
+    # -- Both kustomize-controller and helm-controller service accounts run privileged
+    # with cluster-admin ClusterRoleBinding. Disable if you want to run them with a
+    # minimum set of permissions.
+    privileged: true
 
-cli:
-  image: ghcr.io/fluxcd/flux-cli
-  tag: v2.7.5
-  nodeSelector: {}
-  affinity: {}
-  tolerations: []
-  annotations: {}
-  serviceAccount:
-    automount: true
-
-helmController:
-  create: true
-  image: ghcr.io/fluxcd/helm-controller
-  tag: v1.4.5
-  resources:
-    limits: {}
-    # cpu: 1000m
-    # memory: 1Gi
-    requests:
-      cpu: 100m
-      memory: 64Mi
-  priorityClassName: ""
-  annotations:
-    prometheus.io/port: "8080"
-    prometheus.io/scrape: "true"
-  labels: {}
-  container:
-    additionalArgs: []
-  extraEnv: []
-  serviceAccount:
-    create: true
-    automount: true
+  cli:
+    image: ghcr.io/fluxcd/flux-cli
+    tag: v2.7.5
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
     annotations: {}
-  imagePullPolicy: ""
-  nodeSelector: {}
-  # expects input structure as per specification https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#affinity-v1-core
-  # for example:
-  #   affinity:
-  #     nodeAffinity:
-  #      requiredDuringSchedulingIgnoredDuringExecution:
-  #        nodeSelectorTerms:
-  #        - matchExpressions:
-  #          - key: foo.bar.com/role
-  #            operator: In
-  #            values:
-  #            - master
+    serviceAccount:
+      automount: true
 
-  affinity: {}
-  # expects input structure as per specification https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#toleration-v1-core
-  # for example:
-  #   tolerations:
-  #   - key: foo.bar.com/role
-  #     operator: Equal
-  #     value: master
-  #     effect: NoSchedule
-
-  tolerations: []
-
-kustomizeController:
-  create: true
-  image: ghcr.io/fluxcd/kustomize-controller
-  tag: v1.7.3
-  resources:
-    limits: {}
-    # cpu: 1000m
-    # memory: 1Gi
-    requests:
-      cpu: 100m
-      memory: 64Mi
-  priorityClassName: ""
-  annotations:
-    prometheus.io/port: "8080"
-    prometheus.io/scrape: "true"
-  labels: {}
-  container:
-    additionalArgs: []
-  extraEnv: []
-  serviceAccount:
+  helmController:
     create: true
-    automount: true
-    annotations: {}
-  imagePullPolicy: ""
-  secret:
-    # -- Create a secret to use it with extraSecretMounts. Defaults to false.
-    create: false
-    name: ""
-    data: {}
-  # -- Defines envFrom using a configmap and/or secret.
-  envFrom:
-    map:
-      name: ""
-    secret:
-      name: ""
-  # -- Defines additional mounts with secrets.
-  # Secrets must be manually created in the namespace or with kustomizeController.secret
-  extraSecretMounts: []
-  # - name: secret-files
-  #   mountPath: /etc/secrets
-  #   subPath: ""
-  #   secretName: secret-files
-  #   readOnly: true
-
-  nodeSelector: {}
-  affinity: {}
-  tolerations: []
-
-sourceController:
-  create: true
-  image: ghcr.io/fluxcd/source-controller
-  tag: v1.7.4
-  resources:
-    limits: {}
-    # cpu: 1000m
-    # memory: 1Gi
-    requests:
-      cpu: 100m
-      memory: 64Mi
-  priorityClassName: ""
-  annotations:
-    prometheus.io/port: "8080"
-    prometheus.io/scrape: "true"
-  labels: {}
-  container:
-    additionalArgs: []
-  serviceAccount:
-    create: true
-    automount: true
-    annotations: {}
-  imagePullPolicy: ""
-  service:
+    image: ghcr.io/fluxcd/helm-controller
+    tag: v1.4.5
+    resources:
+      limits: {}
+      # cpu: 1000m
+      # memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 64Mi
+    priorityClassName: ""
+    annotations:
+      prometheus.io/port: "8080"
+      prometheus.io/scrape: "true"
     labels: {}
-    annotations: {}
-  nodeSelector: {}
-  affinity: {}
-  tolerations: []
-  extraEnv: []
+    container:
+      additionalArgs: []
+    extraEnv: []
+    serviceAccount:
+      create: true
+      automount: true
+      annotations: {}
+    imagePullPolicy: ""
+    nodeSelector: {}
+    # expects input structure as per specification https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#affinity-v1-core
+    # for example:
+    #   affinity:
+    #     nodeAffinity:
+    #      requiredDuringSchedulingIgnoredDuringExecution:
+    #        nodeSelectorTerms:
+    #        - matchExpressions:
+    #          - key: foo.bar.com/role
+    #            operator: In
+    #            values:
+    #            - master
 
-imageAutomationController:
-  create: false
+    affinity: {}
+    # expects input structure as per specification https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#toleration-v1-core
+    # for example:
+    #   tolerations:
+    #   - key: foo.bar.com/role
+    #     operator: Equal
+    #     value: master
+    #     effect: NoSchedule
 
-imageReflectionController:
-  create: false
+    tolerations: []
 
-notificationController:
-  create: false
+  kustomizeController:
+    create: true
+    image: ghcr.io/fluxcd/kustomize-controller
+    tag: v1.7.3
+    resources:
+      limits: {}
+      # cpu: 1000m
+      # memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 64Mi
+    priorityClassName: ""
+    annotations:
+      prometheus.io/port: "8080"
+      prometheus.io/scrape: "true"
+    labels: {}
+    container:
+      additionalArgs: []
+    extraEnv: []
+    serviceAccount:
+      create: true
+      automount: true
+      annotations: {}
+    imagePullPolicy: ""
+    secret:
+      # -- Create a secret to use it with extraSecretMounts. Defaults to false.
+      create: false
+      name: ""
+      data: {}
+    # -- Defines envFrom using a configmap and/or secret.
+    envFrom:
+      map:
+        name: ""
+      secret:
+        name: ""
+    # -- Defines additional mounts with secrets.
+    # Secrets must be manually created in the namespace or with kustomizeController.secret
+    extraSecretMounts: []
+    # - name: secret-files
+    #   mountPath: /etc/secrets
+    #   subPath: ""
+    #   secretName: secret-files
+    #   readOnly: true
 
-sourceWatcher:
-  create: false
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
 
-policies:
-  create: false
+  sourceController:
+    create: true
+    image: ghcr.io/fluxcd/source-controller
+    tag: v1.7.4
+    resources:
+      limits: {}
+      # cpu: 1000m
+      # memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 64Mi
+    priorityClassName: ""
+    annotations:
+      prometheus.io/port: "8080"
+      prometheus.io/scrape: "true"
+    labels: {}
+    container:
+      additionalArgs: []
+    serviceAccount:
+      create: true
+      automount: true
+      annotations: {}
+    imagePullPolicy: ""
+    service:
+      labels: {}
+      annotations: {}
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
+    extraEnv: []
 
-logLevel: info
-watchAllNamespaces: true
-
-# -- contents of pod imagePullSecret in form 'name=[secretName]'; applied to all controllers
-imagePullSecrets: []
-
-# -- Array of extra K8s manifests to deploy
-extraObjects: []
-# Example usage from https://fluxcd.io/docs/components/source/buckets/#static-authentication
-# - apiVersion: source.toolkit.fluxcd.io/v1beta2
-#   kind: Bucket
-#   metadata:
-#     name: podinfo
-#     namespace: default
-#   spec:
-#     interval: 1m
-#     provider: generic
-#     bucketName: podinfo
-#     endpoint: minio.minio.svc.cluster.local:9000
-#     insecure: true
-#     secretRef:
-#       name: minio-credentials
-# - apiVersion: v1
-#   kind: Secret
-#   metadata:
-#     name: minio-credentials
-#     namespace: default
-#   type: Opaque
-#   data:
-#     accesskey: <BASE64>
-#     secretkey: <BASE64>
-
-# Enables podMonitor creation for the Prometheus Operator
-prometheus:
-  podMonitor:
-    # -- Enables podMonitor endpoint
+  imageAutomationController:
     create: false
-    podMetricsEndpoints:
-      - port: http-prom
-        relabelings:
-          # https://github.com/prometheus-operator/prometheus-operator/issues/4816
-          - sourceLabels: [__meta_kubernetes_pod_phase]
-            action: keep
-            regex: Running
 
-distro:
-  openshift: false
+  imageReflectionController:
+    create: false
+
+  notificationController:
+    create: false
+
+  sourceWatcher:
+    create: false
+
+  policies:
+    create: false
+
+  logLevel: info
+  watchAllNamespaces: true
+
+  # -- contents of pod imagePullSecret in form 'name=[secretName]'; applied to all controllers
+  imagePullSecrets: []
+
+  # -- Array of extra K8s manifests to deploy
+  extraObjects: []
+  # Example usage from https://fluxcd.io/docs/components/source/buckets/#static-authentication
+  # - apiVersion: source.toolkit.fluxcd.io/v1beta2
+  #   kind: Bucket
+  #   metadata:
+  #     name: podinfo
+  #     namespace: default
+  #   spec:
+  #     interval: 1m
+  #     provider: generic
+  #     bucketName: podinfo
+  #     endpoint: minio.minio.svc.cluster.local:9000
+  #     insecure: true
+  #     secretRef:
+  #       name: minio-credentials
+  # - apiVersion: v1
+  #   kind: Secret
+  #   metadata:
+  #     name: minio-credentials
+  #     namespace: default
+  #   type: Opaque
+  #   data:
+  #     accesskey: <BASE64>
+  #     secretkey: <BASE64>
+
+  # Enables podMonitor creation for the Prometheus Operator
+  prometheus:
+    podMonitor:
+      # -- Enables podMonitor endpoint
+      create: false
+      podMetricsEndpoints:
+        - port: http-prom
+          relabelings:
+            # https://github.com/prometheus-operator/prometheus-operator/issues/4816
+            - sourceLabels: [__meta_kubernetes_pod_phase]
+              action: keep
+              regex: Running
+
+  distro:
+    openshift: false
