@@ -1,0 +1,16 @@
+---
+apiVersion: k0rdent.mirantis.com/v1beta1
+kind: ServiceTemplate
+metadata:
+  name: msr-4-13-3
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  helm:
+    chartSpec:
+      chart: msr
+      version: 4.13.3
+      interval: 10m0s
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
