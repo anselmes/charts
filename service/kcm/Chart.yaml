@@ -1,5 +1,0 @@
-apiVersion: v2
-name: kcm
-type: application
-description: A Helm chart that deploys kcm and its dependencies.
-version: 1.6.0

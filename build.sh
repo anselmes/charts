@@ -29,7 +29,6 @@ SERVICES=(
   flux
   gateway
   gwapi
-  kcm
   knative
   monitoring
   msr
