@@ -8,6 +8,9 @@ kind: Issuer
 apiVersion: cert-manager.io/v1
 metadata:
   name: {{ .name }}
+  {{- if not .clustered }}
+  namespace: {{ $.Release.Namespace }}
+  {{- end }}
   labels:
     {{- include "ca.labels" $ | nindent 4 }}
 spec:
@@ -16,6 +19,29 @@ spec:
   {{- else if eq .type "ca" }}
   ca:
     secretName: {{ .secret.name }}
+  {{- else if eq .type "vault" }}
+  vault:
+    path: {{ .vault.path }}
+    server: {{ .vault.server }}
+    {{- if .vault.caBundleSecretRef }}
+    caBundleSecretRef:
+      name: {{ .secret.name }}
+      key: {{ .vault.caBundleSecretRef.key }}
+    {{- end }}
+    {{- if .vault.clientCertSecretRef }}
+    clientCertSecretRef:
+      name: {{ .secret.name }}
+      key: {{ .vault.clientCertSecretRef.key }}
+    {{- end }}
+    {{- if .vault.clientKeySecretRef }}
+    clientKeySecretRef:
+      name: {{ .secret.name }}
+      key: {{ .vault.clientKeySecretRef.key }}
+    {{- end }}
+    {{- with .vault.auth }}
+    auth:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
   {{- else if eq .type "acme" }}
   acme:
     email: {{ .acme.email }}
@@ -23,23 +49,17 @@ spec:
     privateKeySecretRef:
       name: {{ .name }}-account-key
     solvers:
+      {{- with .acme.provider }}
       - dns01:
-          {{- if eq .acme.provider.type "rfc2136" }}
-          rfc2136:
-            nameserver: {{ .acme.provider.rfc2136.nameserver }}
-            tsigKeyName: {{ .acme.provider.rfc2136.tsig.keyName }}
-            tsigAlgorithm: {{ .acme.provider.rfc2136.tsig.algo }}
-            tsigSecretRef:
-              name: {{ .secret.name }}
-              key: {{ .acme.provider.rfc2136.tsig.secretKey }}
-          {{- else if eq .acme.provider.type "webhook" }}
-          webhook:
-            groupName: {{ .acme.provider.webhook.group }}
-            solverName: {{ .acme.provider.webhook.solver }}
-            {{- with .acme.provider.webhook.config }}
-            config:
-              {{- toYaml . | nindent 14 }}
-            {{- end }}
+          {{ .type }}:
+          {{- omit . "type" | toYaml | nindent 12 }}
+      {{- end }}
+      {{- if .acme.zones }}
+        selector:
+          dnsZones:
+          {{- range .acme.zones }}
+            - {{ . }}
           {{- end }}
+      {{- end }}
   {{- end }}
 {{- end }}

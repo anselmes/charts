@@ -40,51 +40,195 @@ issuers:
   #   certManagerNamespace: cert-manager  # Namespace where cert-manager is deployed.
   #   type: ca                            # Specifies the type of issuer as CA.
   #   secret:
-  #     name: ca-secret   # Name of the secret containing CA credentials.
+  #     name: ca-secret                   # Name of the secret containing CA credentials.
   #     create: true
   #     ca:
-  #       crt: null  # CA certificate.
-  #       key: null  # CA private key.
+  #       crt: null                       # CA certificate.
+  #       key: null                       # CA private key.
+
+  # Example of a Vault CA issuer.
+  # - name: ca-issuer-vault
+  #   certManagerNamespace: cert-manager  # Namespace where cert-manager is deployed.
+  #   type: vault                         # Specifies the type of issuer as CA.
+  #   secret:
+  #     name: ca-secret-vault             # Name of the secret containing CA credentials.
+  #     create: false
+  #     ca: null                          # CA certificate.
+  #     client:
+  #       crt: null                       # Client certificate.
+  #       key: null                       # Client private key.
+  #   vault:
+  #     path: pki_int/sign/application-1
+  #     server: https://vault.vault:8200
+  #     # caBundleSecretRef:
+  #     #   key: ca
+  #     # clientCertSecretRef:
+  #     #   key: client.crt
+  #     # clientKeySecretRef:
+  #     #   key: client.key
+  #     auth:
+  #       kubernetes:
+  #         role: vault-issuer
+  #         mountPath: /v1/auth/kubernetes
+  #         serviceAccountRef:
+  #           name: vault-issuer
 
   # Example of an ACME issuer using RFC2136 DNS provider.
   # - name: ca-issuer-rfc2136
   #   certManagerNamespace: cert-manager  # Namespace where cert-manager is deployed.
   #   type: acme                          # Specifies the type of issuer as ACME.
   #   secret:
-  #     name: ca-rfc2136-secret   # Name of the secret containing ACME credentials.
   #     create: true
-  #     tsig: null                # TSIG credentials for RFC2136.
+  #     tsig: null                        # TSIG credentials for RFC2136.
   #   acme:
   #     email: admin@kubernetes.io                              # Email address for ACME registration.
   #     server: https://acme-v02.api.letsencrypt.org/directory  # ACME server URL.
+  #     # zones:
+  #     #   - example.com
   #     provider:
-  #       type: rfc2136               # Specifies the DNS provider type as RFC2136.
-  #       rfc2136:
-  #         nameserver: 127.0.0.1:53  # DNS server address.
-  #         tsig:
-  #           algo: HMACSHA512        # TSIG algorithm.
-  #           keyName: tsig-cred      # TSIG key name.
-  #           secretKey: token        # TSIG secret key.
+  #       type: rfc2136                   # Specifies the DNS provider type as RFC2136.
+  #       nameserver: 127.0.0.1:53        # DNS server address.
+  #       tsigAlgorithm: HMACSHA512       # TSIG algorithm.
+  #       tsigKeyName: tsig-cred          # TSIG key name.
+  #       tsigSecretRef:                  # TSIG secret key.
+  #         name: ca-secret-rfc2136
+  #         key: token
 
-  # Example of an ACME issuer using a webhook DNS provider.
-  # - name: ca-issuer-webhook
+  # Example of an ACME issuer using Cloudflare DNS provider.
+  # - name: ca-issuer-cloudflare
   #   certManagerNamespace: cert-manager  # Namespace where cert-manager is deployed.
   #   type: acme                          # Specifies the type of issuer as ACME.
   #   secret:
-  #     name: ca-webhook-secret  # Name of the secret containing ACME credentials.
   #     create: true
-  #     token: null  # Token for ACME account.
+  #     token: null                       # API token for Cloudflare.
+  #   acme:
+  #     email: admin@kubernetes.io
+  #     server: https://acme-v02.api.letsencrypt.org/directory
+  #     # zones:
+  #     #   - example.com
+  #     provider:
+  #       type: cloudflare                # Specifies the DNS provider type as Cloudflare.
+  #       apiTokenSecretRef:
+  #         name: ca-secret-cloudflare
+  #         key: token
+
+  # Example of an ACME issuer using GoDaddy webhook DNS provider.
+  # - name: ca-issuer-webhook-godaddy
+  #   certManagerNamespace: cert-manager  # Namespace where cert-manager is deployed.
+  #   type: acme                          # Specifies the type of issuer as ACME.
+  #   secret:
+  #     create: true
+  #     token: null                       # Token for ACME account.
   #   acme:
   #     email: admin@kubernetes.io                              # Email address for ACME registration.
   #     server: https://acme-v02.api.letsencrypt.org/directory  # ACME server URL.
+  #     # zones:
+  #     #   - example.com
   #     provider:
-  #       type: webhook  # Specifies the DNS provider type as webhook.
-  #       webhook:
-  #         group: acme.kubernetes.io       # Webhook group name.
-  #         solver: infoblox                # Webhook solver type.
-  #         config:
-  #           host: http://127.0.0.1:8081   # Webhook server host.
-  #           secretKey: token              # Webhook secret key.
+  #       type: webhook                       # Specifies the DNS provider type as webhook.
+  #       groupName: acme.kubernetes.io       # Webhook group name.
+  #       solverName: godaddy                 # Webhook solver type.
+  #       config:
+  #         production: true
+  #         ttl: 600
+  #         apiKeySecretRef:
+  #           name: ca-webhook-secret-godaddy
+  #           key: token
+
+  # Example of an ACME issuer using Infoblox webhook DNS provider.
+  # - name: ca-issuer-webhook-ib
+  #   certManagerNamespace: cert-manager      # Namespace where cert-manager is deployed.
+  #   type: acme                              # Specifies the type of issuer as ACME.
+  #   secret:
+  #     create: true
+  #     username: admin
+  #     password: null
+  #   acme:
+  #     email: admin@kubernetes.io                              # Email address for ACME registration.
+  #     server: https://acme-v02.api.letsencrypt.org/directory  # ACME server URL.
+  #     # zones:
+  #     #   - example.com
+  #     provider:
+  #       type: webhook                       # Specifies the DNS provider type as webhook.
+  #       groupName: acme.kubernetes.io       # Webhook group name.
+  #       solverName: infoblox                # Webhook solver type.
+  #       config:
+  #         host: http://127.0.0.1:8081       # Webhook server host.
+  #         view: null
+  #         usernameSecretRef:
+  #           name: ca-webhook-secret-ib
+  #           key: username
+  #         passwordSecretRef:
+  #           name: ca-webhook-secret-ib
+  #           key: password
+
+  # Example of an ACME issuer using MaaS webhook DNS provider.
+  # - name: ca-issuer-webhook-designate
+  #   certManagerNamespace: cert-manager      # Namespace where cert-manager is deployed.
+  #   type: acme                              # Specifies the type of issuer as ACME.
+  #   secret:
+  #     create: false
+  #   acme:
+  #     email: admin@kubernetes.io                              # Email address for ACME registration.
+  #     server: https://acme-v02.api.letsencrypt.org/directory  # ACME server URL.
+  #     # zones:
+  #     #   - example.com
+  #     provider:
+  #       type: webhook                       # Specifies the DNS provider type as webhook.
+  #       groupName: acme.kubernetes.io       # Webhook group name.
+  #       solverName: designate               # Webhook solver type.
+  #       config:
+  #         verify: false
+  #         ttl: 600
+
+  # Example of an ACME issuer using MaaS webhook DNS provider.
+  # - name: ca-issuer-webhook-maas
+  #   certManagerNamespace: cert-manager      # Namespace where cert-manager is deployed.
+  #   type: acme                              # Specifies the type of issuer as ACME.
+  #   secret:
+  #     create: true
+  #     apiKey: null                          # API key for MaaS.
+  #   acme:
+  #     email: admin@kubernetes.io                              # Email address for ACME registration.
+  #     server: https://acme-v02.api.letsencrypt.org/directory  # ACME server URL.
+  #     # zones:
+  #     #   - example.com
+  #     provider:
+  #       type: webhook                       # Specifies the DNS provider type as webhook.
+  #       groupName: acme.kubernetes.io       # Webhook group name.
+  #       solverName: maas                    # Webhook solver type.
+  #       config:
+  #         apiUrl: http://maas.example.com:5240/MAAS
+  #         apiVersion: "2.0"
+  #         secretName: ca-webhook-secret-maas
+
+  # Example of an ACME issuer using PowerDNS webhook DNS provider.
+  # - name: ca-issuer-webhook-pdns
+  #   certManagerNamespace: cert-manager  # Namespace where cert-manager is deployed.
+  #   type: acme                          # Specifies the type of issuer as ACME.
+  #   secret:
+  #     create: true
+  #     token: null                       # Token for ACME account.
+  #   acme:
+  #     email: admin@kubernetes.io                              # Email address for ACME registration.
+  #     server: https://acme-v02.api.letsencrypt.org/directory  # ACME server URL.
+  #     # zones:
+  #     #   - example.com
+  #     provider:
+  #       type: webhook                         # Specifies the DNS provider type as webhook.
+  #       groupName: acme.kubernetes.io         # Webhook group name.
+  #       solverName: pdns                      # Webhook solver type.
+  #       config:
+  #         apiKeyHeaderName: null
+  #         apiKeyScheme: null
+  #         caBundle: null
+  #         host: https://ns1.example.ca
+  #         serverID: localhost
+  #         timeout: 30
+  #         ttl: 600
+  #         apiKeySecretRef:
+  #           name: ca-webhook-secret-pdns
+  #           key: token
 
 # MARK: Cert Manager
 

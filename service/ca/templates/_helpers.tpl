@@ -50,3 +50,22 @@ Selector labels
 app.kubernetes.io/name: {{ include "ca.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Generate secret name based on issuer configuration
+*/}}
+{{- define "ca.secretName" -}}
+{{- if and (eq .type "acme") (.acme.provider.tsigSecretRef) -}}
+{{ .acme.provider.tsigSecretRef.name }}
+{{- else if and (eq .type "acme") (.acme.provider.apiTokenSecretRef) -}}
+{{ .acme.provider.apiTokenSecretRef.name }}
+{{- else if and (eq .type "acme") (.acme.provider.config) (.acme.provider.config.apiKeySecretRef) -}}
+{{ .acme.provider.config.apiKeySecretRef.name }}
+{{- else if and (eq .type "acme") (.acme.provider.config) (or .acme.provider.config.usernameSecretRef .acme.provider.config.passwordSecretRef) -}}
+{{ or .acme.provider.config.usernameSecretRef.name .acme.provider.config.passwordSecretRef.name }}
+{{- else if and (eq .type "acme") (.acme.provider.config) (.acme.provider.config.secretName) -}}
+{{ .acme.provider.config.secretName }}
+{{- else -}}
+{{ .secret.name }}
+{{- end -}}
+{{- end }}

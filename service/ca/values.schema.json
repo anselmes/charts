@@ -130,7 +130,7 @@
           "type": {
             "type": "string",
             "description": "Type of the issuer",
-            "enum": ["ca", "acme", "venafi"]
+            "enum": ["ca", "acme", "vault"]
           },
           "certManagerNamespace": {
             "type": "string",
@@ -174,6 +174,33 @@
               "token": {
                 "type": ["string", "null"],
                 "description": "Token for ACME account"
+              },
+              "username": {
+                "type": ["string", "null"],
+                "description": "Username for webhook providers"
+              },
+              "password": {
+                "type": ["string", "null"],
+                "description": "Password for webhook providers"
+              },
+              "apiKey": {
+                "type": ["string", "null"],
+                "description": "API key for webhook providers"
+              },
+              "client": {
+                "type": "object",
+                "description": "Client certificate and key for vault issuers",
+                "properties": {
+                  "crt": {
+                    "type": ["string", "null"],
+                    "description": "Client certificate in PEM format"
+                  },
+                  "key": {
+                    "type": ["string", "null"],
+                    "description": "Client private key in PEM format"
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "additionalProperties": false
@@ -199,7 +226,7 @@
                   "type": {
                     "type": "string",
                     "description": "DNS provider type",
-                    "enum": ["rfc2136", "webhook"]
+                    "enum": ["rfc2136", "webhook", "cloudflare"]
                   },
                   "rfc2136": {
                     "type": "object",
@@ -210,40 +237,68 @@
                         "description": "DNS server address",
                         "pattern": "^[a-zA-Z0-9.-]+:[0-9]+$"
                       },
-                      "tsig": {
+                      "tsigAlgorithm": {
+                        "type": "string",
+                        "description": "TSIG algorithm",
+                        "enum": ["HMACSHA1", "HMACSHA256", "HMACSHA512"]
+                      },
+                      "tsigKeyName": {
+                        "type": "string",
+                        "description": "TSIG key name"
+                      },
+                      "tsigSecretRef": {
                         "type": "object",
-                        "description": "TSIG configuration",
+                        "description": "TSIG secret reference",
                         "properties": {
-                          "algo": {
+                          "name": {
                             "type": "string",
-                            "description": "TSIG algorithm",
-                            "enum": ["HMACSHA1", "HMACSHA256", "HMACSHA512"]
+                            "description": "Name of the secret"
                           },
-                          "keyName": {
+                          "key": {
                             "type": "string",
-                            "description": "TSIG key name"
-                          },
-                          "secretKey": {
-                            "type": "string",
-                            "description": "TSIG secret key"
+                            "description": "Key in the secret"
                           }
                         },
-                        "required": ["algo", "keyName", "secretKey"],
+                        "required": ["name", "key"],
                         "additionalProperties": false
                       }
                     },
-                    "required": ["nameserver", "tsig"],
+                    "required": ["nameserver", "tsigAlgorithm", "tsigKeyName", "tsigSecretRef"],
+                    "additionalProperties": false
+                  },
+                  "cloudflare": {
+                    "type": "object",
+                    "description": "Cloudflare DNS provider configuration",
+                    "properties": {
+                      "apiTokenSecretRef": {
+                        "type": "object",
+                        "description": "API token secret reference",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "Name of the secret"
+                          },
+                          "key": {
+                            "type": "string",
+                            "description": "Key in the secret"
+                          }
+                        },
+                        "required": ["name", "key"],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": ["apiTokenSecretRef"],
                     "additionalProperties": false
                   },
                   "webhook": {
                     "type": "object",
                     "description": "Webhook DNS provider configuration",
                     "properties": {
-                      "group": {
+                      "groupName": {
                         "type": "string",
                         "description": "Webhook group name"
                       },
-                      "solver": {
+                      "solverName": {
                         "type": "string",
                         "description": "Webhook solver type"
                       },
@@ -264,7 +319,7 @@
                         "additionalProperties": true
                       }
                     },
-                    "required": ["group", "solver"],
+                    "required": ["groupName", "solverName"],
                     "additionalProperties": false
                   }
                 },
@@ -273,6 +328,64 @@
               }
             },
             "required": ["email", "server", "provider"],
+            "additionalProperties": false
+          },
+          "vault": {
+            "type": "object",
+            "description": "Vault configuration for vault issuers",
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "Vault path for certificate signing"
+              },
+              "server": {
+                "type": "string",
+                "description": "Vault server URL",
+                "format": "uri"
+              },
+              "caBundleSecretRef": {
+                "type": "object",
+                "description": "CA bundle secret reference",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "description": "Key in the secret containing the CA bundle"
+                  }
+                },
+                "required": ["key"],
+                "additionalProperties": false
+              },
+              "clientCertSecretRef": {
+                "type": "object",
+                "description": "Client certificate secret reference",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "description": "Key in the secret containing the client certificate"
+                  }
+                },
+                "required": ["key"],
+                "additionalProperties": false
+              },
+              "clientKeySecretRef": {
+                "type": "object",
+                "description": "Client key secret reference",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "description": "Key in the secret containing the client key"
+                  }
+                },
+                "required": ["key"],
+                "additionalProperties": false
+              },
+              "auth": {
+                "type": "object",
+                "description": "Vault authentication configuration",
+                "additionalProperties": true
+              }
+            },
+            "required": ["path", "server"],
             "additionalProperties": false
           }
         },
