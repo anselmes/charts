@@ -1,0 +1,6 @@
+dependencies:
+- name: gateway
+  repository: oci://ghcr.io/labsonline/charts
+  version: 1.0.3
+digest: sha256:6c4d310ac6249026a200478c26b69a53144f76f52d8f364b54e2ce93ec9f4a05
+generated: "2026-01-23T09:50:52.809678-05:00"

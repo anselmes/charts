@@ -1,0 +1,542 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "MKE Demo App Helm Chart Values Schema",
+  "description": "Schema for validating values.yaml configuration for the MKE Demo App Helm chart",
+  "properties": {
+    "replicaCount": {
+      "type": "integer",
+      "title": "Replica Count",
+      "description": "Number of pod replicas",
+      "minimum": 1,
+      "default": 1
+    },
+    "image": {
+      "type": "object",
+      "title": "Container Image Configuration",
+      "properties": {
+        "repository": {
+          "type": "string",
+          "title": "Image Repository",
+          "default": "mke-demo-app"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "title": "Image Pull Policy",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "default": "IfNotPresent"
+        },
+        "tag": {
+          "type": "string",
+          "title": "Image Tag",
+          "default": "v1.0.0"
+        }
+      },
+      "required": ["repository"]
+    },
+    "imagePullSecrets": {
+      "type": "array",
+      "title": "Image Pull Secrets",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "default": []
+    },
+    "nameOverride": {
+      "type": "string",
+      "title": "Chart Name Override",
+      "default": ""
+    },
+    "fullnameOverride": {
+      "type": "string",
+      "title": "Full Name Override",
+      "default": ""
+    },
+    "serviceAccount": {
+      "type": "object",
+      "title": "Service Account Configuration",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "title": "Create Service Account",
+          "default": true
+        },
+        "automount": {
+          "type": "boolean",
+          "title": "Auto-mount Service Account Token",
+          "default": true
+        },
+        "annotations": {
+          "type": "object",
+          "title": "Service Account Annotations",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": "string",
+          "title": "Service Account Name"
+        }
+      }
+    },
+    "podAnnotations": {
+      "type": "object",
+      "title": "Pod Annotations",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "podLabels": {
+      "type": "object",
+      "title": "Pod Labels",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "podSecurityContext": {
+      "type": "object",
+      "title": "Pod Security Context",
+      "properties": {
+        "fsGroup": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "runAsUser": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "runAsGroup": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "securityContext": {
+      "$ref": "#/definitions/securityContext"
+    },
+    "service": {
+      "type": "object",
+      "title": "Service Configuration",
+      "properties": {
+        "type": {
+          "type": "string",
+          "title": "Service Type",
+          "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"],
+          "default": "ClusterIP"
+        },
+        "port": {
+          "type": "integer",
+          "title": "Service Port",
+          "minimum": 1,
+          "maximum": 65535,
+          "default": 8080
+        }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "title": "Ingress Configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "Enable Ingress",
+          "default": false
+        },
+        "className": {
+          "type": "string",
+          "title": "Ingress Class Name"
+        },
+        "annotations": {
+          "type": "object",
+          "title": "Ingress Annotations",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "hosts": {
+          "type": "array",
+          "title": "Ingress Hosts",
+          "items": {
+            "type": "object",
+            "properties": {
+              "host": {
+                "type": "string"
+              },
+              "paths": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "pathType": {
+                      "type": "string",
+                      "enum": ["Exact", "Prefix", "ImplementationSpecific"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tls": {
+          "type": "array",
+          "title": "Ingress TLS Configuration",
+          "items": {
+            "type": "object",
+            "properties": {
+              "secretName": {
+                "type": "string"
+              },
+              "hosts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "title": "Resource Limits and Requests",
+      "properties": {
+        "limits": {
+          "type": "object",
+          "properties": {
+            "memory": {
+              "type": "string",
+              "pattern": "^[0-9]+(Mi|Gi|Ki)$"
+            },
+            "cpu": {
+              "type": "string"
+            }
+          }
+        },
+        "requests": {
+          "type": "object",
+          "properties": {
+            "memory": {
+              "type": "string",
+              "pattern": "^[0-9]+(Mi|Gi|Ki)$"
+            },
+            "cpu": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "livenessProbe": {
+      "$ref": "#/definitions/httpProbe"
+    },
+    "readinessProbe": {
+      "$ref": "#/definitions/httpProbe"
+    },
+    "autoscaling": {
+      "type": "object",
+      "title": "Horizontal Pod Autoscaler",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "Enable HPA",
+          "default": false
+        },
+        "minReplicas": {
+          "type": "integer",
+          "minimum": 1,
+          "title": "Minimum Replicas",
+          "default": 1
+        },
+        "maxReplicas": {
+          "type": "integer",
+          "minimum": 1,
+          "title": "Maximum Replicas",
+          "default": 100
+        },
+        "targetCPUUtilizationPercentage": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "title": "Target CPU Utilization Percentage"
+        },
+        "targetMemoryUtilizationPercentage": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "title": "Target Memory Utilization Percentage"
+        }
+      }
+    },
+    "volumes": {
+      "type": "array",
+      "title": "Additional Volumes",
+      "items": {
+        "type": "object"
+      }
+    },
+    "volumeMounts": {
+      "type": "array",
+      "title": "Additional Volume Mounts",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "mountPath": {
+            "type": "string"
+          },
+          "readOnly": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "nodeSelector": {
+      "type": "object",
+      "title": "Node Selector",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "tolerations": {
+      "type": "array",
+      "title": "Pod Tolerations",
+      "items": {
+        "type": "object"
+      }
+    },
+    "affinity": {
+      "type": "object",
+      "title": "Pod Affinity Rules"
+    },
+    "env": {
+      "type": "array",
+      "title": "Environment Variables",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "valueFrom": {
+            "type": "object",
+            "properties": {
+              "fieldRef": {
+                "type": "object",
+                "properties": {
+                  "fieldPath": {
+                    "type": "string"
+                  }
+                }
+              },
+              "secretKeyRef": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "key": {
+                    "type": "string"
+                  }
+                }
+              },
+              "configMapKeyRef": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "key": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "required": ["name"],
+        "oneOf": [
+          {"required": ["value"]},
+          {"required": ["valueFrom"]}
+        ]
+      }
+    },
+    "gateway": {
+      "type": "object",
+      "title": "Gateway Configuration",
+      "properties": {
+        "gateways": {
+          "type": ["array", "null"],
+          "title": "Gateway References",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "namespace": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "routes": {
+          "type": "array",
+          "title": "Gateway Routes",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["HTTPRoute", "TCPRoute", "UDPRoute", "TLSRoute"]
+              },
+              "hostnames": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "rules": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "gateways": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "namespace": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "securityContext": {
+      "type": "object",
+      "title": "Security Context",
+      "properties": {
+        "allowPrivilegeEscalation": {
+          "type": "boolean"
+        },
+        "capabilities": {
+          "type": "object",
+          "properties": {
+            "drop": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "add": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "privileged": {
+          "type": "boolean"
+        },
+        "runAsNonRoot": {
+          "type": "boolean"
+        },
+        "runAsGroup": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "runAsUser": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "readOnlyRootFilesystem": {
+          "type": "boolean"
+        },
+        "seccompProfile": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["RuntimeDefault", "Unconfined"]
+            }
+          }
+        }
+      }
+    },
+    "httpProbe": {
+      "type": "object",
+      "title": "HTTP Health Probe",
+      "properties": {
+        "httpGet": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "host": {
+              "type": "string"
+            },
+            "scheme": {
+              "type": "string",
+              "enum": ["HTTP", "HTTPS"]
+            }
+          },
+          "required": ["path", "port"]
+        },
+        "initialDelaySeconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "periodSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "failureThreshold": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "successThreshold": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}
