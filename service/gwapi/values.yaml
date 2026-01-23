@@ -1,23 +1,22 @@
 ---
+# MARK: Envoy
+
 envoy:
   enabled: true
 
-  # MARK: Gateway Classes
-
-  classes: []
-  # - name: envoy
-  #   description: "Default Envoy Gateway class"
-  #   # controllerName: gateway.envoyproxy.io/gatewayclass-controller  # Uses default from config.envoyGateway.gateway.controllerName
-  #   # labels:
-  #   #   environment: production
-  #   # annotations:
-  #   #   example.com/config: "default-settings"
-  #   # parametersRef:
-  #   #   group: gateway.envoyproxy.io
-  #   #   kind: EnvoyProxy
-  #   #   name: default-proxy-config
-
-  # MARK: Gateway API
+  classes:
+    []
+    # - name: envoy
+    #   description: "Default Envoy Gateway class"
+    #   # controllerName: gateway.envoyproxy.io/gatewayclass-controller  # Uses default from config.envoyGateway.gateway.controllerName
+    #   # labels:
+    #   #   environment: production
+    #   # annotations:
+    #   #   example.com/config: "default-settings"
+    #   # parametersRef:
+    #   #   group: gateway.envoyproxy.io
+    #   #   kind: EnvoyProxy
+    #   #   name: default-proxy-config
 
   deployment:
     envoyGateway:
@@ -127,36 +126,88 @@ envoy:
     enabled: true
     annotations: {}
 
+# MARK: Nginx
+
 nginx:
   enabled: false
 
-  # -- The name of the GatewayClass that will be created as part of this release. Every NGINX Gateway
-  # Fabric must have a unique corresponding GatewayClass resource. NGINX Gateway Fabric only processes resources that
-  # belong to its class - i.e. have the "gatewayClassName" field resource equal to the class.
-  gatewayClassName: nginx
+  nginx:
+    enabled: true
 
-  # -- Set of custom annotations for GatewayClass objects.
-  gatewayClassAnnotations: {}
+    nginxGateway:
+      # -- The name of the NGINX Gateway Fabric deployment - if not present, then by default uses release name given during installation.
+      name: ""
+
+      # -- The name of the GatewayClass that will be created as part of this release. Every NGINX Gateway
+      # Fabric must have a unique corresponding GatewayClass resource. NGINX Gateway Fabric only processes resources that
+      # belong to its class - i.e. have the "gatewayClassName" field resource equal to the class.
+      gatewayClassName: nginx
+
+      gwAPIExperimentalFeatures:
+        # -- Enable the experimental features of Gateway API which are supported by NGINX Gateway Fabric. Requires the Gateway
+        # APIs installed from the experimental channel.
+        enable: false
+
+      gwAPIInferenceExtension:
+        # -- Enable Gateway API Inference Extension support. Allows for configuring InferencePools to route traffic to AI workloads.
+        enable: false
+
+      snippetsFilters:
+        # -- Enable SnippetsFilters feature. SnippetsFilters allow inserting NGINX configuration into the generated NGINX
+        # config for HTTPRoute and GRPCRoute resources.
+        enable: false
+
+# MARK: Traefik
 
 traefik:
   enabled: false
 
+  # -- Create a default IngressClass for Traefik
   ingressClass:
     enabled: false
 
+  # Traefik experimental features
+  experimental:
+    kubernetesGateway:
+      # -- Enable traefik experimental GatewayClass CRD
+      enabled: false
+    # -- Enable Knative provider experimental feature.
+    knative: false
+
   gateway:
+    # -- When providers.kubernetesGateway.enabled, deploy a default gateway
     enabled: false
 
   gatewayClass:
+    # -- When providers.kubernetesGateway.enabled and gateway.enabled, deploy a default gatewayClass
     enabled: true
-    name: ""
-    labels: {}
+    # -- Set a custom name to GatewayClass
+    # name: traefik
 
-  kubernetesIngress:
-    enabled: false
+  providers:
+    kubernetesCRD:
+      # -- Load Kubernetes IngressRoute provider
+      enabled: false
 
-  kubernetesGateway:
-    enabled: true
+    kubernetesIngress:
+      # -- Load Kubernetes Ingress provider
+      enabled: false
 
-  knative:
-    enabled: false
+    kubernetesGateway:
+      # -- Enable Traefik Gateway provider for Gateway API
+      enabled: true
+      # -- Toggles support for the Experimental Channel resources (Gateway API release channels documentation).
+      # This option currently enables support for TCPRoute and TLSRoute.
+      experimentalChannel: false
+
+    knative:
+      # -- Enable Knative provider
+      enabled: false
+
+  ports:
+    web:
+      port: 80
+      exposedPort: 80
+    websecure:
+      port: 443
+      exposedPort: 443
