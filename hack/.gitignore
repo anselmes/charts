@@ -4,8 +4,10 @@
 # Except these files
 !.gitignore
 
-!mke-demo-app/
+!mke-demo-app/**
+!samples/**
 !build.sh
 
 # ...even if they are in subdirectories
 !*/
+*.tgz

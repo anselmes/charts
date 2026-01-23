@@ -1,0 +1,51 @@
+# NOTE: Requires Gateway API CRDs to be installed in the cluster
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: nginx-gateway-api
+  namespace: kube-system
+spec:
+  interval: 10m0s
+  releaseName: nginx-gateway-api
+  timeout: 15m0s
+  dependsOn:
+    - name: flux
+      namespace: sre
+  chart:
+    spec:
+      interval: 5m
+      chart: gwapi
+      version: 1.0.3
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  # TODO: images
+  # postRenderers:
+  #   - kustomize:
+  #       images:
+  #         - name: ""
+  #           newName: ""
+  #           newTag: ""
+  values:
+    envoy:
+      enabled: false
+    nginx:
+      enabled: true
+      nginxGateway:
+        # name: nginx-gateway
+        # gatewayClassName: nginx
+        gwAPIExperimentalFeatures:
+          enable: true
+        gwAPIInferenceExtension:
+          enable: true
+        snippets:
+          enable: true

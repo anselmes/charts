@@ -1,0 +1,50 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: envoy-gateway-api
+  namespace: kube-system
+spec:
+  interval: 10m0s
+  releaseName: envoy-gateway-api
+  timeout: 15m0s
+  dependsOn:
+    - name: flux
+      namespace: sre
+  chart:
+    spec:
+      interval: 5m
+      chart: gwapi
+      version: 1.0.3
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  # TODO: images
+  # postRenderers:
+  #   - kustomize:
+  #       images:
+  #         - name: ""
+  #           newName: ""
+  #           newTag: ""
+  values:
+    envoy:
+      classes:
+        - name: envoy
+      config:
+        envoyGateway:
+          gateway:
+            controllerName: gateway.envoyproxy.io/gatewayclass-controller
+          provider:
+            type: Kubernetes
+          logging:
+            level:
+              default: info
+          extensionApis: {}

@@ -1,0 +1,56 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: demo
+  namespace: default
+spec:
+  interval: 10m0s
+  releaseName: demo
+  timeout: 15m0s
+  dependsOn:
+    - name: flux
+      namespace: sre
+    # - name: traefik-gateway-api
+    #   namespace: kube-system
+  chart:
+    spec:
+      interval: 5m
+      chart: mke-demo-app
+      version: 0.1.1
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  # TODO: images
+  # postRenderers:
+  #   - kustomize:
+  #       images:
+  #         - name: ""
+  #           newName: ""
+  #           newTag: ""
+  # values:
+  #   gateway:
+  #     routes:
+  #       - name:  demo
+  #         kind: HTTPRoute
+  #         hostnames:
+  #           - demo.k8s.orb.local
+  #         rules:
+  #           - matches:
+  #               - path:
+  #                   type: PathPrefix
+  #                   value: /
+  #             backendRefs:
+  #               - name: demo-mke-demo-app
+  #                 port: 8080
+  #         gateways:
+  #           - name: traefik
+  #             namespace: kube-system

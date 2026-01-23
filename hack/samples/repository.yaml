@@ -1,0 +1,13 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: labsonline-catalog
+  namespace: sre
+spec:
+  provider: generic
+  interval: 10m0s
+  type: oci
+  url: oci://ghcr.io/labsonline/charts
+  # secretRef:
+  #   name: labsonline
