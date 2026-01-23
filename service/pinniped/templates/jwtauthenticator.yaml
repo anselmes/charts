@@ -1,16 +1,54 @@
 {{- if .Values.auth.enabled }}
 ---
-apiVersion: authentication.concierge.pinniped.dev/v1alpha1
-kind: JWTAuthenticator
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: {{ .Values.auth.name }}
+  name: {{ include "pinniped.fullname" . }}-jwt-auth
   labels:
     {{- include "pinniped.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
-  issuer: {{ .Values.auth.issuer.url }}
-  audience: {{ .Values.auth.audience }}
-  {{- if .Values.auth.issuer.ca }}
-  tls:
-    certificateAuthorityData: {{ .Values.auth.issuer.ca | b64enc }}
-  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "pinniped.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "pinniped.fullname" . }}-crd-waiter
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+
+              echo "Waiting for JWTAuthenticator CRD to become available..."
+              until kubectl get crd jwtauthenticators.authentication.concierge.pinniped.dev >/dev/null 2>&1; do
+                echo "Waiting for jwtauthenticators.authentication.concierge.pinniped.dev CRD..."
+                sleep 5
+              done
+
+              echo "Creating JWTAuthenticator..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: authentication.concierge.pinniped.dev/v1alpha1
+              kind: JWTAuthenticator
+              metadata:
+                name: {{ include "pinniped.fullname" . }}-jwt-auth
+                labels:
+                  {{- include "pinniped.labels" . | nindent 14 }}
+              spec:
+                issuer: {{ .Values.auth.issuer.url }}
+                audience: {{ .Values.auth.audience }}
+                {{- if .Values.auth.issuer.ca }}
+                tls:
+                  certificateAuthorityData: {{ .Values.auth.issuer.ca | b64enc }}
+                {{- end }}
+              EOF
+
+              echo "JWTAuthenticator created successfully!"
 {{- end }}

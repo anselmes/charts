@@ -1,57 +1,137 @@
 # NOTES
 
-Thank you for installing the Pinniped Helm chart!
+Thank you for installing the Pinniped Service Chart!
 
-This chart deploys Pinniped and its associated resources, enabling secure authentication and authorization for your Kubernetes cluster.
+This chart deploys Pinniped custom resources and configuration, enabling secure authentication and authorization for your Kubernetes cluster.
+
+## Deployment Status
+
+{{- if or .Values.idp.enabled .Values.auth.enabled .Values.domain.enabled }}
+
+### Custom Resources Created
+
+{{- if .Values.idp.enabled }}
+- **OIDCIdentityProvider**: {{ .Values.idp.name }}
+{{- end }}
+{{- if .Values.auth.enabled }}
+- **JWTAuthenticator**: {{ .Values.auth.name }}
+{{- end }}
+{{- if .Values.domain.enabled }}
+- **FederationDomain**: {{ .Values.domain.name }}
+{{- end }}
+
+### Verification Commands
+
+1. **Check CRD Availability**:
+   ```bash
+   kubectl get crd | grep pinniped
+   ```
+
+2. **Verify Custom Resources**:
+{{- if .Values.idp.enabled }}
+   ```bash
+   kubectl get oidcidentityprovider {{ .Values.idp.name }} -n {{ .Release.Namespace }}
+   ```
+{{- end }}
+{{- if .Values.auth.enabled }}
+   ```bash
+   kubectl get jwtauthenticator {{ .Values.auth.name }}
+   ```
+{{- end }}
+{{- if .Values.domain.enabled }}
+   ```bash
+   kubectl get federationdomain {{ .Values.domain.name }} -n {{ .Release.Namespace }}
+   ```
+{{- end }}
+
+3. **Check Job Status** (CRD wait jobs):
+   ```bash
+   kubectl get jobs -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+   ```
+
+### Troubleshooting
+
+If custom resources are not created:
+
+1. **Check CRD Wait Jobs**:
+   ```bash
+   kubectl describe job {{ include "pinniped.fullname" . }}-crd-waiter -n {{ .Release.Namespace }}
+   ```
+
+2. **View Job Logs**:
+   ```bash
+   kubectl logs job/{{ include "pinniped.fullname" . }}-crd-waiter -n {{ .Release.Namespace }}
+   ```
+
+3. **Verify Pinniped Operator**:
+   ```bash
+   kubectl get pods -n pinniped-system
+   kubectl logs -n pinniped-system -l app=pinniped-supervisor
+   kubectl logs -n pinniped-system -l app=pinniped-concierge
+   ```
+
+{{- else }}
+
+### No Custom Resources Enabled
+
+All Pinniped custom resources are currently disabled. To enable them, set:
+- `idp.enabled: true` for OIDCIdentityProvider
+- `auth.enabled: true` for JWTAuthenticator
+- `domain.enabled: true` for FederationDomain
+
+{{- end }}
+
+## Configuration
+
+{{- if .Values.ca.enabled }}
+### Certificate Authority
+CA dependency is enabled. Certificates will be managed by the CA chart.
+{{- end }}
+
+{{- if .Values.gateway.enabled }}
+### Gateway Configuration
+Gateway dependency is enabled. Routes and policies will be managed by the Gateway chart.
+{{- end }}
+
+{{- if .Values.rbac }}
+### Custom RBAC
+{{ len .Values.rbac }} custom RBAC binding(s) configured.
+{{- end }}
 
 ## Next Steps
 
-1. **Verify Installation**:
-   - Check the status of the Pinniped pods to ensure they are running:
-     ```bash
-     kubectl get pods -n <namespace> -l app.kubernetes.io/name=pinniped
-     ```
+1. **Install Pinniped Operator** (if not already installed):
+   ```bash
+   kubectl apply -f https://get.pinniped.dev/latest/install-pinniped-concierge-crds.yaml
+   kubectl apply -f https://get.pinniped.dev/latest/install-pinniped-concierge.yaml
+   kubectl apply -f https://get.pinniped.dev/latest/install-pinniped-supervisor-crds.yaml
+   kubectl apply -f https://get.pinniped.dev/latest/install-pinniped-supervisor.yaml
+   ```
 
-2. **Validate Pinniped Functionality**:
-   - Ensure that Pinniped is properly configured and operational:
-     - Check the logs of the Pinniped pods for any errors:
-       ```bash
-       kubectl logs -n <namespace> -l app.kubernetes.io/name=pinniped
-       ```
-     - Verify that the Pinniped supervisor and concierge are running:
-       ```bash
-       kubectl get deployment -n <namespace>
-       ```
+2. **Configure kubectl** for Pinniped authentication:
+   ```bash
+   pinniped get kubeconfig --oidc-issuer={{ .Values.auth.issuer.url }}
+   ```
 
-3. **Configure Authentication**:
-   - Set up your identity provider (OIDC, LDAP, etc.) with Pinniped:
-     ```bash
-     kubectl get federationdomain -n <namespace>
-     ```
-   - Verify webhook authenticators are configured:
-     ```bash
-     kubectl get webhookauthenticator -n <namespace>
-     ```
+3. **Test Authentication**:
+   ```bash
+   kubectl get nodes --kubeconfig pinniped-kubeconfig
+   ```
 
-4. **Test Authentication**:
-   - Use the Pinniped CLI to test authentication:
-     ```bash
-     pinniped get kubeconfig --static-token-env PINNIPED_TOKEN
-     ```
+## Uninstallation
 
-5. **Uninstallation**:
-   - To uninstall the chart and remove all associated resources, run:
-     ```bash
-     helm uninstall <release-name> -n <namespace>
-     ```
+To remove this chart and its resources:
+```bash
+helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
+```
 
 ## Additional Information
 
-- For more details on Pinniped and its configuration, refer to the [official documentation](https://pinniped.dev/docs/).
-- If you encounter any issues:
-  - Check the events in the namespace where Pinniped is deployed:
-    ```bash
-    kubectl get events -n <namespace>
-    ```
-  - Review the logs of the Pinniped pods for troubleshooting.
-  - Verify your identity provider configuration and network
+- **Chart Version**: {{ .Chart.Version }}
+- **Namespace**: {{ .Release.Namespace }}
+- **Release Name**: {{ .Release.Name }}
+- **Documentation**: [Pinniped Documentation](https://pinniped.dev/docs/)
+- **Issues**: Check events and logs for troubleshooting:
+  ```bash
+  kubectl get events -n {{ .Release.Namespace }} --sort-by=.lastTimestamp
+  ```

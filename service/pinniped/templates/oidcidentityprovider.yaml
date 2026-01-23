@@ -1,24 +1,63 @@
 {{- if .Values.idp.enabled }}
 ---
-apiVersion: idp.supervisor.pinniped.dev/v1alpha1
-kind: OIDCIdentityProvider
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: {{ .Values.idp.name }}
+  name: {{ include "pinniped.fullname" . }}-oidc-idp
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "pinniped.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
-  issuer: {{ .Values.idp.issuer.url }}
-  {{- if .Values.idp.issuer.ca }}
-  tls:
-    certificateAuthorityData: {{ .Values.idp.issuer.ca | b64enc }}
-  {{- end }}
-  authorizationConfig:
-    additionalScopes: [offline_access, groups, email]
-    allowPasswordGrant: false
-  claims:
-    username: email
-    groups: groups
-  client:
-    secretName: {{ .Values.idp.issuer.secret.name }}
+  template:
+    metadata:
+      labels:
+        {{- include "pinniped.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "pinniped.fullname" . }}-crd-waiter
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+
+              echo "Waiting for OIDCIdentityProvider CRD to become available..."
+              until kubectl get crd oidcidentityproviders.idp.supervisor.pinniped.dev >/dev/null 2>&1; do
+                echo "Waiting for oidcidentityproviders.idp.supervisor.pinniped.dev CRD..."
+                sleep 5
+              done
+
+              echo "Creating OIDCIdentityProvider..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: idp.supervisor.pinniped.dev/v1alpha1
+              kind: OIDCIdentityProvider
+              metadata:
+                name: {{ include "pinniped.fullname" . }}-oidc-idp
+                namespace: {{ .Release.Namespace }}
+                labels:
+                  {{- include "pinniped.labels" . | nindent 14 }}
+              spec:
+                issuer: {{ .Values.idp.issuer.url }}
+                {{- if .Values.idp.issuer.ca }}
+                tls:
+                  certificateAuthorityData: {{ .Values.idp.issuer.ca | b64enc }}
+                {{- end }}
+                authorizationConfig:
+                  additionalScopes: [offline_access, groups, email]
+                  allowPasswordGrant: false
+                claims:
+                  username: email
+                  groups: groups
+                client:
+                  secretName: {{ include "pinniped.fullname" . }}-oidc-credentials
+              EOF
+
+              echo "OIDCIdentityProvider created successfully!"
 {{- end }}

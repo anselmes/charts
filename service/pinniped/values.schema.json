@@ -239,34 +239,6 @@
       },
       "required": ["enabled"]
     },
-    "gateway": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Enable gateway configuration"
-        },
-        "name": {
-          "type": "string",
-          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
-          "description": "Gateway name"
-        },
-        "namespace": {
-          "type": "string",
-          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
-          "description": "Gateway namespace"
-        },
-        "hostnames": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^[a-z0-9.-]+$"
-          },
-          "description": "Gateway hostnames"
-        }
-      },
-      "required": ["enabled"]
-    },
     "pinniped": {
       "type": "object",
       "properties": {
@@ -366,7 +338,185 @@
         }
       },
       "required": ["install"]
+    },
+    "ca": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable certificate authority"
+        },
+        "issuers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+                "description": "Issuer name"
+              },
+              "selfSigned": {
+                "type": "boolean",
+                "description": "Create self-signed issuer"
+              },
+              "secret": {
+                "type": "object",
+                "properties": {
+                  "create": {
+                    "type": "boolean",
+                    "description": "Create secret for issuer"
+                  }
+                },
+                "required": ["create"]
+              }
+            },
+            "required": ["name"]
+          },
+          "description": "Certificate issuers configuration"
+        },
+        "certificates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+                "description": "Certificate name"
+              },
+              "dns": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Primary DNS name"
+                  },
+                  "aliases": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Alternative DNS names"
+                  }
+                },
+                "required": ["name"]
+              },
+              "issuerRef": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+                    "description": "Issuer name"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": ["Issuer", "ClusterIssuer"],
+                    "description": "Issuer kind"
+                  }
+                },
+                "required": ["name", "kind"]
+              }
+            },
+            "required": ["name"]
+          },
+          "description": "Certificates configuration"
+        }
+      },
+      "required": ["enabled"]
+    },
+    "gateway": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable gateway configuration"
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+                "description": "Route name"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["HTTPRoute", "TCPRoute", "UDPRoute"],
+                "description": "Route kind"
+              },
+              "hostnames": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9.-]+$"
+                },
+                "description": "Route hostnames"
+              },
+              "rules": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "description": "Route rules"
+              },
+              "gateways": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                    }
+                  }
+                },
+                "description": "Associated gateways"
+              }
+            },
+            "required": ["name"]
+          },
+          "description": "Gateway routes configuration"
+        },
+        "policies": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "Gateway policies configuration"
+        },
+        "gateways": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+                "description": "Gateway name"
+              },
+              "className": {
+                "type": "string",
+                "description": "Gateway class name"
+              },
+              "listeners": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "description": "Gateway listeners"
+              }
+            },
+            "required": ["name"]
+          },
+          "description": "Gateway configurations"
+        }
+      },
+      "required": ["enabled"]
     }
   },
-  "required": ["rbac", "auth", "domain", "idp", "gateway", "pinniped"]
+  "required": ["rbac", "auth", "domain", "idp", "gateway", "pinniped", "ca"]
 }

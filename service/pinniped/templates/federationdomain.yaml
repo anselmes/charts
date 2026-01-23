@@ -1,24 +1,63 @@
 {{- if .Values.domain.enabled }}
 ---
-apiVersion: config.supervisor.pinniped.dev/v1alpha1
-kind: FederationDomain
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: {{ .Values.domain.name }}
+  name: {{ include "pinniped.fullname" . }}-federation-domain
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "pinniped.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
-  issuer: {{ .Values.domain.issuer.url }}
-  tls:
-    secretName: {{ .Values.domain.issuer.cert.name }}
-  {{- with .Values.domain.providers }}
-  identityProviders:
-    {{- range . }}
-    - displayName: {{ .name }}
-      objectRef:
-        apiGroup: idp.supervisor.pinniped.dev
-        kind: OIDCIdentityProvider
-        name: {{ .name }}
-    {{- end }}
-  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "pinniped.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "pinniped.fullname" . }}-crd-waiter
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+
+              echo "Waiting for FederationDomain CRD to become available..."
+              until kubectl get crd federationdomains.config.supervisor.pinniped.dev >/dev/null 2>&1; do
+                echo "Waiting for federationdomains.config.supervisor.pinniped.dev CRD..."
+                sleep 5
+              done
+
+              echo "Creating FederationDomain..."
+              kubectl apply -f - <<'EOF'
+              apiVersion: config.supervisor.pinniped.dev/v1alpha1
+              kind: FederationDomain
+              metadata:
+                name: {{ include "pinniped.fullname" . }}-federation-domain
+                namespace: {{ .Release.Namespace }}
+                labels:
+                  {{- include "pinniped.labels" . | nindent 14 }}
+              spec:
+                issuer: {{ .Values.domain.issuer.url }}
+                tls:
+                  secretName: {{ .Values.domain.issuer.cert.name }}
+                {{- with .Values.domain.providers }}
+                identityProviders:
+                  {{- range . }}
+                  - displayName: {{ .name }}
+                    objectRef:
+                      apiGroup: idp.supervisor.pinniped.dev
+                      kind: OIDCIdentityProvider
+                      name: {{ .name }}
+                  {{- end }}
+                {{- end }}
+              EOF
+
+              echo "FederationDomain created successfully!"
 {{- end }}

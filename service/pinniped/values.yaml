@@ -29,44 +29,24 @@ auth:
 
 domain:
   enabled: false
-  name: default-federation-domain
   providers: []
   #   - name: vault
   issuer:
     url: https://pinniped-supervisor.ucp.svc.cluster.local/default
-    cert:
-      create: true
-      name: supervisor-tls-cert
-      dnsNames:
-        - pinniped-supervisor.ucp.svc.cluster.local
-      issuerRef:
-        kind: ClusterIssuer
-        name: vault-ca-issuer
 
 # MARK: IDP
 
 idp:
   enabled: false
-  name: vault
   issuer:
     url: https://vault.ucp.svc.cluster.local:8200/v1/identity/oidc/provider/default
     secret:
       create: true
-      name: pinniped-oidc-credentials
       clientID: null
       clientSecret: null
     # ca: |
     #   -----BEGIN CERTIFICATE-----
     #   -----END CERTIFICATE-----
-
-# MARK: Gateway
-
-gateway:
-  enabled: false
-  name: tls-gateway
-  namespace: kube-system
-  hostnames:
-    - pinniped.dev.local
 
 # MARK: Pinniped
 
@@ -133,3 +113,116 @@ pinniped:
     service:
       public:
         type: ClusterIP
+
+ca:
+  enabled: false
+
+  # MARK: - Issuer
+
+  issuers:
+    - name: pinniped-ca-issuer
+      selfSigned: true
+      secret:
+        create: false
+
+  # MARK: - Certificate
+
+  certificates:
+    - name: supervisor-tls-cert
+      dns:
+        name: pinniped-supervisor.ucp.svc.cluster.local
+        aliases:
+          - pinniped-supervisor.ucp.svc.cluster.local
+          - pinniped-supervisor.ucp.svc
+          - pinniped-supervisor.ucp
+          - pinniped-supervisor
+      issuerRef:
+        name: pinniped-ca-issuer
+        kind: Issuer
+
+gateway:
+  enabled: false
+
+  # MARK: Routes
+
+  routes:
+    - name: msr
+      kind: HTTPRoute
+      hostnames:
+        - msr.local
+      rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /api/
+          backendRefs:
+            - name: msr-harbor-core
+              port: 80
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /service/
+          backendRefs:
+            - name: msr-harbor-core
+              port: 80
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /v2/
+          backendRefs:
+            - name: msr-harbor-core
+              port: 80
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /c/
+          backendRefs:
+            - name: msr-harbor-core
+              port: 80
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+          backendRefs:
+            - name: msr-harbor-portal
+              port: 80
+      gateways:
+        - name: pinniped-gateway
+
+  # MARK: Policies
+
+  policies:
+    []
+    # - name: tls-upstream-dev
+    #   validation:
+    #     hostname: dev.example.com
+    #     wellKnownCACertificates: System
+    #     # caCertificateRefs:
+    #     #   - group: ""
+    #     #     kind: ConfigMap
+    #     #     name: auth-cert
+
+  # MARK: Gateways
+
+  gateways:
+    - name: pinniped-gateway
+      className: envoy
+      listeners:
+        - name: http
+          port: 80
+          protocol: HTTP
+          allowedRoutes:
+            namespaces:
+              from: All
+        # - name: https
+        #   port: 443
+        #   protocol: HTTPS
+        #   hostname: pinniped.local
+        #   allowedRoutes:
+        #     namespaces:
+        #       from: All
+        #   tls:
+        #     mode: Terminate
+        #     certificateRefs:
+        #       - name: pinniped-gw-cert
+        #         issuer: pinniped-ca-issuer
