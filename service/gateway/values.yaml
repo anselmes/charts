@@ -4,61 +4,66 @@
 
 # Define the routes for the Gateway API.
 # Each route specifies the type of traffic (e.g., HTTP, TLS, gRPC) and the backend services to route to.
-routes: []
-# - name: nginx
-#   kind: HTTPRoute
-#   hostnames:
-#     - nginx.local
-#   rules:
-#     - backendRefs:
-#         - name: nginx-svc
-#           port: 80
-#   gateways:
-#     - name: default-gateway
-#       namespace: default
-# - name: kafka
-#   kind: TLSRoute
-#   rules:
-#     - backendRefs:
-#         - name: kafka-svc
-#           port: 9092
-#   gateways:
-#     - name: tls-gateway
-# - name: hello-world
-#   kind: GRPCRoute
-#   rules:
-#     - backendRefs:
-#         - name: hello-world-svc
-#           port: 8080
-#   gateways:
-#     - name: grpc-gateway
+routes:
+  []
+  # - name: nginx
+  #   kind: HTTPRoute
+  #   hostnames:
+  #     - nginx.local
+  #   rules:
+  #     - backendRefs:
+  #         - name: nginx-svc
+  #           port: 80
+  #   gateways:
+  #     - name: default-gateway
+  #       namespace: default
+  # - name: kafka
+  #   kind: TLSRoute
+  #   rules:
+  #     - backendRefs:
+  #         - name: kafka-svc
+  #           port: 9092
+  #   gateways:
+  #     - name: tls-gateway
+  # - name: hello-world
+  #   kind: GRPCRoute
+  #   rules:
+  #     - backendRefs:
+  #         - name: hello-world-svc
+  #           port: 8080
+  #   gateways:
+  #     - name: grpc-gateway
 
 # MARK: Policies
 
 # Define policies for the Gateway API.
 # Policies can include validation rules, such as hostname validation or certificate references.
-policies: []
-# - name: tls-upstream-dev
-#   validation:
-#     hostname: dev.example.com
-#     wellKnownCACertificates: System
-#     # caCertificateRefs:
-#     #   - group: ""
-#     #     kind: ConfigMap
-#     #     name: auth-cert
+policies:
+  []
+  # - name: tls-upstream-dev
+  #   validation:
+  #     hostname: dev.example.com
+  #     wellKnownCACertificates: System
+  #     # caCertificateRefs:
+  #     #   - group: ""
+  #     #     kind: ConfigMap
+  #     #     name: auth-cert
 
 # MARK: Grants
 
 # Define resource grants for the Gateway API.
 # Grants specify which resources (e.g., Secrets) can be referenced by Gateways.
-grants: []
-# - name: allow-ns1-gateways-to-ref-secrets
-#   to:
-#     - group: ""
-#       kind: Secret
-#   from:
-#     - group: gateway.networking.k8s.io
-#       kind: Gateway
+grants:
+  []
+  # - name: allow-gateways-to-ref-secrets
+  #   to:
+  #     - group: ""
+  #       kind: Secret
+  #       namespace: cert-manager
+  #   from:
+  #     - group: gateway.networking.k8s.io
+  #       kind: Gateway
+  #       namespace: kube-system
 
 # MARK: Gateways
 
