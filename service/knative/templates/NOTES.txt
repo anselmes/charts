@@ -1,0 +1,126 @@
+{{/*
+Knative Chart - Deployment Status
+*/}}
+Knative has been installed successfully!
+
+Chart Details:
+- Chart Version: {{ .Chart.Version }}
+{{- if .Values.version }}
+- Knative Version: {{ .Values.version }}
+{{- end }}
+- Namespace: {{ .Release.Namespace | default "knative" }}
+
+Components Deployed:
+{{- if .Values.server.enabled }}
+✓ Knative Serving: Enabled
+  - Ingress Type: {{ .Values.server.ingress.type }}
+  {{- if eq .Values.server.ingress.type "kourier" }}
+  - Kourier service type: {{ .Values.server.network.kourier.service.type }}
+  {{- end }}
+  {{- if .Values.server.certmanager.enabled }}
+  - Auto TLS: Enabled with cert-manager
+  {{- end }}
+  - Domain: {{ .Values.server.domain }}
+{{- else }}
+✗ Knative Serving: Disabled
+{{- end }}
+
+{{- if .Values.event.enabled }}
+✓ Knative Eventing: Enabled
+  - Default Broker Class: {{ .Values.event.defaultBrokerClass }}
+  {{- if .Values.event.sources.enabled }}
+  - Event Sources: Configured
+    {{- if .Values.event.sources.kafka }}
+    - Kafka: Enabled
+    {{- end }}
+    {{- if .Values.event.sources.rabbitmq }}
+    - RabbitMQ: Enabled
+    {{- end }}
+    {{- if .Values.event.sources.redis }}
+    - Redis: Enabled
+    {{- end }}
+    {{- if .Values.event.sources.github }}
+    - GitHub: Enabled
+    {{- end }}
+  {{- end }}
+{{- else }}
+✗ Knative Eventing: Disabled
+{{- end }}
+
+{{- if and .Values.resources .Values.resources.rabbitmq .Values.resources.rabbitmq.enabled }}
+✓ RabbitMQ Resources: Configured
+  {{- if .Values.resources.rabbitmq.brokers }}
+  - Brokers: {{ len .Values.resources.rabbitmq.brokers }} configured
+  {{- end }}
+  {{- if .Values.resources.rabbitmq.sources }}
+  - Sources: {{ len .Values.resources.rabbitmq.sources }} configured
+  {{- end }}
+{{- end }}
+
+Next Steps:
+
+1. Verify installation:
+   kubectl get knativeserving knative-serving -n knative-serving
+   {{- if .Values.event.enabled }}
+   kubectl get knativeeventing knative-eventing -n knative-eventing
+   {{- end }}
+
+2. Check component status:
+   {{- if .Values.server.enabled }}
+   kubectl get pods -n knative-serving
+   {{- end }}
+   {{- if .Values.event.enabled }}
+   kubectl get pods -n knative-eventing
+   {{- end }}
+
+3. Test your first Knative Service:
+   kubectl apply -f - <<EOF
+   apiVersion: serving.knative.dev/v1
+   kind: Service
+   metadata:
+     name: hello
+   spec:
+     template:
+       spec:
+         containers:
+         - image: gcr.io/knative-samples/helloworld-go
+           ports:
+           - containerPort: 8080
+           env:
+           - name: TARGET
+             value: "World"
+   EOF
+
+4. Get service URL:
+   kubectl get ksvc hello
+
+Troubleshooting:
+
+If components are not ready:
+{{- if .Values.server.enabled }}
+- Check Knative Serving: kubectl describe knativeserving knative-serving -n knative-serving
+{{- end }}
+{{- if .Values.event.enabled }}
+- Check Knative Eventing: kubectl describe knativeeventing knative-eventing -n knative-eventing
+{{- end }}
+- Check operator logs: kubectl logs -n knative-operator deployment/knative-operator
+
+If services are not accessible:
+{{- if eq .Values.server.ingress.type "kourier" }}
+- Check Kourier status: kubectl get pods -n kourier-system
+- Check gateway: kubectl get gateway -A
+{{- end }}
+{{- if eq .Values.server.ingress.type "gateway-api" }}
+- Check Gateway API resources: kubectl get gateway,httproute -A
+{{- end }}
+{{- if .Values.server.certmanager.enabled }}
+- Check certificates: kubectl get certificate,certificaterequest -A
+{{- end }}
+
+For more information:
+- Knative Documentation: https://knative.dev/docs/
+- Serving Guide: https://knative.dev/docs/serving/
+{{- if .Values.event.enabled }}
+- Eventing Guide: https://knative.dev/docs/eventing/
+{{- end }}
+- Troubleshooting: https://knative.dev/docs/serving/troubleshooting/

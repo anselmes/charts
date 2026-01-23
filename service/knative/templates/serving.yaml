@@ -1,82 +1,121 @@
 {{- if .Values.server.enabled }}
 ---
-apiVersion: operator.knative.dev/v1beta1
-kind: KnativeServing
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: knative-serving
+  name: create-knative-serving
   labels:
     {{- include "knative.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
 spec:
-  version: {{ .Values.version | quote }}
-  high-availability:
-    replicas: {{ .Values.server.replicas }}
-  {{- if .Values.server.security }}
-  security:
-    securityGuard:
-      enabled: {{ .Values.server.security.guard }}
-  {{- end }}
-  ingress:
-    {{- if eq .Values.server.ingress.type "kourier" }}
-    kourier:
-      enabled: true
-      service-type: {{ .Values.server.network.kourier.service.type }}
-    {{- end }}
-    {{- if eq .Values.server.ingress.type "gateway-api" }}
-    istio:
-      enabled: false
-    {{- end }}
-  config:
-    domain:
-      "{{ .Values.server.domain }}": ""
-    {{- if .Values.server.certmanager.enabled }}
-    certmanager:
-      issuerRef: |
-        kind: ClusterIssuer
-        name: {{ .Values.server.certmanager.issuerRef.clusterIssuer.name }}
-      clusterLocalIssuerRef: |
-        kind: ClusterIssuer
-        name: {{ .Values.server.certmanager.issuerRef.clusterIssuer.name }}
-      systemInternalIssuerRef: |
-        kind: Issuer
-        name: {{ .Values.server.certmanager.issuerRef.localIssuer.name }}
-    {{- end }}
-    {{- if eq .Values.server.ingress.type "gateway-api" }}
-    gateway:
-      external-gateways: |
-        - class: {{ .Values.server.network.gatewayAPI.external.class | default "envoy" }}
-          gateway: {{ .Values.server.network.gatewayAPI.external.name | default "kube-system/default" }}
-          service: {{ .Values.server.network.gatewayAPI.external.service | default "kube-system/envoy-gateway-default" }}
-          supported-features:
-            - HTTPRouteRequestTimeout
-      local-gateways: |
-        - class: {{ .Values.server.network.gatewayAPI.internal.class | default "envoy" }}
-          gateway: {{ .Values.server.network.gatewayAPI.internal.name | default "kube-system/knative" }}
-          service: {{ .Values.server.network.gatewayAPI.internal.service | default "kube-system/envoy-gateway-knative" }}
-          supported-features:
-            - HTTPRouteRequestTimeout
-    {{- end }}
-    network:
-      {{- if eq .Values.server.ingress.type "kourier" }}
-      ingress-class: kourier.ingress.networking.server.dev
-      {{- end }}
-      {{- if eq .Values.server.ingress.type "gateway-api" }}
-      ingress-class: gateway-api.ingress.networking.knative.dev
-      {{- end }}
-      {{- if .Values.server.certmanager.enabled }}
-      auto-tls: Enabled
-      http-protocol: Redirected
-      namespace-wildcard-cert-selector: '{"matchExpressions": [{"key":"networking.knative.dev/disableWildcardCert", "operator": "NotIn", "values":["true"]}]}'
-      {{- end }}
-    deployment:
-      registriesSkippingTagResolving: kind.local,ko.local,dev.local,knative.registry.svc.cluster.local
-  {{- if .Values.server.network.gatewayAPI.enabled }}
-  additionalManifests:
-    - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/200-clusterrole.yaml
-    - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/300-controller.yaml
-    - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/400-webhook-deployment.yaml
-    - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/400-webhook-secret.yaml
-    - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/400-webhook-service.yaml
-    - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/500-validating-webhook.yaml
-    - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/config-gateway.yaml
-  {{- end }}
+  template:
+    spec:
+      serviceAccountName: knative-resource-creator
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for Knative operator CRDs to be available..."
+              for i in {1..60}; do
+                if kubectl get crd knativeservings.operator.knative.dev >/dev/null 2>&1; then
+                  echo "CRD found, creating KnativeServing"
+                  cat <<EOF | kubectl apply -f -
+              apiVersion: operator.knative.dev/v1beta1
+              kind: KnativeServing
+              metadata:
+                name: knative-serving
+                labels:
+                  {{- include "knative.labels" . | nindent 14 }}
+              spec:
+                version: {{ .Values.version | quote }}
+                high-availability:
+                  replicas: {{ .Values.server.replicas }}
+                {{- if .Values.server.security }}
+                security:
+                  securityGuard:
+                    enabled: {{ .Values.server.security.guard }}
+                {{- end }}
+                ingress:
+                  {{- if eq .Values.server.ingress.type "kourier" }}
+                  kourier:
+                    enabled: true
+                    service-type: {{ .Values.server.network.kourier.service.type }}
+                  {{- end }}
+                  {{- if eq .Values.server.ingress.type "gateway-api" }}
+                  istio:
+                    enabled: false
+                  {{- end }}
+                config:
+                  domain:
+                    "{{ .Values.server.domain }}": ""
+                  {{- if .Values.server.certmanager.enabled }}
+                  certmanager:
+                    issuerRef: |
+                      kind: ClusterIssuer
+                      name: {{ .Values.server.certmanager.issuerRef.clusterIssuer.name }}
+                    clusterLocalIssuerRef: |
+                      kind: ClusterIssuer
+                      name: {{ .Values.server.certmanager.issuerRef.clusterIssuer.name }}
+                    systemInternalIssuerRef: |
+                      kind: Issuer
+                      name: {{ .Values.server.certmanager.issuerRef.localIssuer.name }}
+                  {{- end }}
+                  {{- if eq .Values.server.ingress.type "gateway-api" }}
+                  gateway:
+                    external-gateways: |
+                      - class: {{ .Values.server.network.gatewayAPI.external.class | default "envoy" }}
+                        gateway: {{ .Values.server.network.gatewayAPI.external.name | default "kube-system/default" }}
+                        service: {{ .Values.server.network.gatewayAPI.external.service | default "kube-system/envoy-gateway-default" }}
+                        supported-features:
+                          - HTTPRouteRequestTimeout
+                    local-gateways: |
+                      - class: {{ .Values.server.network.gatewayAPI.internal.class | default "envoy" }}
+                        gateway: {{ .Values.server.network.gatewayAPI.internal.name | default "kube-system/knative" }}
+                        service: {{ .Values.server.network.gatewayAPI.internal.service | default "kube-system/envoy-gateway-knative" }}
+                        supported-features:
+                          - HTTPRouteRequestTimeout
+                  {{- end }}
+                  network:
+                    {{- if eq .Values.server.ingress.type "kourier" }}
+                    ingress-class: kourier.ingress.networking.server.dev
+                    {{- end }}
+                    {{- if eq .Values.server.ingress.type "gateway-api" }}
+                    ingress-class: gateway-api.ingress.networking.knative.dev
+                    {{- end }}
+                    {{- if .Values.server.certmanager.enabled }}
+                    auto-tls: Enabled
+                    http-protocol: Redirected
+                    namespace-wildcard-cert-selector: '{"matchExpressions": [{"key":"networking.knative.dev/disableWildcardCert", "operator": "NotIn", "values":["true"]}]}'
+                    {{- end }}
+                  deployment:
+                    registriesSkippingTagResolving: kind.local,ko.local,dev.local,knative.registry.svc.cluster.local
+                {{- if .Values.server.network.gatewayAPI.enabled }}
+                additionalManifests:
+                  - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/200-clusterrole.yaml
+                  - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/300-controller.yaml
+                  - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/400-webhook-deployment.yaml
+                  - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/400-webhook-secret.yaml
+                  - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/400-webhook-service.yaml
+                  - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/500-validating-webhook.yaml
+                  - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/config-gateway.yaml
+                {{- end }}
+              EOF
+
+              echo "Waiting for KnativeServing CRD to become available..."
+              until kubectl get crd knativeservings.operator.knative.dev >/dev/null 2>&1; do
+                echo "Waiting for knativeservings.operator.knative.dev CRD..."
+                sleep 5
+              done
+
+              echo "Applying KnativeServing configuration..."
+              kubectl apply -f /tmp/serving.yaml || exit 1
+
+              echo "KnativeServing resource created successfully"
 {{- end }}

@@ -1,24 +1,62 @@
 {{- if and .Values.resources .Values.resources.rabbitmq .Values.resources.rabbitmq.enabled .Values.resources.rabbitmq.clusterRef }}
-{{- range .Values.resources.rabbitmq.brokers }}
-{{- if .config.create }}
-{{- $vhost := $.Values.resources.rabbitmq.clusterRef.vhost }}
-{{- $clusterName := $.Values.resources.rabbitmq.clusterRef.name }}
-{{- $clusterNamespace := $.Values.resources.rabbitmq.clusterRef.namespace | default "default" }}
 ---
-apiVersion: eventing.knative.dev/v1alpha1
-kind: RabbitmqBrokerConfig
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: {{ .config.name }}
+  name: "{{ include "knative.fullname" . }}-broker-config"
   labels:
-    {{- include "knative.labels" $ | nindent 4 }}
+    {{- include "knative.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
-  queueType: {{ .config.queueType }}
-  {{- if $vhost }}
-  vhost: {{ $vhost }}
-  {{- end }}
-  rabbitmqClusterReference:
-    name: {{ $clusterName }}
-    namespace: {{ $clusterNamespace }}
-{{- end }}
-{{- end }}
+  template:
+    spec:
+      serviceAccountName: {{ include "knative.fullname" . }}
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+
+              cat > /tmp/broker-configs.yaml <<'EOF'
+              {{- range .Values.resources.rabbitmq.brokers }}
+              {{- if .config.create }}
+              {{- $vhost := $.Values.resources.rabbitmq.clusterRef.vhost }}
+              {{- $clusterName := $.Values.resources.rabbitmq.clusterRef.name }}
+              {{- $clusterNamespace := $.Values.resources.rabbitmq.clusterRef.namespace | default "default" }}
+              ---
+              apiVersion: eventing.knative.dev/v1alpha1
+              kind: RabbitmqBrokerConfig
+              metadata:
+                name: {{ .config.name }}
+                labels:
+                  {{- include "knative.labels" $ | nindent 12 }}
+              spec:
+                queueType: {{ .config.queueType }}
+                {{- if $vhost }}
+                vhost: {{ $vhost }}
+                {{- end }}
+                rabbitmqClusterReference:
+                  name: {{ $clusterName }}
+                  namespace: {{ $clusterNamespace }}
+              {{- end }}
+              {{- end }}
+              EOF
+
+              echo "Waiting for RabbitmqBrokerConfig CRD to become available..."
+              until kubectl get crd rabbitmqbrokerconfigs.eventing.knative.dev >/dev/null 2>&1; do
+                echo "Waiting for rabbitmqbrokerconfigs.eventing.knative.dev CRD..."
+                sleep 5
+              done
+
+              echo "Applying RabbitmqBrokerConfig configurations..."
+              kubectl apply -f /tmp/broker-configs.yaml || exit 1
+
+              echo "RabbitmqBrokerConfig resources created successfully"
 {{- end }}

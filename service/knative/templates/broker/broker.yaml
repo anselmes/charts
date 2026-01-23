@@ -1,24 +1,62 @@
 {{- if .Values.resources.rabbitmq.enabled }}
-{{- range .Values.resources.rabbitmq.brokers }}
 ---
-apiVersion: eventing.knative.dev/v1
-kind: Broker
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: {{ .name }}
+  name: "{{ include "knative.fullname" . }}-broker"
   labels:
-    {{- include "knative.labels" $ | nindent 4 }}
+    {{- include "knative.labels" . | nindent 4 }}
   annotations:
-    eventing.knative.dev/broker.class: RabbitMQBroker
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "6"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
-  config:
-    apiVersion: eventing.knative.dev/v1alpha1
-    kind: RabbitmqBrokerConfig
-    name: {{ .config.name }}
-  {{- with .deadLetterSink }}
-  delivery:
-    deadLetterSink:
-      ref:
-        {{- toYaml .ref | nindent 8 }}
-  {{- end }}
-{{- end }}
+  template:
+    spec:
+      serviceAccountName: {{ include "knative.fullname" . }}
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+
+              cat > /tmp/brokers.yaml <<'EOF'
+              {{- range .Values.resources.rabbitmq.brokers }}
+              ---
+              apiVersion: eventing.knative.dev/v1
+              kind: Broker
+              metadata:
+                name: {{ .name }}
+                labels:
+                  {{- include "knative.labels" $ | nindent 12 }}
+                annotations:
+                  eventing.knative.dev/broker.class: RabbitMQBroker
+              spec:
+                config:
+                  apiVersion: eventing.knative.dev/v1alpha1
+                  kind: RabbitmqBrokerConfig
+                  name: {{ .config.name }}
+                {{- with .deadLetterSink }}
+                delivery:
+                  deadLetterSink:
+                    ref:
+                      {{- toYaml .ref | nindent 16 }}
+                {{- end }}
+              {{- end }}
+              EOF
+
+              echo "Waiting for Broker CRD to become available..."
+              until kubectl get crd brokers.eventing.knative.dev >/dev/null 2>&1; do
+                echo "Waiting for brokers.eventing.knative.dev CRD..."
+                sleep 5
+              done
+
+              echo "Applying Broker configurations..."
+              kubectl apply -f /tmp/brokers.yaml || exit 1
+
+              echo "Broker resources created successfully"
 {{- end }}
