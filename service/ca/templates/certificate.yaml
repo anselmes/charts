@@ -1,29 +1,65 @@
 {{- range .Values.certificates }}
 ---
-apiVersion: cert-manager.io/v1
-kind: Certificate
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: {{ .name }}-cert
+  name: create-certificate-{{ .name }}
   labels:
     {{- include "ca.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
 spec:
-  secretName: {{ .name }}-tls
-  duration: {{ .duration }}
-  renewBefore: {{ .renewal }}
-  commonName: {{ .dns.name }}
-  issuerRef:
-    name: {{ .issuerRef.name }}
-    kind: {{ .issuerRef.kind }}
-  dnsNames:
-  {{- range .dns.aliases }}
-    - {{ . }}
-  {{- end }}
-  ipAddresses:
-  {{- range .dns.addresses }}
-    - {{ . }}
-  {{- end }}
-  usages:
-  {{- range .dns.usages }}
-    - {{ . }}
-  {{- end }}
+  template:
+    spec:
+      serviceAccountName: cert-manager-resource-creator
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for cert-manager CRDs to be available..."
+              for i in {1..60}; do
+                if kubectl get crd certificates.cert-manager.io >/dev/null 2>&1; then
+                  echo "CRD found, creating Certificate"
+                  cat <<EOF | kubectl apply -f -
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: {{ .name }}-cert
+                namespace: {{ $.Release.Namespace }}
+                labels:
+                  {{- include "ca.labels" $ | nindent 14 }}
+              spec:
+                secretName: {{ .name }}-tls
+                duration: {{ .duration }}
+                renewBefore: {{ .renewal }}
+                commonName: {{ .dns.name }}
+                issuerRef:
+                  name: {{ .issuerRef.name }}
+                  kind: {{ .issuerRef.kind }}
+                dnsNames:
+                {{- range .dns.aliases }}
+                  - {{ . }}
+                {{- end }}
+                ipAddresses:
+                {{- range .dns.addresses }}
+                  - {{ . }}
+                {{- end }}
+                usages:
+                {{- range .dns.usages }}
+                  - {{ . }}
+                {{- end }}
+              EOF
+                  exit 0
+                fi
+                echo "Attempt $i: cert-manager CRD not ready, waiting 10s..."
+                sleep 10
+              done
+              echo "Timeout waiting for cert-manager CRD"
+              exit 1
 {{- end }}

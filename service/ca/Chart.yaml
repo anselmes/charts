@@ -3,7 +3,7 @@ apiVersion: v2
 type: application
 name: ca
 description: A Helm chart that deploys cert-manager and its dependencies.
-version: 1.0.3
+version: 1.0.4
 dependencies:
   - alias: certmanager
     name: cert-manager

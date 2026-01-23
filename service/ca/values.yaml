@@ -3,25 +3,26 @@
 
 # List of certificates to be managed by cert-manager.
 # Each certificate defines the desired state of a TLS certificate.
-certificates: []
-# - name: example-certificate  # Name of the certificate resource.
-#   duration: 2160h            # Validity duration of the certificate (90 days).
-#   renewal: 360h              # Time before expiration to renew the certificate (15 days).
-#   dns:
-#     name: example.com        # Common name (CN) for the certificate.
-#     aliases:
-#       - example.com          # Primary DNS name for the certificate.
-#       - www.example.com      # Additional DNS names (aliases).
-#     addresses:
-#       - 192.168.1.1          # Optional: IP addresses for the certificate.
-#     usages:
-#       - digital signature    # Key usage: Digital signature.
-#       - key encipherment     # Key usage: Key encipherment.
-#       - server auth          # Key usage: Server authentication.
-#       - client auth          # Key usage: Client authentication.
-#   issuerRef:
-#     name: ca-issuer-self-signed  # Name of the issuer or ClusterIssuer.
-#     kind: ClusterIssuer                 # Kind of the issuer (Issuer or ClusterIssuer).
+certificates:
+  []
+  # - name: example-certificate  # Name of the certificate resource.
+  #   duration: 2160h            # Validity duration of the certificate (90 days).
+  #   renewal: 360h              # Time before expiration to renew the certificate (15 days).
+  #   dns:
+  #     name: example.com        # Common name (CN) for the certificate.
+  #     aliases:
+  #       - example.com          # Primary DNS name for the certificate.
+  #       - www.example.com      # Additional DNS names (aliases).
+  #     addresses:
+  #       - 192.168.1.1          # Optional: IP addresses for the certificate.
+  #     usages:
+  #       - digital signature    # Key usage: Digital signature.
+  #       - key encipherment     # Key usage: Key encipherment.
+  #       - server auth          # Key usage: Server authentication.
+  #       - client auth          # Key usage: Client authentication.
+  #   issuerRef:
+  #     name: ca-issuer-self-signed  # Name of the issuer or ClusterIssuer.
+  #     kind: ClusterIssuer                 # Kind of the issuer (Issuer or ClusterIssuer).
 
 # MARK: - Issuers
 

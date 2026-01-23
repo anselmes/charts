@@ -1,65 +1,106 @@
 {{- range .Values.issuers }}
 ---
-{{- if .clustered }}
-kind: ClusterIssuer
-{{- else }}
-kind: Issuer
-{{- end }}
-apiVersion: cert-manager.io/v1
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: {{ .name }}
-  {{- if not .clustered }}
-  namespace: {{ $.Release.Namespace }}
-  {{- end }}
+  name: create-issuer-{{ .name }}
   labels:
     {{- include "ca.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
 spec:
-  {{- if .selfSigned }}
-  selfSigned: {}
-  {{- else if eq .type "ca" }}
-  ca:
-    secretName: {{ .secret.name }}
-  {{- else if eq .type "vault" }}
-  vault:
-    path: {{ .vault.path }}
-    server: {{ .vault.server }}
-    {{- if .vault.caBundleSecretRef }}
-    caBundleSecretRef:
-      name: {{ .secret.name }}
-      key: {{ .vault.caBundleSecretRef.key }}
-    {{- end }}
-    {{- if .vault.clientCertSecretRef }}
-    clientCertSecretRef:
-      name: {{ .secret.name }}
-      key: {{ .vault.clientCertSecretRef.key }}
-    {{- end }}
-    {{- if .vault.clientKeySecretRef }}
-    clientKeySecretRef:
-      name: {{ .secret.name }}
-      key: {{ .vault.clientKeySecretRef.key }}
-    {{- end }}
-    {{- with .vault.auth }}
-    auth:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
-  {{- else if eq .type "acme" }}
-  acme:
-    email: {{ .acme.email }}
-    server: {{ .acme.server }}
-    privateKeySecretRef:
-      name: {{ .name }}-account-key
-    solvers:
-      {{- with .acme.provider }}
-      - dns01:
-          {{ .type }}:
-          {{- omit . "type" | toYaml | nindent 12 }}
-      {{- end }}
-      {{- if .acme.zones }}
-        selector:
-          dnsZones:
-          {{- range .acme.zones }}
-            - {{ . }}
-          {{- end }}
-      {{- end }}
-  {{- end }}
+  template:
+    spec:
+      serviceAccountName: cert-manager-resource-creator
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for cert-manager CRDs to be available..."
+              for i in {1..60}; do
+                {{- if .clustered }}
+                if kubectl get crd clusterissuers.cert-manager.io >/dev/null 2>&1; then
+                  echo "CRD found, creating ClusterIssuer"
+                  cat <<EOF | kubectl apply -f -
+              apiVersion: cert-manager.io/v1
+              kind: ClusterIssuer
+              metadata:
+                name: {{ .name }}
+                labels:
+                  {{- include "ca.labels" $ | nindent 14 }}
+              {{- else }}
+                if kubectl get crd issuers.cert-manager.io >/dev/null 2>&1; then
+                  echo "CRD found, creating Issuer"
+                  cat <<EOF | kubectl apply -f -
+              apiVersion: cert-manager.io/v1
+              kind: Issuer
+              metadata:
+                name: {{ .name }}
+                namespace: {{ $.Release.Namespace }}
+                labels:
+                  {{- include "ca.labels" $ | nindent 14 }}
+              {{- end }}
+              spec:
+                {{- if .selfSigned }}
+                selfSigned: {}
+                {{- else if eq .type "ca" }}
+                ca:
+                  secretName: {{ .secret.name }}
+                {{- else if eq .type "vault" }}
+                vault:
+                  path: {{ .vault.path }}
+                  server: {{ .vault.server }}
+                  {{- if .vault.caBundleSecretRef }}
+                  caBundleSecretRef:
+                    name: {{ .secret.name }}
+                    key: {{ .vault.caBundleSecretRef.key }}
+                  {{- end }}
+                  {{- if .vault.clientCertSecretRef }}
+                  clientCertSecretRef:
+                    name: {{ .secret.name }}
+                    key: {{ .vault.clientCertSecretRef.key }}
+                  {{- end }}
+                  {{- if .vault.clientKeySecretRef }}
+                  clientKeySecretRef:
+                    name: {{ .secret.name }}
+                    key: {{ .vault.clientKeySecretRef.key }}
+                  {{- end }}
+                  {{- with .vault.auth }}
+                  auth:
+                    {{- toYaml . | nindent 16 }}
+                  {{- end }}
+                {{- else if eq .type "acme" }}
+                acme:
+                  email: {{ .acme.email }}
+                  server: {{ .acme.server }}
+                  privateKeySecretRef:
+                    name: {{ .name }}-account-key
+                  solvers:
+                    {{- with .acme.provider }}
+                    - dns01:
+                        {{ .type }}:
+                        {{- omit . "type" | toYaml | nindent 20 }}
+                    {{- end }}
+                    {{- if .acme.zones }}
+                      selector:
+                        dnsZones:
+                        {{- range .acme.zones }}
+                          - {{ . }}
+                        {{- end }}
+                    {{- end }}
+                {{- end }}
+              EOF
+                  exit 0
+                fi
+                echo "Attempt $i: cert-manager CRD not ready, waiting 10s..."
+                sleep 10
+              done
+              echo "Timeout waiting for cert-manager CRD"
+              exit 1
 {{- end }}

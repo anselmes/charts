@@ -9,7 +9,7 @@ spec:
   helm:
     chartSpec:
       chart: ca
-      version: 1.0.3
+      version: 1.0.4
       interval: 10m0s
       sourceRef:
         kind: HelmRepository
