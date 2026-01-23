@@ -2,12 +2,19 @@ apiVersion: v2
 name: gwapi
 type: application
 description: A Helm chart that deploys Envoy as the Gateway API for Kubernetes.
-version: 1.0.2
+version: 1.0.3
 dependencies:
   - alias: envoy
     name: gateway-helm
     repository: oci://docker.io/envoyproxy
     version: 1.6.1
-    condition: gwapi.enabled
-  # TODO: nginx
-  # TODO: haproxy
+    condition: envoy.enabled
+  - alias: nginx
+    name: nginx-gateway-fabric
+    repository: oci://ghcr.io/nginx/charts
+    version: 2.3.0
+    condition: nginx.enabled
+  - name: traefik
+    repository: https://traefik.github.io/charts
+    version: 38.0.2
+    condition: traefik.enabled

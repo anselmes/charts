@@ -9,7 +9,7 @@ spec:
   helm:
     chartSpec:
       chart: gwapi
-      version: 1.0.2
+      version: 1.0.3
       interval: 10m0s
       sourceRef:
         kind: HelmRepository
