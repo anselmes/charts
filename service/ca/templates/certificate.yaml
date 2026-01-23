@@ -33,7 +33,7 @@ spec:
                 name: {{ .name }}-cert
                 namespace: {{ $.Release.Namespace }}
                 labels:
-                  {{- include "ca.labels" $ | nindent 14 }}
+                  {{- include "ca.labels" $ | nindent 18 }}
               spec:
                 secretName: {{ .name }}-tls
                 duration: {{ .duration }}

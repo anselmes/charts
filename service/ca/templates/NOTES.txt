@@ -70,10 +70,18 @@ This chart manages Certificate Authority resources including Issuers, ClusterIss
 
 **Chart Dependencies:**
 {{- if .Values.certmanager.enabled }}
-- cert-manager v{{ (index .Chart.Dependencies 0).version }}
+{{- range .Chart.Dependencies }}
+{{- if eq .Name "cert-manager" }}
+- cert-manager v{{ .Version }}
+{{- end }}
+{{- end }}
 {{- end }}
 {{- if .Values.trustmanager.enabled }}
-- trust-manager v{{ (index .Chart.Dependencies 1).version }}
+{{- range .Chart.Dependencies }}
+{{- if eq .Name "trust-manager" }}
+- trust-manager v{{ .Version }}
+{{- end }}
+{{- end }}
 {{- end }}
 
 **Resource Types Supported:**

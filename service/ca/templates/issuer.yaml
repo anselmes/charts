@@ -33,7 +33,7 @@ spec:
               metadata:
                 name: {{ .name }}
                 labels:
-                  {{- include "ca.labels" $ | nindent 14 }}
+                  {{- include "ca.labels" $ | nindent 18 }}
               {{- else }}
                 if kubectl get crd issuers.cert-manager.io >/dev/null 2>&1; then
                   echo "CRD found, creating Issuer"
