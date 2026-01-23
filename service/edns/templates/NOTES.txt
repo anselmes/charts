@@ -1,46 +1,199 @@
-# NOTES
+# External DNS (EDNS) Chart
 
-Thank you for installing the ExternalDNS Helm chart!
+Thank you for installing the External DNS Helm chart!
 
-This chart deploys ExternalDNS and its associated resources, enabling dynamic DNS management for your Kubernetes cluster.
+This chart manages External DNS and DNSEndpoint resources for automatic DNS record management in your Kubernetes cluster.
 
-## Next Steps
+## Installation Summary
 
-1. **Verify Installation**:
-   - Check the status of the ExternalDNS pods to ensure they are running:
-     ```bash
-     kubectl get pods -n <namespace> -l app.kubernetes.io/name=external-dns
-     ```
+{{- if .Values.externaldns.enabled }}
+- **external-dns**: Installed as dependency
+{{- else }}
+- **external-dns**: Using pre-existing installation
+{{- end }}
+{{- if .Values.endpoints }}
+- **DNS Endpoints**: {{ len .Values.endpoints }} configured
+{{- range .Values.endpoints }}
+  - {{ .name }} ({{ len .records }} record(s))
+{{- end }}
+{{- else }}
+- **DNS Endpoints**: None configured
+{{- end }}
 
-2. **Validate ExternalDNS Functionality**:
-   - Ensure that ExternalDNS is properly configured and operational:
-     - Check the logs of the ExternalDNS pods for any errors:
-       ```bash
-       kubectl logs -n <namespace> -l app.kubernetes.io/name=external-dns
-       ```
-     - Verify that DNS records are being created or updated as expected:
-       ```bash
-       kubectl describe endpoints -n <namespace>
-       ```
+## Verification Steps
 
-3. **Monitor DNS Records**:
-   - Inspect the DNS records managed by ExternalDNS to ensure they are accurate:
-     ```bash
-     kubectl get endpoints -n <namespace>
-     ```
+1. **Check Resource Creation Jobs**:
+   ```bash
+   kubectl get jobs -n {{ .Release.Namespace | default "default" }} -l helm.sh/hook=post-install
+   ```
 
-4. **Uninstallation**:
-   - To uninstall the chart and remove all associated resources, run:
-     ```bash
-     helm uninstall <release-name> -n <namespace>
-     ```
+2. **Verify External DNS**:
+   ```bash
+   kubectl get pods -n {{ .Release.Namespace | default "default" }} -l app.kubernetes.io/name=external-dns
+   kubectl logs -n {{ .Release.Namespace | default "default" }} -l app.kubernetes.io/name=external-dns --tail=50
+   ```
 
-## Additional Information
+3. **Check DNS Endpoints**:
+   ```bash
+   kubectl get dnsendpoints -n {{ .Release.Namespace | default "default" }}
+   kubectl describe dnsendpoints -n {{ .Release.Namespace | default "default" }}
+   ```
 
-- For more details on ExternalDNS and its configuration, refer to the [official documentation](https://github.com/kubernetes-sigs/external-dns).
-- If you encounter any issues:
-  - Check the events in the namespace where ExternalDNS is deployed:
-    ```bash
-    kubectl get events -n <namespace>
-    ```
-  - Review the logs of the ExternalDNS pods for troubleshooting.
+4. **Monitor DNS Record Status**:
+   ```bash
+   # Check external-dns logs for DNS provider updates
+   kubectl logs -n {{ .Release.Namespace | default "default" }} -l app.kubernetes.io/name=external-dns -f | grep -E "(Creating|Updating|Deleting)"
+
+   # Verify DNS resolution (replace with your domain)
+   {{- range .Values.endpoints }}
+   {{- range .records }}
+   nslookup {{ .name }}
+   {{- end }}
+   {{- end }}
+   ```
+
+## Troubleshooting
+
+**If DNSEndpoint creation fails:**
+1. Check Job logs:
+   ```bash
+   {{- range .Values.endpoints }}
+   kubectl logs -n {{ $.Release.Namespace | default "default" }} jobs/create-dns-endpoint-{{ .name }} --follow
+   {{- end }}
+   ```
+
+2. Verify external-dns CRDs are available:
+   ```bash
+   kubectl get crd dnsendpoints.externaldns.k8s.io
+   kubectl describe crd dnsendpoints.externaldns.k8s.io
+   ```
+
+**If DNS records are not created:**
+1. Check external-dns configuration:
+   ```bash
+   kubectl describe pods -n {{ .Release.Namespace | default "default" }} -l app.kubernetes.io/name=external-dns
+   kubectl logs -n {{ .Release.Namespace | default "default" }} -l app.kubernetes.io/name=external-dns --tail=100
+   ```
+
+2. Verify DNS provider credentials:
+   ```bash
+   # Check if DNS provider secret exists (example for AWS Route53)
+   kubectl get secret -n {{ .Release.Namespace | default "default" }} | grep -i aws
+
+   # Check external-dns permissions
+   kubectl logs -n {{ .Release.Namespace | default "default" }} -l app.kubernetes.io/name=external-dns | grep -i "permission\|error\|failed"
+   ```
+
+3. Check DNSEndpoint events:
+   ```bash
+   kubectl get events -n {{ .Release.Namespace | default "default" }} --field-selector involvedObject.kind=DNSEndpoint
+   ```
+
+**DNS Resolution Issues:**
+1. Test DNS resolution:
+   ```bash
+   # Test from within cluster
+   kubectl run dns-test --rm -it --image=busybox -- nslookup your-domain.com
+
+   # Test from external
+   dig your-domain.com @8.8.8.8
+   ```
+
+2. Check DNS propagation:
+   ```bash
+   # Check if records exist in DNS provider
+   kubectl logs -n {{ .Release.Namespace | default "default" }} -l app.kubernetes.io/name=external-dns | grep "Desired change"
+   ```
+
+## Configuration
+
+**Chart Version**: {{ .Chart.Version }}
+**Dependencies**:
+{{- if .Values.externaldns.enabled }}
+- external-dns (from dependency chart)
+{{- end }}
+
+**DNS Provider Configuration**:
+{{- if .Values.externaldns.provider }}
+- Provider: {{ .Values.externaldns.provider }}
+{{- end }}
+{{- if .Values.externaldns.domainFilters }}
+- Domain Filters: {{ join ", " .Values.externaldns.domainFilters }}
+{{- end }}
+
+**DNS Endpoints Summary**:
+{{- range .Values.endpoints }}
+- **{{ .name }}**:
+  {{- range .records }}
+  - {{ .name }} ({{ .type | default "A" }}, TTL: {{ .ttl | default 60 }}s)
+  {{- end }}
+{{- end }}
+
+## Useful Commands
+
+```bash
+# Monitor external-dns activity
+kubectl logs -n {{ .Release.Namespace | default "default" }} -l app.kubernetes.io/name=external-dns -f
+
+# Check all DNS-related resources
+kubectl get dnsendpoints,services,ingresses -A
+
+# Test DNS endpoint creation manually
+kubectl apply -f - <<EOF
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: test-dns
+  namespace: {{ .Release.Namespace | default "default" }}
+spec:
+  endpoints:
+  - dnsName: test.example.com
+    recordTTL: 60
+    recordType: A
+    targets:
+    - 1.2.3.4
+EOF
+
+# Verify external-dns picks up the endpoint
+kubectl logs -n {{ .Release.Namespace | default "default" }} -l app.kubernetes.io/name=external-dns | tail -20
+```
+
+## DNS Provider Setup
+
+**Common DNS Provider Examples**:
+
+```yaml
+# AWS Route53
+externaldns:
+  provider: aws
+  aws:
+    region: us-east-1
+    zoneType: public
+  txtOwnerId: my-cluster
+
+# Cloudflare
+externaldns:
+  provider: cloudflare
+  cloudflare:
+    apiToken: "<api-token>"
+  domainFilters:
+    - example.com
+
+# Google Cloud DNS
+externaldns:
+  provider: google
+  google:
+    project: my-gcp-project
+```
+
+## Cleanup
+
+To remove all resources:
+```bash
+helm uninstall {{ .Release.Name | default "edns" }} -n {{ .Release.Namespace | default "default" }}
+```
+
+**Note**:
+- Jobs with post-install hooks will be cleaned up automatically by Helm
+- DNS records created by external-dns may need manual cleanup depending on your DNS provider configuration
+- Check your DNS provider console to verify record removal

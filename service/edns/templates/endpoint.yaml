@@ -1,22 +1,58 @@
 {{- range .Values.endpoints }}
 ---
-apiVersion: externaldns.k8s.io/v1alpha1
-kind: DNSEndpoint
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: {{ .name }}
+  name: create-dns-endpoint-{{ .name }}
   labels:
     {{- include "edns.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
 spec:
-  {{- range .records }}
-  endpoints:
-    - dnsName: {{ .name }}
-      recordTTL: {{ .ttl | default 60 }}
-      recordType: {{ .type | default "A" }}
-      {{- if .targets }}
-      targets:
-      {{- range .targets }}
-        - {{ . }}
-      {{- end }}
-      {{- end }}
-  {{- end }}
+  template:
+    spec:
+      serviceAccountName: external-dns-resource-creator
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for external-dns CRDs to be available..."
+              for i in {1..60}; do
+                if kubectl get crd dnsendpoints.externaldns.k8s.io >/dev/null 2>&1; then
+                  echo "CRD found, creating DNSEndpoint"
+                  cat <<EOF | kubectl apply -f -
+              apiVersion: externaldns.k8s.io/v1alpha1
+              kind: DNSEndpoint
+              metadata:
+                name: {{ .name }}
+                namespace: {{ $.Release.Namespace }}
+                labels:
+                  {{- include "edns.labels" $ | nindent 14 }}
+              spec:
+                endpoints:
+                  {{- range .records }}
+                  - dnsName: {{ .name }}
+                    recordTTL: {{ .ttl | default 60 }}
+                    recordType: {{ .type | default "A" }}
+                    {{- if .targets }}
+                    targets:
+                    {{- range .targets }}
+                      - {{ . }}
+                    {{- end }}
+                    {{- end }}
+                  {{- end }}
+              EOF
+                  exit 0
+                fi
+                echo "Attempt $i: external-dns CRD not ready, waiting 10s..."
+                sleep 10
+              done
+              echo "Timeout waiting for external-dns CRD"
+              exit 1
 {{- end }}
