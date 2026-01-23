@@ -1,0 +1,110 @@
+{{/*
+Mirantis Secure Registry (MSR) Chart - Deployment Status
+*/}}
+Mirantis Secure Registry has been installed successfully!
+
+Chart Details:
+- Chart Version: {{ .Chart.Version }}
+- Namespace: {{ .Release.Namespace | default "msr-system" }}
+- Release Name: {{ .Release.Name }}
+
+Components Deployed:
+✓ Mirantis Secure Registry (MSR): Version {{ .Chart.Version }}
+  - Enterprise container registry with security scanning
+  - Image vulnerability scanning and policy enforcement
+  - Role-based access control (RBAC)
+
+{{- if .Values.ca.enabled }}
+✓ Certificate Authority (CA): Enabled
+  - Automatic TLS certificate management
+  - Integration with cert-manager for secure communications
+{{- else }}
+✗ Certificate Authority (CA): Disabled
+{{- end }}
+
+{{- if .Values.gateway.enabled }}
+✓ Gateway API: Enabled
+  - Advanced traffic routing and load balancing
+  - Gateway-based ingress management
+{{- else }}
+✗ Gateway API: Disabled
+{{- end }}
+
+Next Steps:
+
+1. Verify MSR installation:
+   kubectl get pods -n {{ .Release.Namespace | default "msr-system" }}
+   kubectl get services -n {{ .Release.Namespace | default "msr-system" }}
+
+2. Check MSR deployment status:
+   kubectl get deployment -n {{ .Release.Namespace | default "msr-system" }}
+
+3. Access MSR web interface:
+   {{- if .Values.gateway.enabled }}
+   # Gateway API is enabled - check ingress routes:
+   kubectl get gateway,httproute -n {{ .Release.Namespace | default "msr-system" }}
+   {{- else }}
+   # Get service endpoint:
+   kubectl get svc -n {{ .Release.Namespace | default "msr-system" }}
+   {{- end }}
+
+4. Obtain admin credentials:
+   # Default admin user credentials are typically stored in secrets
+   kubectl get secrets -n {{ .Release.Namespace | default "msr-system" }} | grep admin
+
+5. Configure Docker registry access:
+   # Login to MSR from Docker CLI
+   docker login <MSR_URL>
+
+Registry Usage:
+
+1. Tag and push images:
+   docker tag <LOCAL_IMAGE> <MSR_URL>/<NAMESPACE>/<IMAGE>:<TAG>
+   docker push <MSR_URL>/<NAMESPACE>/<IMAGE>:<TAG>
+
+2. Pull images:
+   docker pull <MSR_URL>/<NAMESPACE>/<IMAGE>:<TAG>
+
+3. Kubernetes integration:
+   # Create image pull secret
+   kubectl create secret docker-registry msr-secret \
+     --docker-server=<MSR_URL> \
+     --docker-username=<USERNAME> \
+     --docker-password=<PASSWORD>
+
+Security Features:
+- Image vulnerability scanning enabled by default
+- Content trust and image signing
+- Role-based access control (RBAC)
+- Integration with LDAP/Active Directory (if configured)
+- Webhook scanning for automated security policies
+
+Troubleshooting:
+
+If MSR is not accessible:
+- Check pod logs: kubectl logs -n {{ .Release.Namespace | default "msr-system" }} deployment/msr
+- Verify service endpoints: kubectl get svc,endpoints -n {{ .Release.Namespace | default "msr-system" }}
+{{- if .Values.ca.enabled }}
+- Check certificate status: kubectl get certificate,certificaterequest -n {{ .Release.Namespace | default "msr-system" }}
+{{- end }}
+{{- if .Values.gateway.enabled }}
+- Verify gateway configuration: kubectl describe gateway,httproute -n {{ .Release.Namespace | default "msr-system" }}
+{{- end }}
+
+If image scanning is not working:
+- Check scanner service: kubectl get pods -n {{ .Release.Namespace | default "msr-system" }} | grep scanner
+- Verify database connectivity: kubectl logs -n {{ .Release.Namespace | default "msr-system" }} deployment/msr-database
+
+Database Issues:
+- Check database pod status: kubectl get pods -n {{ .Release.Namespace | default "msr-system" }} | grep database
+- Verify persistent volumes: kubectl get pv,pvc -n {{ .Release.Namespace | default "msr-system" }}
+
+For more information:
+- MSR Documentation: https://docs.mirantis.com/msr/
+- Administrator Guide: https://docs.mirantis.com/msr/admin/
+- User Guide: https://docs.mirantis.com/msr/user/
+- API Reference: https://docs.mirantis.com/msr/api/
+
+Support:
+- Mirantis Support Portal: https://support.mirantis.com/
+- Community Forums: https://community.mirantis.com/
