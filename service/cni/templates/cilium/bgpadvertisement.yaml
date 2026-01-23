@@ -1,26 +1,64 @@
 {{- if .Values.cilium.bgp.enabled }}
 ---
-apiVersion: cilium.io/v2alpha1
-kind: CiliumBGPAdvertisement
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: bgp-advert
+  name: create-bgp-advertisement
   labels:
     {{- include "cni.labels" $ | nindent 4 }}
     {{- range .Values.cilium.bgp.peer.addressFamilies }}
     {{- .advertisements.matchLabels | toYaml | nindent 4 }}
     {{- end }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
 spec:
-  advertisements:
-    {{-  if .Values.cilium.bgp.advert.service }}
-    - advertisementType: "Service"
-      {{- if .Values.cilium.bgp.advert.service.selector }}
-      selector: {{ .Values.cilium.bgp.advert.service.selector | toYaml | nindent 12 }}
-      {{- end }}
-      service:
-        addresses: {{ .Values.cilium.bgp.advert.service.addresses | toYaml | nindent 12 }}
-    {{- end }}
-    {{-  if .Values.cilium.bgp.advert.podCIDR }}
-    - advertisementType: PodCIDR
-      attributes: {{ .Values.cilium.bgp.advert.podCIDR.attributes | toYaml | nindent 10 }}
-    {{- end }}
+  template:
+    spec:
+      serviceAccountName: cilium-resource-creator
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for Cilium BGP CRDs to be available..."
+              for i in {1..60}; do
+                if kubectl get crd ciliumbgpadvertisements.cilium.io >/dev/null 2>&1; then
+                  echo "CRD found, creating BGPAdvertisement"
+                  cat <<EOF | kubectl apply -f -
+              apiVersion: cilium.io/v2alpha1
+              kind: CiliumBGPAdvertisement
+              metadata:
+                name: bgp-advert
+                labels:
+                  {{- include "cni.labels" $ | nindent 14 }}
+                  {{- range .Values.cilium.bgp.peer.addressFamilies }}
+                  {{- .advertisements.matchLabels | toYaml | nindent 14 }}
+                  {{- end }}
+              spec:
+                advertisements:
+                  {{-  if .Values.cilium.bgp.advert.service }}
+                  - advertisementType: "Service"
+                    {{- if .Values.cilium.bgp.advert.service.selector }}
+                    selector: {{ .Values.cilium.bgp.advert.service.selector | toYaml | nindent 18 }}
+                    {{- end }}
+                    service:
+                      addresses: {{ .Values.cilium.bgp.advert.service.addresses | toYaml | nindent 20 }}
+                  {{- end }}
+                  {{-  if .Values.cilium.bgp.advert.podCIDR }}
+                  - advertisementType: PodCIDR
+                    attributes: {{ .Values.cilium.bgp.advert.podCIDR.attributes | toYaml | nindent 18 }}
+                  {{- end }}
+              EOF
+                  exit 0
+                fi
+                echo "Attempt $i: BGP CRD not ready, waiting 10s..."
+                sleep 10
+              done
+              echo "Timeout waiting for BGP CRD"
+              exit 1
 {{- end }}

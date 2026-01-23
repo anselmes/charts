@@ -1,12 +1,47 @@
 {{- if and .Values.cilium.l2.enabled }}
 ---
-apiVersion: cilium.io/v2alpha1
-kind: CiliumL2AnnouncementPolicy
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: l2-announce-policy
+  name: create-l2-announce-policy
   labels:
     {{- include "cni.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
 spec:
-  externalIPs: {{ .Values.cilium.l2.externalIPs }}
-  loadBalancerIPs: {{ .Values.cilium.l2.loadBalancerIPs }}
+  template:
+    spec:
+      serviceAccountName: cilium-resource-creator
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for Cilium CRDs to be available..."
+              for i in {1..60}; do
+                if kubectl get crd ciliuml2announcementpolicies.cilium.io >/dev/null 2>&1; then
+                  echo "CRD found, creating L2AnnouncementPolicy"
+                  cat <<EOF | kubectl apply -f -
+              apiVersion: cilium.io/v2alpha1
+              kind: CiliumL2AnnouncementPolicy
+              metadata:
+                name: l2-announce-policy
+                labels:
+                  {{- include "cni.labels" . | nindent 14 }}
+              spec:
+                externalIPs: {{ .Values.cilium.l2.externalIPs }}
+                loadBalancerIPs: {{ .Values.cilium.l2.loadBalancerIPs }}
+              EOF
+                  exit 0
+                fi
+                echo "Attempt $i: CRD not ready, waiting 10s..."
+                sleep 10
+              done
+              echo "Timeout waiting for CRD"
+              exit 1
 {{- end }}

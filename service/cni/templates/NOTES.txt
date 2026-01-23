@@ -1,61 +1,186 @@
-# NOTES
+# Container Network Interface (CNI) Chart
 
 Thank you for installing the CNI Helm chart!
 
-This chart deploys the Cilium CNI plugin and its associated resources, enabling advanced networking and security features for your Kubernetes cluster.
+This chart manages Container Network Interface plugins (Cilium or Calico) and their custom resources for Kubernetes networking.
 
-## Next Steps
+## Installation Summary
 
-1. **Verify Installation**:
-   - Check the status of the Cilium pods to ensure they are running:
-     ```bash
-     kubectl get pods -n kube-system -l k8s-app=cilium
-     ```
+{{- if .Values.cilium.enabled }}
+- **CNI Plugin**: Cilium v{{ (index .Chart.Dependencies 0).version }}
+{{- if .Values.cilium.l2.enabled }}
+- **Layer 2 Networking**: Enabled
+{{- end }}
+{{- if .Values.cilium.pool.enabled }}
+- **LoadBalancer IP Pool**: {{ .Values.cilium.pool.cidr }}
+{{- end }}
+{{- if .Values.cilium.bgp.enabled }}
+- **BGP Control Plane**: Enabled ({{ len .Values.cilium.bgp.instances }} instance(s))
+{{- end }}
+{{- else if .Values.calico.enabled }}
+- **CNI Plugin**: Calico v{{ (index .Chart.Dependencies 1).version }}
+{{- else }}
+- **CNI Plugin**: None selected (set cilium.enabled=true or calico.enabled=true)
+{{- end }}
 
-2. **Validate CNI Functionality**:
-   - Ensure that the CNI is properly configured and networking is functional:
-     - Test pod-to-pod communication:
-       ```bash
-       kubectl run test-pod --image=busybox --restart=Never -- sleep 3600
-       kubectl exec -it test-pod -- ping <another-pod-ip>
-       ```
-     - Test pod-to-service communication (if applicable):
-       ```bash
-       kubectl exec -it test-pod -- wget -qO- http://<service-name>
-       ```
+## Verification Steps
 
-3. **BGP Configuration** (if enabled):
-   - Verify BGP advertisements and ensure proper configuration:
-     ```bash
-     kubectl logs -n kube-system -l k8s-app=cilium | grep BGP
-     ```
+1. **Check CNI Plugin Status**:
+   ```bash
+{{- if .Values.cilium.enabled }}
+   kubectl get pods -n {{ .Release.Namespace }} -l k8s-app=cilium
+   kubectl get nodes -o wide  # Check Ready status and internal IPs
+{{- else if .Values.calico.enabled }}
+   kubectl get pods -n {{ .Release.Namespace }} -l k8s-app=tigera-operator
+   kubectl get pods -n calico-system  # Calico components
+{{- else }}
+   # No CNI plugin enabled - check which CNI is running:
+   kubectl get pods -n kube-system | grep -E "(cilium|calico|flannel|weave)"
+{{- end }}
+   ```
+
+2. **Verify Network Connectivity**:
+   ```bash
+   # Test pod-to-pod communication
+   kubectl run test-pod --image=busybox --rm -it -- ping 8.8.8.8
+
+   # Check node network status
+   kubectl get nodes -o jsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}'
+   ```
+
+{{- if .Values.cilium.enabled }}
+3. **Check Custom Cilium Resources**:
+   ```bash
+   # Monitor resource creation jobs
+   kubectl get jobs -n {{ .Release.Namespace }} -l helm.sh/hook=post-install
+
+{{- if or .Values.cilium.l2.enabled .Values.cilium.pool.enabled .Values.cilium.bgp.enabled }}
+   # Check custom resources
+{{- if .Values.cilium.l2.enabled }}
+   kubectl get ciliuml2announcementpolicies
+{{- end }}
+{{- if .Values.cilium.pool.enabled }}
+   kubectl get ciliumloadbalancerippools
+{{- end }}
+{{- if .Values.cilium.bgp.enabled }}
+   kubectl get ciliumbgpclusterconfigs,ciliumbgppeerconfigs,ciliumbgpadvertisements
+{{- end }}
+   ```
 
 4. **Monitor Cilium Health**:
-   - Check the Cilium status to ensure all components are healthy:
-     ```bash
-     cilium status
-     ```
-   - Inspect the Cilium network policies (if applied):
-     ```bash
-     cilium policy get
-     ```
+   ```bash
+   # Cilium status
+   kubectl exec -n {{ .Release.Namespace }} ds/cilium -- cilium status
 
-5. **Uninstallation**:
-   - To uninstall the chart and remove all associated resources, run:
-     ```bash
-     helm uninstall <release-name>
-     ```
+   # Cilium connectivity test (optional)
+   kubectl apply -f https://raw.githubusercontent.com/cilium/cilium/main/examples/kubernetes/connectivity-check/connectivity-check.yaml
+   ```
+{{- end }}
+{{- end }}
 
-## Additional Information
+## Troubleshooting
 
-- For more details on Cilium and its features, visit the [official documentation](https://docs.cilium.io/).
-- If you encounter any issues:
-  - Check the logs of the Cilium pods:
-    ```bash
-    kubectl logs -n kube-system -l k8s-app=cilium
-    ```
-  - Review the events in the `kube-system` namespace:
-    ```bash
-    kubectl get events -n kube-system
-    ```
-- For troubleshooting and debugging, refer to the [Cilium troubleshooting guide](https://docs.cilium.io/en/stable/troubleshooting/).
+{{- if .Values.cilium.enabled }}
+**If custom Cilium resources fail to create:**
+1. Check Job logs:
+   ```bash
+{{- if .Values.cilium.l2.enabled }}
+   kubectl logs -n {{ .Release.Namespace }} jobs/create-l2-announce-policy --follow
+{{- end }}
+{{- if .Values.cilium.pool.enabled }}
+   kubectl logs -n {{ .Release.Namespace }} jobs/create-lb-ip-pool --follow
+{{- end }}
+{{- if .Values.cilium.bgp.enabled }}
+   kubectl logs -n {{ .Release.Namespace }} jobs/create-bgp-cluster-config --follow
+{{- end }}
+   ```
+
+2. Verify Cilium CRDs are available:
+   ```bash
+   kubectl get crd | grep cilium
+   kubectl get crd ciliuml2announcementpolicies.cilium.io
+   ```
+
+**If networking issues occur:**
+1. Check Cilium agent status:
+   ```bash
+   kubectl logs -n {{ .Release.Namespace }} ds/cilium -f
+   kubectl exec -n {{ .Release.Namespace }} ds/cilium -- cilium status --verbose
+   ```
+
+2. Verify network policies:
+   ```bash
+   kubectl get networkpolicies -A
+   kubectl get ciliumnetworkpolicies -A
+   ```
+{{- end }}
+
+**General CNI troubleshooting:**
+1. Check events:
+   ```bash
+   kubectl get events -n {{ .Release.Namespace }} --sort-by='.lastTimestamp'
+   kubectl get events -A | grep -i network
+   ```
+
+2. Check node readiness:
+   ```bash
+   kubectl describe nodes | grep -A 5 "Conditions:"
+   ```
+
+## Configuration
+
+**Chart Version**: {{ .Chart.Version }}
+**Dependencies**:
+{{- if .Values.cilium.enabled }}
+- Cilium {{ (index .Chart.Dependencies 0).version }}
+{{- end }}
+{{- if .Values.calico.enabled }}
+- Tigera Operator {{ (index .Chart.Dependencies 1).version }}
+{{- end }}
+
+**Networking Features**:
+{{- if .Values.cilium.enabled }}
+{{- if .Values.cilium.kubeProxyReplacement }}
+- Kube-proxy replacement: Enabled
+{{- end }}
+{{- if .Values.cilium.bgpControlPlane.enabled }}
+- BGP control plane: Enabled
+{{- end }}
+{{- if .Values.cilium.l2.enabled }}
+- Layer 2 announcements: Enabled
+{{- end }}
+{{- if .Values.cilium.pool.enabled }}
+- LoadBalancer IP pools: Enabled
+{{- end }}
+{{- end }}
+
+## Useful Commands
+
+```bash
+# Check CNI plugin logs
+{{- if .Values.cilium.enabled }}
+kubectl logs -n {{ .Release.Namespace }} ds/cilium --tail=100
+{{- else if .Values.calico.enabled }}
+kubectl logs -n {{ .Release.Namespace }} deploy/tigera-operator --tail=100
+{{- end }}
+
+# Test service connectivity
+kubectl run test-nginx --image=nginx --port=80
+kubectl expose pod test-nginx --type=ClusterIP
+kubectl run test-client --rm -it --image=busybox -- wget -qO- test-nginx
+
+# Check service mesh (if using Cilium)
+{{- if .Values.cilium.enabled }}
+kubectl get ciliumidentities
+kubectl get ciliumendpoints
+{{- end }}
+```
+
+## Cleanup
+
+To remove all resources:
+```bash
+helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
+```
+
+**Note**: Custom resource creation Jobs will be cleaned up automatically by Helm hooks.

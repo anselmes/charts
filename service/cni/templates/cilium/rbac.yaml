@@ -1,0 +1,65 @@
+{{- if or .Values.cilium.l2.enabled .Values.cilium.pool.enabled .Values.cilium.bgp.enabled }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cilium-resource-creator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cni.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cilium-resource-creator
+  labels:
+    {{- include "cni.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+rules:
+  - apiGroups:
+      - cilium.io
+    resources:
+      - ciliumbgpadvertisements
+      - ciliumbgpclusterconfigs
+      - ciliumbgpnodeconfigoverrides
+      - ciliumbgppeerconfigs
+      - ciliuml2announcementpolicies
+      - ciliumloadbalancerippools
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cilium-resource-creator
+  labels:
+    {{- include "cni.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+subjects:
+  - kind: ServiceAccount
+    name: cilium-resource-creator
+    namespace: {{ .Release.Namespace }}
+  roleRef:
+    kind: ClusterRole
+    name: cilium-resource-creator
+    apiGroup: rbac.authorization.k8s.io
+{{- end }}

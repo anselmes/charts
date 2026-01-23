@@ -1,26 +1,61 @@
 {{- if .Values.cilium.bgp.enabled }}
 ---
-apiVersion: cilium.io/v2alpha1
-kind: CiliumBGPClusterConfig
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: bgp-cluster-config
+  name: create-bgp-cluster-config
   labels:
     {{- include "cni.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
 spec:
-  {{- if .Values.cilium.bgp.nodeSelector }}
-  nodeSelector: {{ .Values.cilium.bgp.nodeSelector | toYaml | nindent 4 }}
-  {{- end }}
-  bgpInstances: {{- range .Values.cilium.bgp.instances }}
-    - name: {{ .name }}
-      localASN: {{ .localASN }}
-      peers: {{- range .peers }}
-        - name: {{ .name }}
-          peerASN: {{ .peerASN }}
-          peerAddress: {{ .peerAddress }}
-          {{- if .peerConfigRef }}
-          peerConfigRef:
-            name: {{ .peerConfigRef.name }}
-          {{- end }}
-        {{- end }}
-  {{- end }}
+  template:
+    spec:
+      serviceAccountName: cilium-resource-creator
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for Cilium BGP CRDs to be available..."
+              for i in {1..60}; do
+                if kubectl get crd ciliumbgpclusterconfigs.cilium.io >/dev/null 2>&1; then
+                  echo "CRD found, creating BGPClusterConfig"
+                  cat <<EOF | kubectl apply -f -
+              apiVersion: cilium.io/v2alpha1
+              kind: CiliumBGPClusterConfig
+              metadata:
+                name: bgp-cluster-config
+                labels:
+                  {{- include "cni.labels" $ | nindent 14 }}
+              spec:
+                {{- if .Values.cilium.bgp.nodeSelector }}
+                nodeSelector: {{ .Values.cilium.bgp.nodeSelector | toYaml | nindent 12 }}
+                {{- end }}
+                bgpInstances: {{- range .Values.cilium.bgp.instances }}
+                  - name: {{ .name }}
+                    localASN: {{ .localASN }}
+                    peers: {{- range .peers }}
+                      - name: {{ .name }}
+                        peerASN: {{ .peerASN }}
+                        peerAddress: {{ .peerAddress }}
+                        {{- if .peerConfigRef }}
+                        peerConfigRef:
+                          name: {{ .peerConfigRef.name }}
+                        {{- end }}
+                      {{- end }}
+                {{- end }}
+              EOF
+                  exit 0
+                fi
+                echo "Attempt $i: BGP CRD not ready, waiting 10s..."
+                sleep 10
+              done
+              echo "Timeout waiting for BGP CRD"
+              exit 1
 {{- end }}

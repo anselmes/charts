@@ -2,26 +2,61 @@
 {{- range .Values.cilium.bgp.instances }}
 {{- if .overrides.enabled }}
 ---
-apiVersion: cilium.io/v2alpha1
-kind: CiliumBGPNodeConfigOverride
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: bgp-node-config-override-{{ .name }}
+  name: create-bgp-node-config-override-{{ .name }}
   labels:
     {{- include "cni.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
 spec:
-  bgpInstances:
-    - name: {{ .name }}
-      localPort: {{ .localPort | default 179 }}
-      {{- if .overrides.routerID }}
-      routerID: {{ .overrides.routerID }}
-      {{- end }}
-      {{- range .peers }}
-      {{-  if .localAddress }}
-      peers:
-        - name: {{ .name }}
-          localAddress: {{ .localAddress }}
-      {{- end }}
-      {{- end }}
+  template:
+    spec:
+      serviceAccountName: cilium-resource-creator
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for Cilium BGP CRDs to be available..."
+              for i in {1..60}; do
+                if kubectl get crd ciliumbgpnodeconfigoverrides.cilium.io >/dev/null 2>&1; then
+                  echo "CRD found, creating BGPNodeConfigOverride"
+                  cat <<EOF | kubectl apply -f -
+              apiVersion: cilium.io/v2alpha1
+              kind: CiliumBGPNodeConfigOverride
+              metadata:
+                name: bgp-node-config-override-{{ .name }}
+                labels:
+                  {{- include "cni.labels" $ | nindent 14 }}
+              spec:
+                bgpInstances:
+                  - name: {{ .name }}
+                    localPort: {{ .localPort | default 179 }}
+                    {{- if .overrides.routerID }}
+                    routerID: {{ .overrides.routerID }}
+                    {{- end }}
+                    {{- range .peers }}
+                    {{-  if .localAddress }}
+                    peers:
+                      - name: {{ .name }}
+                        localAddress: {{ .localAddress }}
+                    {{- end }}
+                    {{- end }}
+              EOF
+                  exit 0
+                fi
+                echo "Attempt $i: BGP CRD not ready, waiting 10s..."
+                sleep 10
+              done
+              echo "Timeout waiting for BGP CRD"
+              exit 1
 {{- end }}
 {{- end }}
 {{- end }}

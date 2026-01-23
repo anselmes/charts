@@ -11,7 +11,7 @@
         "enabled": {
           "type": "boolean",
           "description": "Enable or disable the Cilium CNI plugin deployment",
-          "default": true
+          "default": false
         },
         "bgp": {
           "type": "object",
@@ -335,7 +335,7 @@
             "enabled": {
               "type": "boolean",
               "description": "Enable or disable IP address pooling",
-              "default": true
+              "default": false
             },
             "allowFirstLastIPs": {
               "type": "string",
@@ -425,6 +425,18 @@
             }
           },
           "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "calico": {
+      "type": "object",
+      "description": "Configuration for the Calico CNI plugin",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable or disable the Calico CNI plugin deployment",
+          "default": false
         }
       },
       "additionalProperties": true

@@ -1,13 +1,48 @@
 {{- if .Values.cilium.pool.enabled }}
 ---
-apiVersion: cilium.io/v2alpha1
-kind: CiliumLoadBalancerIPPool
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: lb-ip-pool
+  name: create-lb-ip-pool
   labels:
     {{- include "cni.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
 spec:
-  allowFirstLastIPs: {{ .Values.cilium.pool.allowFirstLastIPs | quote }}
-  blocks:
-    - cidr: {{ .Values.cilium.pool.cidr }}
+  template:
+    spec:
+      serviceAccountName: cilium-resource-creator
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for Cilium CRDs to be available..."
+              for i in {1..60}; do
+                if kubectl get crd ciliumloadbalancerippools.cilium.io >/dev/null 2>&1; then
+                  echo "CRD found, creating LoadBalancerIPPool"
+                  cat <<EOF | kubectl apply -f -
+              apiVersion: cilium.io/v2alpha1
+              kind: CiliumLoadBalancerIPPool
+              metadata:
+                name: lb-ip-pool
+                labels:
+                  {{- include "cni.labels" . | nindent 14 }}
+              spec:
+                allowFirstLastIPs: {{ .Values.cilium.pool.allowFirstLastIPs | quote }}
+                blocks:
+                  - cidr: {{ .Values.cilium.pool.cidr }}
+              EOF
+                  exit 0
+                fi
+                echo "Attempt $i: CRD not ready, waiting 10s..."
+                sleep 10
+              done
+              echo "Timeout waiting for CRD"
+              exit 1
 {{- end }}
