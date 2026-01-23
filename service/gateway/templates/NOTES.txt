@@ -1,46 +1,206 @@
-# NOTES.txt
+# Gateway API Chart
 
-Thank you for installing the Gateway Helm chart!
+Thank you for installing the Gateway API Helm chart!
 
-This chart deploys Gateway API resources, enabling advanced traffic routing and management for your Kubernetes cluster.
+This chart manages Gateway API resources including Gateways, HTTPRoutes, and other routing resources for advanced traffic management in your Kubernetes cluster.
 
-## Next Steps
+## Installation Summary
 
-1. **Verify Installation**:
-   - Check the status of the Gateway resources to ensure they are created:
-     ```bash
-     kubectl get gateways -n <namespace>
-     ```
+{{- if and .Values.gatewayController .Values.gatewayController.enabled }}
+- **Gateway Controller**: Installed as dependency
+{{- else }}
+- **Gateway Controller**: Using pre-existing installation
+{{- end }}
+{{- if .Values.gateways }}
+- **Gateways**: {{ len .Values.gateways }} configured
+{{- end }}
+{{- if .Values.routes }}
+- **Routes**: {{ len .Values.routes }} configured
+{{- end }}
 
-2. **Validate Gateway Functionality**:
-   - Ensure that the Gateway is properly configured and operational:
-     - Check the logs of the Gateway controller for any errors:
-       ```bash
-       kubectl logs -n <namespace> -l app=gateway-controller
-       ```
-     - Verify that routes are correctly attached to the Gateway:
-       ```bash
-       kubectl describe gateway <gateway-name> -n <namespace>
-       ```
+## Verification Steps
 
-3. **Monitor Gateway Resources**:
-   - Inspect the status of the Gateway and its associated routes:
-     ```bash
-     kubectl get httproutes,tcproutes,tlsroutes,udproutes -n <namespace>
-     ```
+1. **Check Resource Creation Jobs** (if using CRD wait pattern):
+   ```bash
+   kubectl get jobs -n {{ .Release.Namespace | default "default" }} -l helm.sh/hook=post-install
+   ```
 
-4. **Uninstallation**:
-   - To uninstall the chart and remove all associated resources, run:
-     ```bash
-     helm uninstall <release-name> -n <namespace>
-     ```
+2. **Verify Gateway API Controller**:
+   ```bash
+   kubectl get pods -n gateway-system -l control-plane=gateway-controller
+   kubectl logs -n gateway-system -l control-plane=gateway-controller --tail=50
+   ```
 
-## Additional Information
+3. **Check Gateway Resources**:
+   ```bash
+   kubectl get gateways -n {{ .Release.Namespace | default "default" }}
+   kubectl describe gateways -n {{ .Release.Namespace | default "default" }}
+   ```
 
-- For more details on the Gateway API, refer to the [official documentation](https://gateway-api.sigs.k8s.io/).
-- If you encounter any issues:
-  - Check the events in the namespace where the Gateway is deployed:
-    ```bash
-    kubectl get events -n <namespace>
-    ```
-  - Review the logs of the Gateway controller for troubleshooting.
+4. **Verify Routes**:
+   ```bash
+   kubectl get httproutes,grpcroutes,tlsroutes,tcproutes,udproutes -n {{ .Release.Namespace | default "default" }}
+   kubectl describe httproutes -n {{ .Release.Namespace | default "default" }}
+   ```
+
+5. **Check Gateway Classes**:
+   ```bash
+   kubectl get gatewayclasses
+   kubectl describe gatewayclasses
+   ```
+
+## Troubleshooting
+
+**If Gateway resources fail to create:**
+1. Verify Gateway API CRDs are installed:
+   ```bash
+   kubectl get crd | grep gateway.networking.k8s.io
+   kubectl get crd gateways.gateway.networking.k8s.io
+   ```
+
+2. Check Gateway Controller logs:
+   ```bash
+   kubectl logs -n gateway-system -l control-plane=gateway-controller -f
+   ```
+
+3. Verify GatewayClass status:
+   ```bash
+   kubectl get gatewayclasses -o wide
+   kubectl describe gatewayclass {{ .Values.gatewayClass | default "istio" }}
+   ```
+
+**If traffic routing fails:**
+1. Check Gateway status and conditions:
+   ```bash
+   {{- if .Values.gateways }}
+   {{- range .Values.gateways }}
+   kubectl describe gateway {{ .name }} -n {{ $.Release.Namespace | default "default" }}
+   {{- end }}
+   {{- else }}
+   kubectl get gateways -n {{ .Release.Namespace | default "default" }}
+   {{- end }}
+   ```
+
+2. Verify Route attachment:
+   ```bash
+   {{- if .Values.routes }}
+   {{- range .Values.routes }}
+   kubectl describe {{ .kind | lower }} {{ .name }} -n {{ $.Release.Namespace | default "default" }}
+   {{- end }}
+   {{- else }}
+   kubectl get httproutes,grpcroutes,tlsroutes -n {{ .Release.Namespace | default "default" }}
+   {{- end }}
+   ```
+
+3. Check service endpoints:
+   ```bash
+   kubectl get endpoints -n {{ .Release.Namespace | default "default" }}
+   kubectl get services -n {{ .Release.Namespace | default "default" }}
+   ```
+
+**Certificate issues (if using TLS):**
+1. Check cert-manager integration:
+   ```bash
+   kubectl get certificates -n {{ .Release.Namespace | default "default" }}
+   kubectl describe certificates -n {{ .Release.Namespace | default "default" }}
+   ```
+
+2. Verify TLS secrets:
+   ```bash
+   kubectl get secrets -n {{ .Release.Namespace | default "default" }} | grep tls
+   ```
+
+## Configuration
+
+**Chart Version**: {{ .Chart.Version }}
+
+**Gateway Configuration**:
+{{- if .Values.gateways }}
+{{- range .Values.gateways }}
+- **{{ .name }}**:
+  - Class: {{ .className }}
+  - Listeners: {{ len .listeners }}
+  {{- range .listeners }}
+  - {{ .name }} ({{ .protocol }}, port {{ .port }})
+  {{- end }}
+{{- end }}
+{{- else }}
+- No gateways configured
+{{- end }}
+
+**Routes Configuration**:
+{{- if .Values.routes }}
+{{- range .Values.routes }}
+- **{{ .name }}** ({{ .kind }}):
+  {{- if .hostnames }}
+  - Hostnames: {{ join ", " .hostnames }}
+  {{- end }}
+  {{- if .parentRefs }}
+  - Gateway: {{ (index .parentRefs 0).name }}
+  {{- end }}
+{{- end }}
+{{- else }}
+- No routes configured
+{{- end }}
+
+## Useful Commands
+
+```bash
+# Monitor Gateway status
+kubectl get gateways -w -n {{ .Release.Namespace | default "default" }}
+
+# Check all Gateway API resources
+kubectl get gateways,httproutes,grpcroutes,tlsroutes -A
+
+# Test connectivity (replace with your service)
+curl -H "Host: your-domain.com" http://gateway-load-balancer-ip/
+
+# Check Gateway API events
+kubectl get events -n {{ .Release.Namespace | default "default" }} --field-selector involvedObject.kind=Gateway
+
+# Verify route resolution
+{{- if .Values.routes }}
+kubectl get httproute {{ (index .Values.routes 0).name }} -n {{ .Release.Namespace | default "default" }} -o jsonpath='{.status}'
+{{- else }}
+kubectl get httproutes -n {{ .Release.Namespace | default "default" }}
+{{- end }}
+```
+
+## Gateway API Resources
+
+**Supported Resource Types**:
+- **Gateway**: Entry point for traffic into the cluster
+- **HTTPRoute**: HTTP traffic routing rules
+- **GRPCRoute**: gRPC traffic routing (if supported by controller)
+- **TLSRoute**: TLS traffic routing for non-HTTP protocols
+- **TCPRoute/UDPRoute**: Layer 4 traffic routing
+
+**Common Gateway Controllers**:
+- **Istio**: `gatewayClassName: istio`
+- **Envoy Gateway**: `gatewayClassName: envoy-gateway`
+- **Nginx**: `gatewayClassName: nginx`
+- **Cilium**: `gatewayClassName: cilium`
+
+## Load Balancer Integration
+
+**Check Gateway Load Balancer**:
+```bash
+# Get Gateway external IP/hostname
+kubectl get gateway -n {{ .Release.Namespace | default "default" }} -o jsonpath='{.items[0].status.addresses[0].value}'
+
+# Check LoadBalancer service (implementation specific)
+kubectl get svc -n istio-system | grep LoadBalancer
+kubectl get svc -n envoy-gateway-system | grep LoadBalancer
+```
+
+## Cleanup
+
+To remove all resources:
+```bash
+helm uninstall {{ .Release.Name | default "gateway" }} -n {{ .Release.Namespace | default "default" }}
+```
+
+**Note**:
+- Gateway API CRDs are typically cluster-wide and managed by the Gateway controller installation
+- Traffic routing may take a few moments to propagate after resource creation
+- External DNS integration will automatically create DNS records if configured
