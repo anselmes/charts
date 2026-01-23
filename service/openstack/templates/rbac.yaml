@@ -1,0 +1,61 @@
+{{- if .Values.deployment.create }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "openstack.fullname" . }}
+  namespace: {{ .Release.Namespace | default "openstack-system" }}
+  labels:
+    {{- include "openstack.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "openstack.fullname" . }}
+  labels:
+    {{- include "openstack.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+rules:
+  - apiGroups:
+      - lcm.mirantis.com
+    resources:
+      - openstackdeployments
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "openstack.fullname" . }}
+  labels:
+    {{- include "openstack.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "openstack.fullname" . }}
+    namespace: {{ .Release.Namespace | default "openstack-system" }}
+roleRef:
+  kind: ClusterRole
+  name: {{ include "openstack.fullname" . }}
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

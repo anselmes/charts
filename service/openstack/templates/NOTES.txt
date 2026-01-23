@@ -1,53 +1,154 @@
-# NOTES
-
-Thank you for installing the OpenStack Helm chart!
-
-This chart deploys OpenStack services and their associated resources, providing a complete cloud infrastructure platform for your Kubernetes cluster.
-
-## Next Steps
-
-1. **Verify Installation**:
-   - Check the status of OpenStack service pods to ensure they are running:
-     ```bash
-     kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/name=openstack
-     ```
-
-2. **Validate OpenStack Services**:
-   - Ensure that OpenStack services are properly configured and operational:
-     - Check the logs of OpenStack service pods for any errors:
-       ```bash
-       kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=keystone
-       kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=nova
-       kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=neutron
-       ```
-     - Verify that OpenStack deployments are running:
-       ```bash
-       kubectl get deployment -n {{ .Release.Namespace }}
-       ```
-
-3. **Access OpenStack Dashboard**:
-   - Get the Horizon dashboard service details:
-     ```bash
-     kubectl get svc -n {{ .Release.Namespace }} -l app.kubernetes.io/component=horizon
-     ```
 {{/*
-{{- if .Values.horizon.ingress.enabled }}
-   - Access the dashboard at: {{ .Values.horizon.ingress.host }}
-{{- else }}
-   - Port-forward to access the dashboard locally:
-     ```bash
-     kubectl port-forward -n {{ .Release.Namespace }} svc/horizon 8080:80
-     ```
-   - Then visit: http://localhost:8080
-{{- end }}
+OpenStack Chart - Deployment Status
 */}}
+OpenStack has been installed successfully!
 
-4. **Configure OpenStack CLI**:
-   - Get admin credentials:
-     ```bash
-     kubectl get secret -n {{ .Release.Namespace }} keystone-admin -o jsonpath='{.data.password}' | base64 -d
-     ```
-   - Set up OpenStack CLI environment:
+Chart Details:
+- Chart Version: {{ .Chart.Version }}
+- Namespace: {{ .Release.Namespace | default "openstack-system" }}
+- Release Name: {{ .Release.Name }}
+
+Components Deployed:
+{{- if .Values.operator.enabled }}
+✓ Rockoon Operator: Enabled
+  - OpenStack lifecycle management operator
+  - Manages OpenStack deployment custom resources
+{{- else }}
+✗ Rockoon Operator: Disabled
+{{- end }}
+
+{{- if .Values.deployment.create }}
+✓ OpenStack Deployment: {{ .Values.deployment.name }}
+  - Version: {{ .Values.deployment.region.version }}
+  - Region: {{ .Values.deployment.region.name }}
+  - Domain: {{ .Values.deployment.region.domain }}
+  - Preset: {{ .Values.deployment.region.preset }}
+  - Size: {{ .Values.deployment.region.size }}
+{{- else }}
+✗ OpenStack Deployment: Disabled
+{{- end }}
+
+OpenStack Services:
+{{- if .Values.keystone }}
+✓ Identity (Keystone): Configured
+  {{- if .Values.keystone.keycloak.enabled }}
+  - Keycloak Integration: Enabled
+  {{- end }}
+{{- end }}
+{{- if .Values.glance }}
+✓ Image Service (Glance): {{ .Values.glance.backend }} backend
+  {{- if .Values.glance.signature.enabled }}
+  - Image Signature Verification: Enabled
+  {{- end }}
+{{- end }}
+{{- if .Values.cinder }}
+✓ Block Storage (Cinder): {{ .Values.cinder.backends }} backend
+{{- end }}
+{{- if .Values.nova }}
+✓ Compute (Nova): {{ .Values.nova.cpuType }} CPU type
+  - Console: {{ if .Values.nova.console.enabled }}Enabled{{ else }}Disabled{{ end }}
+  - Images Backend: {{ .Values.nova.images.backend }}
+{{- end }}
+{{- if .Values.neutron }}
+✓ Networking (Neutron): Configured
+  - DVR: {{ if .Values.neutron.dvr.enabled }}Enabled{{ else }}Disabled{{ end }}
+  - IPSec: {{ if .Values.neutron.ipsec.enabled }}Enabled{{ else }}Disabled{{ end }}
+  {{- if .Values.neutron.networks.floating.enabled }}
+  - Floating Network: Enabled
+  {{- end }}
+{{- end }}
+{{- if .Values.heat }}
+✓ Orchestration (Heat): Configured
+{{- end }}
+
+Next Steps:
+
+1. Verify OpenStack deployment status:
+   kubectl get openstackdeployment {{ .Values.deployment.name }} -n {{ .Release.Namespace | default "openstack-system" }}
+
+2. Check deployment progress:
+   kubectl describe openstackdeployment {{ .Values.deployment.name }} -n {{ .Release.Namespace | default "openstack-system" }}
+
+3. Monitor OpenStack services:
+   kubectl get pods -n openstack
+   kubectl get svc -n openstack
+
+4. Access OpenStack Dashboard (Horizon):
+   # Get Horizon service
+   kubectl get svc -n openstack | grep horizon
+
+   # Port-forward to access locally
+   kubectl port-forward -n openstack svc/horizon 8080:80
+
+5. Configure OpenStack CLI:
+   # Get admin credentials
+   kubectl get secret -n openstack keystone-admin -o jsonpath='{.data.password}' | base64 -d
+
+   # Set environment variables
+   export OS_AUTH_URL=http://{{ .Values.deployment.region.domain }}/v3
+   export OS_PROJECT_DOMAIN_NAME=default
+   export OS_USER_DOMAIN_NAME=default
+   export OS_PROJECT_NAME=admin
+   export OS_USERNAME=admin
+   export OS_PASSWORD=<password-from-secret>
+   export OS_IDENTITY_API_VERSION=3
+   export OS_IMAGE_API_VERSION=2
+
+6. Test OpenStack functionality:
+   # List services
+   openstack service list
+
+   # List endpoints
+   openstack endpoint list
+
+   # List compute services
+   openstack compute service list
+
+SSL/TLS Configuration:
+{{- if .Values.certificate.create }}
+✓ SSL Certificate: {{ .Values.certificate.name }}
+  - Public endpoints secured with TLS
+  - Certificate management automated
+{{- end }}
+
+Networking:
+{{- range .Values.neutron.networks.external }}
+- External Network: {{ .bridge }}
+  {{- range .networkTypes }}
+  - Type: {{ . }}
+  {{- end }}
+{{- end }}
+
+Storage:
+- Local Storage Class: {{ .Values.deployment.storage.local }}
+- Persistent Storage Class: {{ .Values.deployment.storage.persistent }}
+
+Troubleshooting:
+
+If OpenStack deployment is not ready:
+- Check deployment status: kubectl describe openstackdeployment {{ .Values.deployment.name }}
+- Check operator logs: kubectl logs -n {{ .Release.Namespace | default "openstack-system" }} deployment/rockoon-controller-manager
+- Verify CRD availability: kubectl get crd openstackdeployments.lcm.mirantis.com
+
+If services are not accessible:
+- Check service endpoints: kubectl get endpoints -n openstack
+- Verify network policies: kubectl get networkpolicies -n openstack
+{{- if .Values.certificate.create }}
+- Check certificate status: kubectl get certificate,secret -n openstack
+{{- end }}
+
+If authentication fails:
+- Verify Keystone status: kubectl get pods -n openstack | grep keystone
+- Check identity endpoints: openstack endpoint list --service identity
+{{- if .Values.keystone.keycloak.enabled }}
+- Verify Keycloak integration: Check {{ .Values.keystone.keycloak.url }}
+{{- end }}
+
+For more information:
+- OpenStack Documentation: https://docs.openstack.org/
+- Rockoon Operator: https://github.com/Mirantis/rockoon
+- OpenStack CLI Guide: https://docs.openstack.org/python-openstackclient/
+- Troubleshooting Guide: https://docs.openstack.org/operations-guide/
      ```bash
      export OS_AUTH_URL=http://<keystone-endpoint>/v3
      export OS_PROJECT_NAME=admin

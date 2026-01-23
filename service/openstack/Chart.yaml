@@ -3,7 +3,7 @@ apiVersion: v2
 name: openstack
 type: application
 description: OpenStack Helm Chart
-version: 1.0.2
+version: 1.0.3
 dependencies:
   - alias: operator
     name: rockoon
