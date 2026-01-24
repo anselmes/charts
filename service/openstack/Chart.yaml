@@ -7,6 +7,6 @@ version: 1.0.3
 dependencies:
   - alias: operator
     name: rockoon
-    repository: oci://ghcr.io/labsonline/charts
+    repository: file://../../upstream/rockoon/charts/rockoon
     version: 0.1.0
     condition: operator.enabled
