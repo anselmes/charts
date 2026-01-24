@@ -12,78 +12,13 @@
           "type": "boolean",
           "description": "Enable PostgreSQL operator deployment"
         },
-        "image": {
-          "type": "object",
-          "description": "PostgreSQL operator image configuration",
-          "properties": {
-            "registry": {
-              "type": "string",
-              "description": "Container registry hostname"
-            },
-            "repository": {
-              "type": "string",
-              "description": "Container image repository"
-            },
-            "tag": {
-              "type": "string",
-              "description": "Container image tag"
-            },
-            "pullPolicy": {
-              "type": "string",
-              "enum": ["Always", "IfNotPresent", "Never"],
-              "description": "Image pull policy"
-            }
-          },
-          "additionalProperties": false
+        "operatorImageRepository": {
+          "type": "string",
+          "description": "PostgreSQL operator image repository"
         },
-        "configGeneral": {
-          "type": "object",
-          "description": "General configuration parameters",
-          "properties": {
-            "docker_image": {
-              "type": "string",
-              "description": "Spilo docker image"
-            }
-          },
-          "additionalProperties": false
-        },
-        "configKubernetes": {
-          "type": "object",
-          "description": "Kubernetes-specific configuration",
-          "properties": {
-            "enable_finalizers": {
-              "type": "boolean",
-              "description": "Use finalizers to ensure all managed resources are deleted prior to the postgresql CR"
-            },
-            "enable_owner_references": {
-              "type": "boolean",
-              "description": "Whether child resources should have an owner reference to the postgresql CR"
-            },
-            "enable_pod_antiaffinity": {
-              "type": "boolean",
-              "description": "Enable pod anti affinity on the Postgres pods"
-            },
-            "enable_readiness_probe": {
-              "type": "boolean",
-              "description": "Enable readiness probe for database pods"
-            }
-          },
-          "additionalProperties": false
-        },
-        "configAwsOrGcp": {
-          "type": "object",
-          "description": "AWS or GCP specific configuration",
-          "properties": {
-            "aws_region": {
-              "type": "string",
-              "description": "AWS region used to store EBS volumes"
-            },
-            "enable_ebs_gp3_migration": {
-              "type": "boolean",
-              "description": "Enable automatic migration on AWS from gp2 to gp3 volumes"
-            }
-          },
-          "additionalProperties": false
+        "watchAllNamespaces": {
+          "type": "boolean",
+          "description": "Set if operator should be deployed in cluster wide mode"
         },
         "resources": {
           "type": "object",
@@ -120,50 +55,6 @@
           },
           "additionalProperties": false
         },
-        "securityContext": {
-          "type": "object",
-          "description": "Security context configuration",
-          "properties": {
-            "runAsUser": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "runAsNonRoot": {
-              "type": "boolean"
-            },
-            "readOnlyRootFilesystem": {
-              "type": "boolean"
-            },
-            "allowPrivilegeEscalation": {
-              "type": "boolean"
-            }
-          },
-          "additionalProperties": false
-        },
-        "extraEnvs": {
-          "type": "array",
-          "description": "Extra environment variables",
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "value": {
-                "type": "string"
-              },
-              "valueFrom": {
-                "type": "object"
-              }
-            },
-            "required": ["name"],
-            "additionalProperties": false
-          }
-        },
-        "affinity": {
-          "type": "object",
-          "description": "Affinity for pod assignment"
-        },
         "nodeSelector": {
           "type": "object",
           "description": "Node labels for pod assignment"
@@ -174,6 +65,14 @@
           "items": {
             "type": "object"
           }
+        },
+        "affinity": {
+          "type": "object",
+          "description": "Affinity for pod assignment"
+        },
+        "disableTelemetry": {
+          "type": "boolean",
+          "description": "Disable telemetry collection"
         }
       },
       "additionalProperties": false
@@ -343,6 +242,241 @@
         "tolerateAllTaints": {
           "type": "boolean",
           "description": "Whether to tolerate all taints"
+        },
+        "tolerations": {
+          "type": "array",
+          "description": "Tolerations for pod assignment",
+          "items": {
+            "type": "object"
+          }
+        },
+        "affinity": {
+          "type": "object",
+          "description": "Affinity for pod assignment"
+        }
+      },
+      "additionalProperties": false
+    },
+    "mysql": {
+      "type": "object",
+      "description": "MySQL operator configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable MySQL operator deployment"
+        },
+        "image": {
+          "type": "object",
+          "description": "MySQL operator image configuration",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "description": "Container image repository"
+            },
+            "tag": {
+              "type": "string",
+              "description": "Container image tag"
+            },
+            "pullPolicy": {
+              "type": "string",
+              "enum": ["Always", "IfNotPresent", "Never"],
+              "description": "Image pull policy"
+            }
+          },
+          "additionalProperties": false
+        },
+        "watchAllNamespaces": {
+          "type": "boolean",
+          "description": "Set if operator should be deployed in cluster wide mode"
+        },
+        "resources": {
+          "type": "object",
+          "description": "Resource limits and requests",
+          "properties": {
+            "limits": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string",
+                  "pattern": "^[0-9]+m?$|^[0-9]*\\.?[0-9]+$"
+                },
+                "memory": {
+                  "type": "string",
+                  "pattern": "^[0-9]+[KMGTPE]?i?$"
+                }
+              },
+              "additionalProperties": false
+            },
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string",
+                  "pattern": "^[0-9]+m?$|^[0-9]*\\.?[0-9]+$"
+                },
+                "memory": {
+                  "type": "string",
+                  "pattern": "^[0-9]+[KMGTPE]?i?$"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "nodeSelector": {
+          "type": "object",
+          "description": "Node labels for pod assignment"
+        },
+        "tolerations": {
+          "type": "array",
+          "description": "Tolerations for pod assignment",
+          "items": {
+            "type": "object"
+          }
+        },
+        "affinity": {
+          "type": "object",
+          "description": "Affinity for pod assignment"
+        },
+        "disableTelemetry": {
+          "type": "boolean",
+          "description": "Disable telemetry collection"
+        }
+      },
+      "additionalProperties": false
+    },
+    "mongo": {
+      "type": "object",
+      "description": "MongoDB operator configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable MongoDB operator deployment"
+        },
+        "image": {
+          "type": "object",
+          "description": "MongoDB operator image configuration",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "description": "Container image repository"
+            },
+            "tag": {
+              "type": "string",
+              "description": "Container image tag"
+            },
+            "pullPolicy": {
+              "type": "string",
+              "enum": ["Always", "IfNotPresent", "Never"],
+              "description": "Image pull policy"
+            }
+          },
+          "additionalProperties": false
+        },
+        "disableTelemetry": {
+          "type": "boolean",
+          "description": "Disable telemetry collection"
+        },
+        "watchAllNamespaces": {
+          "type": "boolean",
+          "description": "Set if operator should be deployed in cluster wide mode"
+        },
+        "podSecurityContext": {
+          "type": "object",
+          "description": "Pod security context configuration",
+          "properties": {
+            "runAsNonRoot": {
+              "type": "boolean"
+            },
+            "runAsUser": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "runAsGroup": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "fsGroup": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "fsGroupChangePolicy": {
+              "type": "string",
+              "enum": ["OnRootMismatch", "Always"]
+            }
+          },
+          "additionalProperties": false
+        },
+        "securityContext": {
+          "type": "object",
+          "description": "Security context configuration",
+          "properties": {
+            "allowPrivilegeEscalation": {
+              "type": "boolean"
+            },
+            "capabilities": {
+              "type": "object",
+              "properties": {
+                "drop": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            "seccompProfile": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "resources": {
+          "type": "object",
+          "description": "Resource limits and requests",
+          "properties": {
+            "limits": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string",
+                  "pattern": "^[0-9]+m?$|^[0-9]*\\.?[0-9]+$"
+                },
+                "memory": {
+                  "type": "string",
+                  "pattern": "^[0-9]+[KMGTPE]?i?$"
+                }
+              },
+              "additionalProperties": false
+            },
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string",
+                  "pattern": "^[0-9]+m?$|^[0-9]*\\.?[0-9]+$"
+                },
+                "memory": {
+                  "type": "string",
+                  "pattern": "^[0-9]+[KMGTPE]?i?$"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "nodeSelector": {
+          "type": "object",
+          "description": "Node labels for pod assignment"
         },
         "tolerations": {
           "type": "array",

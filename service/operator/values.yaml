@@ -5,76 +5,119 @@
 postgres:
   enabled: false
 
-  image:
-    registry: ghcr.io
-    repository: zalando/postgres-operator
-    tag: v1.15.1
-    pullPolicy: "IfNotPresent"
+  operatorImageRepository: docker.io/percona/percona-postgresql-operator
 
-  # general configuration parameters
-  configGeneral:
-    # Spilo docker image
-    docker_image: ghcr.io/zalando/spilo-17:4.0-p3
-
-  configKubernetes:
-    # use finalizers to ensure all managed resources are deleted prior to the postgresql CR
-    # this avoids stale resources in case the operator misses a delete event or is not running
-    # during deletion
-    enable_finalizers: false
-    # toggles if child resources should have an owner reference to the postgresql CR
-    enable_owner_references: false
-    # toggles pod anti affinity on the Postgres pods
-    enable_pod_antiaffinity: false
-    # toogles readiness probe for database pods
-    enable_readiness_probe: false
-
-  # configure interaction with non-Kubernetes objects from AWS or GCP
-  configAwsOrGcp:
-    # AWS region used to store EBS volumes
-    aws_region: eu-central-1
-
-    # enable automatic migration on AWS from gp2 to gp3 volumes
-    enable_ebs_gp3_migration: false
+  # set if operator should be deployed in cluster wide mode. defaults to false
+  watchAllNamespaces: false
 
   resources:
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you don't want to specify resources, comment the following
+    # lines and add the curly braces after 'resources:'.
     limits:
-      cpu: 500m
+      cpu: 200m
       memory: 500Mi
     requests:
       cpu: 100m
-      memory: 250Mi
+      memory: 20Mi
 
-  securityContext:
-    runAsUser: 1000
-    runAsNonRoot: true
-    readOnlyRootFilesystem: true
-    allowPrivilegeEscalation: false
-
-  extraEnvs:
-    []
-    # Exemple of settings maximum amount of memory / cpu that can be used by go process (to match resources.limits)
-    # - name: MY_VAR
-    #   value: my-value
-    # - name: GOMAXPROCS
-    #   valueFrom:
-    #     resourceFieldRef:
-    #       resource: limits.cpu
-    # - name: GOMEMLIMIT
-    #   valueFrom:
-    #     resourceFieldRef:
-    #       resource: limits.memory
-
-  # Affinity for pod assignment
-  # Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
-  affinity: {}
-
-  # Node labels for pod assignment
-  # Ref: https://kubernetes.io/docs/user-guide/node-selection/
   nodeSelector: {}
 
-  # Tolerations for pod assignment
-  # Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
   tolerations: []
+
+  affinity: {}
+
+  # disableTelemetry: according to
+  # https://docs.percona.com/percona-operator-for-postgresql/2.0/telemetry.html
+  # this is how you can disable telemetry collection
+  # default is false which means telemetry will be collected
+  disableTelemetry: false
+
+# MARK: MySQL
+
+mysql:
+  enabled: false
+
+  image:
+    repository: percona/percona-server-mysql-operator
+    tag: 1.0.0
+    pullPolicy: IfNotPresent
+
+  # set if operator should be deployed in cluster wide mode. defaults to false
+  watchAllNamespaces: false
+
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+  disableTelemetry: false
+
+# MARK: Mongo
+
+mongo:
+  enabled: false
+
+  image:
+    repository: percona/percona-server-mongodb-operator
+    tag: 1.21.2
+    pullPolicy: IfNotPresent
+
+  # disableTelemetry: according to
+  # https://docs.percona.com/percona-operator-for-mongodb/telemetry.html
+  # this is how you can disable telemetry collection
+  # default is false which means telemetry will be collected
+  disableTelemetry: false
+
+  # set if operator should be deployed in cluster wide mode. defaults to false
+  watchAllNamespaces: false
+
+  podSecurityContext: {}
+    # runAsNonRoot: true
+    # runAsUser: 2
+    # runAsGroup: 2
+    # fsGroup: 2
+    # fsGroupChangePolicy: "OnRootMismatch"
+
+  securityContext: {}
+    # allowPrivilegeEscalation: false
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # seccompProfile:
+    #   type: RuntimeDefault
+
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
 
 # MARK: Redis
 

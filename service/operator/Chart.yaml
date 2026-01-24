@@ -3,13 +3,23 @@ apiVersion: v2
 name: operator
 type: application
 description: A Helm chart that deploys various Operators and their dependencies.
-version: 1.0.0
+version: 1.0.1
 dependencies:
   - alias: postgres
-    name: postgres-operator
-    repository: https://opensource.zalando.com/postgres-operator/charts/postgres-operator
-    version: 1.15.1
+    name: pg-operator
+    repository: https://percona.github.io/percona-helm-charts
+    version: 2.8.2
     condition: postgres.enabled
+  - alias: mysql
+    name: ps-operator
+    repository: https://percona.github.io/percona-helm-charts
+    version: 1.0.0
+    condition: mysql.enabled
+  - alias: mongo
+    name: psmdb-operator
+    repository: https://percona.github.io/percona-helm-charts
+    version: 1.21.3
+    condition: mongo.enabled
   - alias: redis
     name: redis-operator
     repository: https://ot-container-kit.github.io/helm-charts
