@@ -1,0 +1,9 @@
+---
+apiVersion: v2
+type: application
+name: data-service-template
+description: labsonline service template for "data"
+version: 1.0.0
+dependencies:
+  - name: labsonline-catalog
+    version: 1.0.0
