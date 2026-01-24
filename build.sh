@@ -25,6 +25,7 @@ SERVICES=(
   ccm
   cni
   csi
+  data
   edns
   flux
   gateway
@@ -42,6 +43,7 @@ TEMPLATES=(
   cni-service-template
   crd-service-template
   csi-service-template
+  data-service-template
   edns-service-template
   gateway-service-template
   gwapi-service-template
@@ -53,10 +55,6 @@ TEMPLATES=(
   pinniped-service-template
 )
 
-UPSTREAM=(
-  rockoon
-)
-
 mkdir -p "${BUILD_DIR}"
 
 # Parse command line arguments
@@ -64,15 +62,6 @@ while [[ $# -gt 0 ]]; do
   case $1 in
     --all)
       BUILD_ALL=true
-      shift
-      ;;
-    --upstream)
-      BUILD_UPSTREAM=true
-      BUILD_ALL=false
-      if [[ $# -gt 1 && ! "$2" =~ ^-- ]]; then
-        SPECIFIC_UPSTREAM+=("$2")
-        shift
-      fi
       shift
       ;;
     --clusters)
@@ -144,18 +133,6 @@ build() {
 }
 
 # Package charts.
-if [[ "$BUILD_ALL" == true || "$BUILD_UPSTREAM" == true ]]; then
-  if [[ ${#SPECIFIC_UPSTREAM[@]} -gt 0 ]]; then
-    for chart in "${SPECIFIC_UPSTREAM[@]}"; do
-      build "upstream/${chart}" "${BUILD_DIR}"
-    done
-  elif [[ "$BUILD_ALL" == true || ${#SPECIFIC_UPSTREAM[@]} -eq 0 ]]; then
-    for chart in "${UPSTREAM[@]}"; do
-      build "upstream/${chart}" "${BUILD_DIR}"
-    done
-  fi
-fi
-
 if [[ "$BUILD_ALL" == true || "$BUILD_CLUSTERS" == true ]]; then
   if [[ ${#SPECIFIC_CLUSTERS[@]} -gt 0 ]]; then
     for chart in "${SPECIFIC_CLUSTERS[@]}"; do
