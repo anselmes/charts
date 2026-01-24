@@ -1,0 +1,1117 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Data Chart Values",
+  "description": "Schema for data chart values that deploys various Databases and their dependencies",
+  "type": "object",
+  "properties": {
+    "postgres": {
+      "type": "object",
+      "description": "PostgreSQL database configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable PostgreSQL database deployment"
+        },
+        "finalizers": {
+          "type": ["array", "null"],
+          "description": "Finalizers for cluster deletion behavior",
+          "items": {
+            "type": "string",
+            "enum": [
+              "percona.com/delete-pvc",
+              "percona.com/delete-ssl",
+              "percona.com/delete-backups"
+            ]
+          }
+        },
+        "repository": {
+          "type": "string",
+          "description": "PostgreSQL image repository"
+        },
+        "image": {
+          "type": "string",
+          "description": "PostgreSQL image with tag"
+        },
+        "postgresVersion": {
+          "type": "integer",
+          "description": "PostgreSQL major version"
+        },
+        "standby": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "customTLSSecret": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "customReplicationTLSSecret": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "instances": {
+          "type": "array",
+          "description": "PostgreSQL instances configuration",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "replicas": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "dataVolumeClaimSpec": {
+                "type": "object",
+                "properties": {
+                  "storageClassName": {
+                    "type": "string"
+                  },
+                  "accessModes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "resources": {
+                    "type": "object"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "affinity": {
+                "type": "object"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "proxy": {
+          "type": "object",
+          "properties": {
+            "pgBouncer": {
+              "type": "object",
+              "properties": {
+                "replicas": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "affinity": {
+                  "type": "object"
+                },
+                "image": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "backups": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "trackLatestRestorableTime": {
+              "type": "boolean"
+            },
+            "pgbackrest": {
+              "type": "object",
+              "properties": {
+                "image": {
+                  "type": "string"
+                },
+                "repoHost": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "pmm": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "image": {
+              "type": "object",
+              "properties": {
+                "repository": {
+                  "type": "string"
+                },
+                "tag": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "serverHost": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "secrets": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": ["string", "null"]
+            },
+            "primaryuser": {
+              "type": ["string", "null"]
+            },
+            "postgres": {
+              "type": ["string", "null"]
+            },
+            "pgbouncer": {
+              "type": ["string", "null"]
+            },
+            "pguser": {
+              "type": ["string", "null"]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "mysql": {
+      "type": "object",
+      "description": "MySQL database configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable MySQL database deployment"
+        },
+        "mysql": {
+          "type": "object",
+          "properties": {
+            "clusterType": {
+              "type": "string",
+              "enum": ["group-replication"]
+            },
+            "autoRecovery": {
+              "type": "boolean"
+            },
+            "podDisruptionBudget": {
+              "type": "object",
+              "properties": {
+                "maxUnavailable": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "minAvailable": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
+            },
+            "image": {
+              "type": "object",
+              "properties": {
+                "repository": {
+                  "type": "string"
+                },
+                "tag": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "configuration": {
+              "type": "string"
+            },
+            "resources": {
+              "type": "object",
+              "properties": {
+                "requests": {
+                  "type": "object"
+                },
+                "limits": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false
+            },
+            "affinity": {
+              "type": "object",
+              "properties": {
+                "antiAffinityTopologyKey": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": true
+            },
+            "exposePrimary": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "volumeSpec": {
+              "type": "object",
+              "properties": {
+                "pvc": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false
+            },
+            "nodeSelector": {
+              "type": "object"
+            },
+            "tolerations": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "proxy": {
+          "type": "object",
+          "properties": {
+            "haproxy": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "tolerations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "pmm": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "image": {
+              "type": "object",
+              "properties": {
+                "repository": {
+                  "type": "string"
+                },
+                "tag": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "serverHost": {
+              "type": "string"
+            },
+            "resources": {
+              "type": "object",
+              "properties": {
+                "requests": {
+                  "type": "object"
+                },
+                "limits": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "backup": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "image": {
+              "type": "object",
+              "properties": {
+                "repository": {
+                  "type": "string"
+                },
+                "tag": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "resources": {
+              "type": "object",
+              "properties": {
+                "requests": {
+                  "type": "object"
+                },
+                "limits": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "mongo": {
+      "type": "object",
+      "description": "MongoDB database configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable MongoDB database deployment"
+        },
+        "multiCluster": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": {
+              "type": "string"
+            },
+            "tag": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "pmm": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "image": {
+              "type": "object",
+              "properties": {
+                "repository": {
+                  "type": "string"
+                },
+                "tag": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "serverHost": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "replsets": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z0-9]+$": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "sharding": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "balancer": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "configrs": {
+              "type": "object",
+              "properties": {
+                "size": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "affinity": {
+                  "type": "object"
+                },
+                "expose": {
+                  "type": "object"
+                },
+                "resources": {
+                  "type": "object"
+                },
+                "volumeSpec": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false
+            },
+            "mongos": {
+              "type": "object",
+              "properties": {
+                "size": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "affinity": {
+                  "type": "object"
+                },
+                "expose": {
+                  "type": "object"
+                },
+                "resources": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "backup": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "image": {
+              "type": "object",
+              "properties": {
+                "repository": {
+                  "type": "string"
+                },
+                "tag": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "logcollector": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "image": {
+              "type": "object",
+              "properties": {
+                "repository": {
+                  "type": "string"
+                },
+                "tag": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "resources": {
+              "type": "object",
+              "properties": {
+                "requests": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "rediscluster": {
+      "type": "object",
+      "description": "Redis Cluster configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable Redis Cluster deployment"
+        },
+        "redisCluster": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "clusterSize": {
+              "type": "integer",
+              "minimum": 3
+            },
+            "clusterVersion": {
+              "type": "string"
+            },
+            "persistenceEnabled": {
+              "type": "boolean"
+            },
+            "image": {
+              "type": "string"
+            },
+            "tag": {
+              "type": "string"
+            },
+            "resources": {
+              "type": "object"
+            },
+            "leader": {
+              "type": "object",
+              "properties": {
+                "securityContext": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": true
+            },
+            "follower": {
+              "type": "object",
+              "properties": {
+                "securityContext": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "externalConfig": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "data": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "externalService": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "serviceType": {
+              "type": "string",
+              "enum": ["ClusterIP", "NodePort", "LoadBalancer"]
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            }
+          },
+          "additionalProperties": false
+        },
+        "storageSpec": {
+          "type": "object",
+          "properties": {
+            "volumeClaimTemplate": {
+              "type": "object",
+              "properties": {
+                "spec": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false
+            },
+            "nodeConfVolume": {
+              "type": "boolean"
+            },
+            "nodeConfVolumeClaimTemplate": {
+              "type": "object",
+              "properties": {
+                "spec": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "TLS": {
+          "type": "object",
+          "properties": {
+            "ca": {
+              "type": "string"
+            },
+            "cert": {
+              "type": "string"
+            },
+            "key": {
+              "type": "string"
+            },
+            "secret": {
+              "type": "object",
+              "properties": {
+                "secretName": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "redisreplication": {
+      "type": "object",
+      "description": "Redis Replication configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable Redis Replication deployment"
+        },
+        "redisReplication": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "clusterSize": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "image": {
+              "type": "string"
+            },
+            "tag": {
+              "type": "string"
+            },
+            "resources": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        },
+        "externalConfig": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "data": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "externalService": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "serviceType": {
+              "type": "string",
+              "enum": ["ClusterIP", "NodePort", "LoadBalancer"]
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "nodePort": {
+              "type": "integer",
+              "minimum": 30000,
+              "maximum": 32767
+            }
+          },
+          "additionalProperties": false
+        },
+        "nodeSelector": {
+          "type": "object"
+        },
+        "storageSpec": {
+          "type": "object",
+          "properties": {
+            "volumeClaimTemplate": {
+              "type": "object",
+              "properties": {
+                "spec": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "securityContext": {
+          "type": "object"
+        },
+        "affinity": {
+          "type": "object"
+        },
+        "tolerations": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "TLS": {
+          "type": "object",
+          "properties": {
+            "ca": {
+              "type": "string"
+            },
+            "cert": {
+              "type": "string"
+            },
+            "key": {
+              "type": "string"
+            },
+            "secret": {
+              "type": "object",
+              "properties": {
+                "secretName": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "redissentinel": {
+      "type": "object",
+      "description": "Redis Sentinel configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable Redis Sentinel deployment"
+        },
+        "redisSentinel": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "clusterSize": {
+              "type": "integer",
+              "minimum": 3
+            },
+            "image": {
+              "type": "string"
+            },
+            "tag": {
+              "type": "string"
+            },
+            "resources": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        },
+        "redisSentinelConfig": {
+          "type": "object",
+          "properties": {
+            "redisReplicationName": {
+              "type": "string"
+            },
+            "redisReplicationPassword": {
+              "type": "object",
+              "properties": {
+                "secretName": {
+                  "type": "string"
+                },
+                "secretKey": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "masterGroupName": {
+              "type": "string"
+            },
+            "resolveHostnames": {
+              "type": "string"
+            },
+            "announceHostnames": {
+              "type": "string"
+            },
+            "redisPort": {
+              "type": "string"
+            },
+            "quorum": {
+              "type": "string"
+            },
+            "parallelSyncs": {
+              "type": "string"
+            },
+            "failoverTimeout": {
+              "type": "string"
+            },
+            "downAfterMilliseconds": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "externalConfig": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "data": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "externalService": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "serviceType": {
+              "type": "string",
+              "enum": ["ClusterIP", "NodePort", "LoadBalancer"]
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "nodePort": {
+              "type": "integer",
+              "minimum": 30000,
+              "maximum": 32767
+            }
+          },
+          "additionalProperties": false
+        },
+        "nodeSelector": {
+          "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object",
+          "properties": {
+            "runAsUser": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "fsGroup": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": true
+        },
+        "securityContext": {
+          "type": "object"
+        },
+        "affinity": {
+          "type": "object"
+        },
+        "tolerations": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "TLS": {
+          "type": "object",
+          "properties": {
+            "ca": {
+              "type": "string"
+            },
+            "cert": {
+              "type": "string"
+            },
+            "key": {
+              "type": "string"
+            },
+            "secret": {
+              "type": "object",
+              "properties": {
+                "secretName": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "redis": {
+      "type": "object",
+      "description": "Redis Standalone configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable Redis Standalone deployment"
+        },
+        "redisStandalone": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "image": {
+              "type": "string"
+            },
+            "tag": {
+              "type": "string"
+            },
+            "resources": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        },
+        "externalConfig": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "data": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "externalService": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "serviceType": {
+              "type": "string",
+              "enum": ["ClusterIP", "NodePort", "LoadBalancer"]
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "nodePort": {
+              "type": "integer",
+              "minimum": 30000,
+              "maximum": 32767
+            }
+          },
+          "additionalProperties": false
+        },
+        "storageSpec": {
+          "type": "object",
+          "properties": {
+            "volumeClaimTemplate": {
+              "type": "object",
+              "properties": {
+                "spec": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "securityContext": {
+          "type": "object"
+        },
+        "affinity": {
+          "type": "object"
+        },
+        "tolerations": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "TLS": {
+          "type": "object",
+          "properties": {
+            "ca": {
+              "type": "string"
+            },
+            "cert": {
+              "type": "string"
+            },
+            "key": {
+              "type": "string"
+            },
+            "secret": {
+              "type": "object",
+              "properties": {
+                "secretName": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

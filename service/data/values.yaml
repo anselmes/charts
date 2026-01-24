@@ -1,0 +1,609 @@
+---
+
+# MARK: Postgres
+
+postgres:
+  enabled: false
+
+  finalizers:
+  # Set this if you want that operator deletes the PVCs on cluster deletion
+  #  - percona.com/delete-pvc
+  # Set this if you want that operator deletes the ssl objects on cluster deletion
+  #  - percona.com/delete-ssl
+  # Set this if you want that operator deletes the backups on cluster deletion
+  #  - percona.com/delete-backups
+
+  repository: docker.io/percona/percona-distribution-postgresql
+  image: docker.io/percona/percona-distribution-postgresql:17.7-2
+  postgresVersion: 17
+  standby:
+    enabled: false
+  customTLSSecret:
+    name: ""
+  customReplicationTLSSecret:
+    name: ""
+
+  instances:
+    - name: instance1
+      replicas: 3
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    postgres-operator.crunchydata.com/data: postgres
+                topologyKey: kubernetes.io/hostname
+
+      dataVolumeClaimSpec:
+    #    storageClassName: standard
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 5Gi
+
+  proxy:
+    pgBouncer:
+      replicas: 3
+      image: docker.io/percona/percona-pgbouncer:1.25.0-1
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    postgres-operator.crunchydata.com/role: pgbouncer
+                topologyKey: kubernetes.io/hostname
+
+  backups:
+    enabled: true
+    trackLatestRestorableTime: true
+    pgbackrest:
+      image: docker.io/percona/percona-pgbackrest:2.57.0-1
+      repoHost:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 1
+                podAffinityTerm:
+                  labelSelector:
+                    matchLabels:
+                      postgres-operator.crunchydata.com/data: pgbackrest
+                  topologyKey: kubernetes.io/hostname
+
+  pmm:
+    enabled: false
+    image:
+      repository: docker.io/percona/pmm-client
+      tag: 3.4.1
+    serverHost: monitoring-service
+
+  secrets:
+    name:
+    # replication user password
+    primaryuser:
+    # superuser password
+    postgres:
+    # pgbouncer user password
+    pgbouncer:
+    # pguser user password
+    pguser:
+
+# MARK: MySQL
+
+mysql:
+  enabled: false
+
+  mysql:
+    clusterType: group-replication
+    autoRecovery: true
+    podDisruptionBudget:
+      maxUnavailable: 1
+      # minAvailable: 0
+    image:
+      repository: percona/percona-server
+      tag: 8.4.6-6.1
+
+    size: 3
+
+    # configuration: |
+    #   max_connections=250
+
+    resources:
+      requests:
+        memory: 2Gi
+      limits:
+        memory: 4Gi
+
+    affinity:
+      antiAffinityTopologyKey: "kubernetes.io/hostname"
+
+    exposePrimary:
+      enabled: true
+
+    volumeSpec:
+      pvc:
+        resources:
+          requests:
+            storage: 3Gi
+
+    nodeSelector: {}
+    tolerations: []
+
+  proxy:
+    haproxy:
+      enabled: true
+      image:
+        repository: percona/haproxy
+        tag: 2.8.15
+
+      size: 3
+
+      resources:
+        requests:
+          memory: 1Gi
+          cpu: 600m
+        limits: {}
+
+      affinity:
+        antiAffinityTopologyKey: "kubernetes.io/hostname"
+
+      nodeSelector: {}
+      tolerations: []
+
+  pmm:
+    enabled: false
+    image:
+      repository: percona/pmm-client
+      tag: 3.4.1
+    serverHost: monitoring-service
+    resources:
+      requests:
+        memory: 150M
+        cpu: 300m
+      limits: {}
+
+  backup:
+    enabled: true
+    image:
+      repository: percona/percona-xtrabackup
+      tag: 8.4.0-4.1
+    resources:
+      requests: {}
+      limits: {}
+
+# MARK: Mongo
+
+mongo:
+  enabled: false
+
+  multiCluster:
+    enabled: false
+
+  image:
+    repository: percona/percona-server-mongodb
+    tag: 8.0.17-6
+
+  pmm:
+    enabled: false
+    image:
+      repository: percona/pmm-client
+      tag: 3.5.0
+    serverHost: monitoring-service
+
+  replsets:
+    rs0:
+      name: rs0
+      size: 3
+      affinity:
+        antiAffinityTopologyKey: "kubernetes.io/hostname"
+      expose:
+        enabled: false
+        type: ClusterIP
+      resources:
+        limits:
+          cpu: "600m"
+          memory: "1Gi"
+        requests:
+          cpu: "300m"
+          memory: "1Gi"
+      volumeSpec:
+        # emptyDir: {}
+        # hostPath:
+        #   path: /data
+        #   type: Directory
+        pvc:
+          # annotations:
+          #   volume.beta.kubernetes.io/storage-class: example-hostpath
+          # labels:
+          #   rack: rack-22
+          # storageClassName: standard
+          # accessModes: [ "ReadWriteOnce" ]
+          resources:
+            requests:
+              storage: 3Gi
+
+  sharding:
+    enabled: true
+    balancer:
+      enabled: true
+    configrs:
+      size: 3
+      affinity:
+        antiAffinityTopologyKey: "kubernetes.io/hostname"
+      expose:
+        enabled: false
+        type: ClusterIP
+      resources:
+        limits:
+          cpu: "600m"
+          memory: "1Gi"
+        requests:
+          cpu: "300m"
+          memory: "1Gi"
+      volumeSpec:
+        # emptyDir: {}
+        # hostPath:
+        #   path: /data
+        #   type: Directory
+        pvc:
+          # annotations:
+          #   volume.beta.kubernetes.io/storage-class: example-hostpath
+          # labels:
+          #   rack: rack-22
+          # storageClassName: standard
+          # accessModes: [ "ReadWriteOnce" ]
+          resources:
+            requests:
+              storage: 3Gi
+    mongos:
+      size: 3
+      affinity:
+        antiAffinityTopologyKey: "kubernetes.io/hostname"
+      resources:
+        limits:
+          cpu: "600m"
+          memory: "1Gi"
+        requests:
+          cpu: "300m"
+          memory: "1Gi"
+      expose:
+        enabled: false
+        type: ClusterIP
+
+  backup:
+    enabled: true
+    image:
+      repository: percona/percona-backup-mongodb
+      tag: 2.11.0
+
+  logcollector:
+    enabled: true
+    image:
+      repository: percona/fluentbit
+      tag: 4.0.1
+    resources:
+      requests:
+        memory: 100M
+        cpu: 200m
+
+# MARK: Redis Cluster
+
+rediscluster:
+  enabled: false
+
+  redisCluster:
+    name: ""
+    # -- Default number of replicas for both leader and follower when not explicitly set
+    clusterSize: 3
+    clusterVersion: v7
+    persistenceEnabled: true
+    image: quay.io/opstree/redis
+    tag: v7.0.15
+    resources: {}
+      # requests:
+      #   cpu: 100m
+      #   memory: 128Mi
+      # limits:
+      #   cpu: 100m
+      #   memory: 128Mi
+    leader:
+      # -- Number of Redis leader (master) nodes. If not set, uses clusterSize value
+      replicas: 3
+      serviceType: ClusterIP
+      affinity: {}
+        # nodeAffinity:
+        #   requiredDuringSchedulingIgnoredDuringExecution:
+        #     nodeSelectorTerms:
+        #     - matchExpressions:
+        #       - key: disktype
+        #         operator: In
+        #         values:
+        #         - ssd
+      tolerations: []
+        # - key: "key"
+        #   operator: "Equal"
+        #   value: "value"
+        #   effect: "NoSchedule"
+      nodeSelector: null
+        # memory: medium
+      securityContext: {}
+    follower:
+      # -- Number of Redis follower (slave) nodes. If not set, uses clusterSize value
+      replicas: 3
+      serviceType: ClusterIP
+      affinity: null
+        # nodeAffinity:
+        #   requiredDuringSchedulingIgnoredDuringExecution:
+        #     nodeSelectorTerms:
+        #     - matchExpressions:
+        #       - key: disktype
+        #         operator: In
+        #         values:
+        #         - ssd
+      tolerations: []
+        # - key: "key"
+        #   operator: "Equal"
+        #   value: "value"
+        #   effect: "NoSchedule"
+      nodeSelector: null
+        # memory: medium
+      securityContext: {}
+
+  externalConfig:
+    enabled: false
+    data: |
+      tcp-keepalive 400
+      slowlog-max-len 158
+      stream-node-max-bytes 2048
+
+  externalService:
+    enabled: false
+    # annotations:
+    #   foo: bar
+    serviceType: LoadBalancer
+    port: 6379
+
+  storageSpec:
+    volumeClaimTemplate:
+      spec:
+        # storageClassName: standard
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+    nodeConfVolume: true
+    nodeConfVolumeClaimTemplate:
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+    #   selector: {}
+
+  TLS:
+    ca: ca.key
+    cert: tls.crt
+    key: tls.key
+    secret:
+      secretName: ""
+
+# MARK: Redis Replication
+
+redisreplication:
+  enabled: false
+
+  redisReplication:
+    name: ""
+    clusterSize: 3
+    image: quay.io/opstree/redis
+    tag: v7.0.15
+    resources: {}
+      # requests:
+      #   cpu: 100m
+      #   memory: 128Mi
+      # limits:
+      #   cpu: 100m
+      #   memory: 128Mi
+
+  externalConfig:
+    enabled: false
+    data: |
+      tcp-keepalive 400
+      slowlog-max-len 158
+      stream-node-max-bytes 2048
+
+  externalService:
+    enabled: false
+    # annotations:
+    #   foo: bar
+    serviceType: NodePort
+    port: 6379
+    #nodePort: 31000
+
+  nodeSelector: {}
+    # memory: medium
+
+  storageSpec:
+    volumeClaimTemplate:
+      spec:
+        # storageClassName: standard
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+    #   selector: {}
+
+  securityContext: {}
+
+  affinity: {}
+    # nodeAffinity:
+    #   requiredDuringSchedulingIgnoredDuringExecution:
+    #     nodeSelectorTerms:
+    #     - matchExpressions:
+    #       - key: disktype
+    #         operator: In
+    #         values:
+    #         - ssd
+
+  tolerations: []
+    # - key: "key"
+    #   operator: "Equal"
+    #   value: "value"
+    #   effect: "NoSchedule"
+
+  TLS:
+    ca: ca.key
+    cert: tls.crt
+    key: tls.key
+    secret:
+      secretName: ""
+
+# MARK: Redis Sentinel
+
+redissentinel:
+  enabled: false
+
+  redisSentinel:
+    name: ""
+    clusterSize: 3
+    image: quay.io/opstree/redis-sentinel
+    tag: v7.0.15
+    resources: {}
+      # requests:
+      #   cpu: 100m
+      #   memory: 128Mi
+      # limits:
+      #   cpu: 100m
+      #   memory: 128Mi
+
+  redisSentinelConfig:
+    redisReplicationName: "redis-replication"
+    redisReplicationPassword:
+      secretName: ""
+      secretKey: ""
+    masterGroupName: ""
+    resolveHostnames: ""
+    announceHostnames: ""
+    redisPort: ""
+    quorum: ""
+    parallelSyncs: ""
+    failoverTimeout: ""
+    downAfterMilliseconds: ""
+
+  externalConfig:
+    enabled: false
+    data: |
+      tcp-keepalive 400
+      slowlog-max-len 158
+      stream-node-max-bytes 2048
+
+  externalService:
+    enabled: false
+    # annotations:
+    #   foo: bar
+    serviceType: NodePort
+    port: 26379
+    #nodePort: 31000
+
+  nodeSelector: {}
+    # memory: medium
+
+  podSecurityContext:
+    runAsUser: 1000
+    fsGroup: 1000
+
+  securityContext: {}
+
+  affinity: {}
+    # nodeAffinity:
+    #   requiredDuringSchedulingIgnoredDuringExecution:
+    #     nodeSelectorTerms:
+    #     - matchExpressions:
+    #       - key: disktype
+    #         operator: In
+    #         values:
+    #         - ssd
+
+  tolerations: []
+    # - key: "key"
+    #   operator: "Equal"
+    #   value: "value"
+    #   effect: "NoSchedule"
+
+  TLS:
+    ca: ca.key
+    cert: tls.crt
+    key: tls.key
+    secret:
+      secretName: ""
+
+# MARK: Redis
+
+redis:
+  enabled: false
+
+  redisStandalone:
+    name: ""
+    image: quay.io/opstree/redis
+    tag: v7.0.15
+    resources: {}
+      # requests:
+      #   cpu: 100m
+      #   memory: 128Mi
+      # limits:
+      #   cpu: 100m
+      #   memory: 128Mi
+
+  externalConfig:
+    enabled: false
+    data: |
+      tcp-keepalive 400
+      slowlog-max-len 158
+      stream-node-max-bytes 2048
+
+  externalService:
+    enabled: false
+    # annotations:
+    #   foo: bar
+    serviceType: NodePort
+    port: 6379
+    #nodePort: 31000
+
+  storageSpec:
+    volumeClaimTemplate:
+      spec:
+        # storageClassName: standard
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+    #   selector: {}
+
+  securityContext: {}
+
+  affinity: {}
+    # nodeAffinity:
+    #   requiredDuringSchedulingIgnoredDuringExecution:
+    #     nodeSelectorTerms:
+    #     - matchExpressions:
+    #       - key: disktype
+    #         operator: In
+    #         values:
+    #         - ssd
+
+  tolerations: []
+    # - key: "key"
+    #   operator: "Equal"
+    #   value: "value"
+    #   effect: "NoSchedule"
+
+  TLS:
+    ca: ca.key
+    cert: tls.crt
+    key: tls.key
+    secret:
+      secretName: ""
