@@ -1,0 +1,43 @@
+# FIXME: Update values as needed
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: msr
+  namespace: cicd
+spec:
+  interval: 10m0s
+  releaseName: msr
+  timeout: 15m0s
+  dependsOn:
+    - name: flux
+      namespace: sre
+    # - name: operator
+    #   namespace: operators
+    # - name: traefik-gateway-api
+    #   namespace: kube-system
+    # - name: cert-manager
+    #   namespace: cert-manager
+  chart:
+    spec:
+      interval: 5m
+      chart: msr
+      version: 4.13.3
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  # TODO: images
+  # postRenderers:
+  #   - kustomize:
+  #       images:
+  #         - name: ""
+  #           newName: ""
+  #           newTag: ""
