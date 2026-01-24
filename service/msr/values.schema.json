@@ -792,6 +792,194 @@
         }
       },
       "additionalProperties": false
+    },
+    "data": {
+      "type": "object",
+      "description": "Data services configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable data dependency"
+        },
+        "postgres": {
+          "type": "object",
+          "description": "PostgreSQL configuration for Harbor",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "finalizers": {
+              "type": ["array", "null"]
+            },
+            "repository": {
+              "type": "string"
+            },
+            "image": {
+              "type": "string"
+            },
+            "postgresVersion": {
+              "type": "integer"
+            },
+            "instances": {
+              "type": "array"
+            },
+            "proxy": {
+              "type": "object"
+            },
+            "backups": {
+              "type": "object"
+            },
+            "pmm": {
+              "type": "object"
+            },
+            "secrets": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        },
+        "redisreplication": {
+          "type": "object",
+          "description": "Redis replication configuration for Harbor",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "redisReplication": {
+              "type": "object"
+            },
+            "externalConfig": {
+              "type": "object"
+            },
+            "externalService": {
+              "type": "object"
+            },
+            "nodeSelector": {
+              "type": "object"
+            },
+            "storageSpec": {
+              "type": "object"
+            },
+            "securityContext": {
+              "type": "object"
+            },
+            "affinity": {
+              "type": "object"
+            },
+            "tolerations": {
+              "type": "array"
+            },
+            "TLS": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "ca": {
+      "type": "object",
+      "description": "Certificate Authority configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable CA dependency"
+        },
+        "issuers": {
+          "type": "array",
+          "description": "Certificate issuers configuration",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Issuer name"
+              },
+              "secret": {
+                "type": "object",
+                "description": "Secret-based issuer configuration"
+              },
+              "selfSigned": {
+                "type": ["boolean", "object"],
+                "description": "Self-signed issuer configuration"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "gateway": {
+      "type": "object",
+      "description": "Gateway configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable Gateway dependency"
+        },
+        "routes": {
+          "type": "array",
+          "description": "HTTP routes configuration",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Route name"
+              },
+              "rules": {
+                "type": "array",
+                "description": "Route rules"
+              },
+              "gateways": {
+                "type": "array",
+                "description": "Gateway references"
+              },
+              "hostnames": {
+                "type": "array",
+                "description": "Route hostnames"
+              },
+              "kind": {
+                "type": "string",
+                "description": "Route kind"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "policies": {
+          "type": "array",
+          "description": "Gateway policies",
+          "items": {
+            "type": "object"
+          }
+        },
+        "gateways": {
+          "type": "array",
+          "description": "Gateway configurations",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Gateway name"
+              },
+              "className": {
+                "type": "string",
+                "description": "Gateway class name"
+              },
+              "listeners": {
+                "type": "array",
+                "description": "Gateway listeners"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false,

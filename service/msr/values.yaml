@@ -942,22 +942,130 @@ msr:
     cacheDuration: 23
     cacheCleanInterval: 14400
 
-ca:
+data:
   enabled: false
 
-  # MARK: - Issuers
+  # MARK: Postgres
 
+  postgres:
+    enabled: false
+    postgresVersion: 17
+    instances:
+      - name: msr
+        replicas: 3
+        # tolerations:
+        #   - key: com.docker.ucp.manager
+        #     operator: Exists
+        # affinity:
+        #   nodeAffinity:
+        #     requiredDuringSchedulingIgnoredDuringExecution:
+        #       nodeSelectorTerms:
+        #         - matchExpressions:
+        #             - key: "apps.kubernetes.io/msr"
+        #               operator: In
+        #               values:
+        #                 - "true"
+        dataVolumeClaimSpec:
+          storageClassName: ""
+          resources:
+            requests:
+              storage: 1Gi
+    proxy:
+      pgBouncer:
+        replicas: 0
+        # tolerations:
+        #   - key: com.docker.ucp.manager
+        #     operator: Exists
+        # affinity:
+        #   nodeAffinity:
+        #     requiredDuringSchedulingIgnoredDuringExecution:
+        #       nodeSelectorTerms:
+        #         - matchExpressions:
+        #             - key: "apps.kubernetes.io/msr"
+        #               operator: In
+        #               values:
+        #                 - "true"
+    backups:
+      enabled: false
+      trackLatestRestorableTime: true
+      # pgbackrest:
+      #   repoHost:
+      #     tolerations:
+      #       - key: com.docker.ucp.manager
+      #         operator: Exists
+      #     affinity:
+      #       nodeAffinity:
+      #         requiredDuringSchedulingIgnoredDuringExecution:
+      #           nodeSelectorTerms:
+      #             - matchExpressions:
+      #                 - key: "apps.kubernetes.io/msr"
+      #                   operator: In
+      #                   values:
+      #                     - "true"
+    # secrets:
+    #   name:
+    #   primaryuser:
+    #   postgres:
+    #   pgbouncer:
+    #   pguser:
+
+  # MARK: Redis
+
+  redisreplication:
+    enabled: false
+
+    redisReplication:
+      clusterSize: 3
+      image: quay.io/opstree/redis
+      tag: v8.2.2
+      resources: {}
+        # requests:
+        #   cpu: 100m
+        #   memory: 128Mi
+        # limits:
+        #   cpu: 100m
+        #   memory: 128Mi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ""
+          resources:
+            requests:
+              storage: 1Gi
+
+    # tolerations:
+    #   - key: com.docker.ucp.manager
+    #     operator: Exists
+    # affinity:
+    #   nodeAffinity:
+    #     requiredDuringSchedulingIgnoredDuringExecution:
+    #       nodeSelectorTerms:
+    #         - matchExpressions:
+    #             - key: "apps.kubernetes.io/msr"
+    #               operator: In
+    #               values:
+    #                 - "true"
+    # TLS:
+    #   ca: ca.key
+    #   cert: tls.crt
+    #   key: tls.key
+    #   secret:
+    #     secretName: ""
+
+# MARK: Issuers
+
+ca:
+  enabled: false
   issuers:
     - name: msr-ca-issuer
       selfSigned: true
       secret:
         create: false
 
+# MARK: Routes
+
 gateway:
   enabled: false
-
-  # MARK: Routes
-
   routes:
     - name: msr
       kind: HTTPRoute
@@ -1039,55 +1147,3 @@ gateway:
         #     certificateRefs:
         #       - name: msr-gw-cert
         #         issuer: msr-ca-issuer
-
-# MARK: Postgres
-
-postgresql:
-  enabled: false
-  replicas: 3
-  version: 17
-  storage:
-    class: ""
-    size: 1Gi
-  tolerations:
-    []
-    # - key: com.docker.ucp.manager
-    #   operator: Exists
-  nodeAffinity:
-    {}
-    # requiredDuringSchedulingIgnoredDuringExecution:
-    #   nodeSelectorTerms:
-    #     - matchExpressions:
-    #         - key: "apps.kubernetes.io/msr"
-    #           operator: In
-    #           values:
-    #             - "true"
-
-# MARK: Redis
-
-redis:
-  enabled: false
-  replicas: 3
-  image:
-    repo: quay.io/opstree/redis
-    tag: v8.2.2
-  secret:
-    create: true
-    password: changeme
-  storage:
-    class: ""
-    size: 1Gi
-  tolerations:
-    []
-    # - key: com.docker.ucp.manager
-    #   operator: Exists
-  affinity:
-    {}
-    # nodeAffinity:
-    #   requiredDuringSchedulingIgnoredDuringExecution:
-    #     nodeSelectorTerms:
-    #       - matchExpressions:
-    #           - key: "apps.kubernetes.io/msr"
-    #             operator: In
-    #             values:
-    #               - "true"

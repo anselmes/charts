@@ -8,6 +8,10 @@ dependencies:
   - name: msr
     repository: oci://registry.mirantis.com/harbor/helm
     version: 4.13.3
+  - name: data
+    repository: oci://ghcr.io/labsonline/charts
+    version: 1.0.0
+    condition: data.enabled
   - name: ca
     repository: oci://ghcr.io/labsonline/charts
     version: 1.0.4
