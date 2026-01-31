@@ -1,0 +1,266 @@
+---
+netbox:
+  image:
+    registry: ghcr.io
+    repository: netbox-community/netbox
+    pullPolicy: IfNotPresent
+    ## Defaults to '{{ .Chart.AppVersion }}'
+    ##
+    tag: ""
+    ## If set, override the tag
+    ##
+    digest: ""
+    ## Optionally specify an array of imagePullSecrets (secrets must be manually created in the namespace)
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+    ## Example:
+    ## pullSecrets:
+    ##   - myRegistryKeySecretName
+    ##
+    pullSecrets: []
+
+  # You can also use an existing secret for the superuser password and API token
+  # See `existingSecret` for details
+  superuser:
+    name: admin
+    email: admin@example.com
+    password: ""
+    apiToken: ""
+    existingSecret: ""
+
+  # This is a list of valid fully-qualified domain names (FQDNs) for the NetBox
+  # server. NetBox will not permit write access to the server via any other
+  # hostnames. The first FQDN in the list will be treated as the preferred name.
+  allowedHosts:
+    - "*"
+
+  # Specify one or more name and email address tuples representing NetBox
+  # administrators. These people will be notified of application errors (assuming
+  # correct email settings are provided).
+  # admins:
+  #   - ['John Doe', 'jdoe@example.com']
+  admins: []
+
+  banner:
+    # Optionally display a persistent banner at the top and/or bottom of every
+    # page. HTML is allowed.
+    top: ""
+    bottom: ""
+
+    # Text to include on the login page above the login form. HTML is allowed.
+    login: ""
+
+  # API Cross-Origin Resource Sharing (CORS) settings. If originAllowAll
+  # is set to true, all origins will be allowed. Otherwise, define a list of
+  # allowed origins using either originWhitelist or originRegexWhitelist. For
+  # more information, see https://github.com/ottoyiu/django-cors-headers
+  cors:
+    originAllowAll: false
+    originWhitelist: []
+    originRegexWhitelist: []
+    #  - '^(https?://)?(\w+\.)?example\.com$'
+
+  # CSRF settings.  Needed for netbox v3.2.0 and newer. For more information
+  # see https://netboxlabs.com/docs/netbox/en/stable/configuration/security/#csrf_trusted_origins
+  csrf:
+    # The name of the cookie to use for the cross-site request forgery (CSRF)
+    # authentication token.
+    cookieName: csrftoken
+    # Defines a list of trusted origins for unsafe (e.g. POST) requests. This is
+    # a pass-through to Django's CSRF_TRUSTED_ORIGINS setting. Note that each
+    # host listed must specify a scheme (e.g. http:// or `https://).
+    trustedOrigins: []
+
+  # Set the default preferred language/locale
+  defaultLanguage: en-ca
+
+  ## The backend storage engine for handling uploaded files such as image
+  ## attachments and custom scripts. NetBox integrates with the
+  ## django-storages and django-storage-swift libraries, which provide backends
+  ## for several popular file storage services. If not configured, local
+  ## filesystem storage will be used.
+  ## Note these values are not stored securely. If the configuration must be
+  ## setup in a more secure way, a propor Secret can be used with extraEnvVarsSecret.
+  ## ref: https://netboxlabs.com/docs/netbox/en/stable/configuration/system/#storages
+  ## e.g:
+  ## storages:
+  ##   default:
+  ##     BACKEND: "django.core.files.storage.FileSystemStorage"
+  ##   scripts:
+  ##     BACKEND: "storages.backends.s3.S3Storage"
+  ##     OPTIONS:
+  ##       access_key: "access key"
+  ##       secret_key: "secret key"
+  storages: {}
+
+  # Enable installed plugins. Add the name of each plugin to the list.
+  plugins: []
+
+  # Plugins configuration settings. These settings are used by various plugins
+  # that the user may have installed. Each key in the dictionary is the name of
+  # an installed plugin and its value is a dictionary of settings.
+  pluginsConfig: {}
+
+  ## Extra configuration settings
+  # You can pass additional YAML files to be loaded into NetBox's configuration.
+  # These can be passed as arbitrary configuration values set in the chart, or
+  # you can load arbitrary *.yaml keys from ConfigMaps and Secrets.
+  # extraConfig:
+  #   - values:
+  #       EXTRA_SETTING_ONE: example
+  #       ANOTHER_SETTING: foobar
+  #   - configMap: # pod.spec.volumes.configMap
+  #       name: netbox-extra
+  #       items: []
+  #       optional: false
+  #   - secret: # same as pod.spec.volumes.secret
+  #       secretName: netbox-extra
+  #       items: []
+  #       optional: false
+  extraConfig: []
+
+  # If provided, this should be a 50+ character string of random characters. It
+  # will be randomly generated if left blank.
+  # You can also use an existing secret with "secret_key" instead of "secretKey"
+  # See `existingSecret` for details
+  secretKey: ""
+
+  ## Provide passwords using existing secret
+  # If set, this Secret must contain the following keys:
+  # - secret_key: session encryption token (50+ random characters)
+  existingSecret: ""
+
+  replicaCount: 1
+
+  persistence:
+    enabled: true
+    ## Data Persistent Volume Storage Class
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    ##
+    storageClass: ""
+    subPath: ""
+    accessMode: ReadWriteOnce
+    size: 1Gi
+    existingClaim: ""
+    annotations: {}
+
+  reportsPersistence:
+    enabled: false
+    existingClaim: ""
+    subPath: ""
+    ## Data Persistent Volume Storage Class
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    ##
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 1Gi
+    annotations: {}
+
+  scriptsPersistence:
+    enabled: false
+    existingClaim: ""
+    subPath: ""
+    ## Data Persistent Volume Storage Class
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    ##
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 1Gi
+    annotations: {}
+
+  ## Configure the HTTPRoute resource that allows you to access the app using Gateway API
+  ## ref: https://gateway-api.sigs.k8s.io/api-types/httproute/
+  ##
+  httpRoute:
+    enabled: false
+    annotations: {}
+    ## e.g:
+    ## parentRefs:
+    ##   - name: my-gateway
+    ##     namespace: gateway-namespace
+    ##     sectionName: https
+    ##
+    parentRefs: []
+    ## e.g:
+    ## hostnames:
+    ##   - netbox.example.com
+    ##
+    hostnames: []
+    ## e.g:
+    ## filters:
+    ##   - type: RequestHeaderModifier
+    ##     requestHeaderModifier:
+    ##       add:
+    ##         - name: X-Custom-Header
+    ##           value: custom-value
+    ##
+    filters: []
+
+  ## Prometheus Exporter / Metrics
+  ##
+  metrics:
+    enabled: false
+    ## Prometheus Operator ServiceMonitor configuration
+    ##
+    serviceMonitor:
+      enabled: false
+      honorLabels: false
+      ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint
+      ## e.g:
+      ## interval: 10s
+      ##
+      interval: ""
+      ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint
+      ## e.g:
+      ## scrapeTimeout: 10s
+      ##
+      scrapeTimeout: ""
+      metricRelabelings: []
+      relabelings: []
+      ## ref: https://github.com/bitnami/charts/tree/main/bitnami/prometheus-operator#prometheus-configuration
+      ## selector:
+      ##   prometheus: my-prometheus
+      ##
+      selector: {}
+      additionalLabels: {}
+
+  ## PostgreSQL chart configuration
+  ## https://github.com/bitnami/charts/blob/main/bitnami/postgresql/values.yaml
+  ##
+  postgresql:
+    ## To use an external database set this to false and configure the externalDatabase parameters
+    ##
+    enabled: true
+    auth:
+      username: netbox
+      database: netbox
+
+  externalDatabase:
+    host: localhost
+    port: 5432
+    database: netbox
+    username: netbox
+    password: ""
+    existingSecretName: ""
+    existingSecretKey: postgresql-password
+
+    # The following settings also apply when using the bundled PostgreSQL chart:
+    engine: django.db.backends.postgresql
+    connMaxAge: 300
+    disableServerSideCursors: false
+    ## Ref: https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-PARAMKEYWORDS
+    ##
+    options:
+      sslmode: "prefer"
+      target_session_attrs: "read-write"

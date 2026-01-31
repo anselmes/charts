@@ -33,6 +33,7 @@ SERVICES=(
   knative
   monitoring
   msr
+  netbox
   openstack
   operator
   pinniped
@@ -51,6 +52,7 @@ TEMPLATES=(
   knative-service-template
   monitoring-service-template
   msr-service-template
+  netbox-service-template
   openstack-service-template
   operator-service-template
   pinniped-service-template

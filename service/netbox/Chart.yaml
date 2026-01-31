@@ -1,0 +1,10 @@
+---
+apiVersion: v2
+name: netbox
+type: application
+description: A Helm chart that deploys Netbox and it's dependencies.
+version: 7.4.1
+dependencies:
+  - name: netbox
+    repository: oci://ghcr.io/netbox-community/netbox-chart
+    version: 7.4.1
