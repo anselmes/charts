@@ -36,6 +36,7 @@ SERVICES=(
   openstack
   operator
   pinniped
+  vault
 )
 
 TEMPLATES=(
@@ -53,6 +54,7 @@ TEMPLATES=(
   openstack-service-template
   operator-service-template
   pinniped-service-template
+  vault-service-template
 )
 
 mkdir -p "${BUILD_DIR}"

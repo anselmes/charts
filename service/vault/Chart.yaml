@@ -1,0 +1,11 @@
+---
+apiVersion: v2
+name: vault
+type: application
+description: A Helm chart that deploys Vault and it's dependencies.
+version: 0.23.5
+dependencies:
+  - alias: vault
+    name: openbao
+    repository: oci://ghcr.io/openbao/charts
+    version: 0.23.5

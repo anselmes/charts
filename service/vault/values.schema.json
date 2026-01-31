@@ -1,0 +1,539 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "type": "object",
+  "title": "Vault Helm Chart Values Schema",
+  "description": "JSON Schema for Vault (OpenBao) Helm chart values",
+  "properties": {
+    "vault": {
+      "type": "object",
+      "description": "OpenBao configuration",
+      "properties": {
+        "global": {
+          "type": "object",
+          "description": "Global configuration settings",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Master enabled switch for all chart components",
+              "default": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "injector": {
+          "type": "object",
+          "description": "OpenBao Agent Injector configuration",
+          "properties": {
+            "enabled": {
+              "oneOf": [
+                { "type": "boolean" },
+                { "type": "string", "enum": ["-"] }
+              ],
+              "description": "Enable OpenBao agent injection"
+            },
+            "replicas": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Number of injector replicas",
+              "default": 1
+            },
+            "metrics": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable metrics endpoint at /metrics",
+                  "default": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "agentImage": {
+              "type": "object",
+              "description": "OpenBao Agent image configuration",
+              "properties": {
+                "registry": {
+                  "type": "string",
+                  "description": "Image registry to use for agent image",
+                  "default": "quay.io"
+                },
+                "repository": {
+                  "type": "string",
+                  "description": "Image repository to use for agent image",
+                  "default": "openbao/openbao"
+                },
+                "tag": {
+                  "type": "string",
+                  "description": "Image tag to use for agent image - defaults to chart appVersion"
+                },
+                "pullPolicy": {
+                  "type": "string",
+                  "enum": ["Always", "Never", "IfNotPresent"],
+                  "description": "Image pull policy. If tag is 'latest', set to 'Always'",
+                  "default": "IfNotPresent"
+                }
+              },
+              "additionalProperties": true
+            },
+            "affinity": {
+              "oneOf": [
+                { "type": "string" },
+                { "type": "object" }
+              ],
+              "description": "Pod affinity settings"
+            },
+            "tolerations": {
+              "type": "array",
+              "description": "Pod toleration settings",
+              "items": {
+                "type": "object"
+              }
+            },
+            "nodeSelector": {
+              "type": "object",
+              "description": "Node selector for pod assignment",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "server": {
+          "type": "object",
+          "description": "OpenBao Server configuration",
+          "properties": {
+            "enabled": {
+              "oneOf": [
+                { "type": "boolean" },
+                { "type": "string", "enum": ["-"] }
+              ],
+              "description": "Enable OpenBao server installation"
+            },
+            "image": {
+              "type": "object",
+              "description": "Server image configuration",
+              "properties": {
+                "registry": {
+                  "type": "string",
+                  "description": "Image registry to use for server image",
+                  "default": "quay.io"
+                },
+                "repository": {
+                  "type": "string",
+                  "description": "Image repository to use for server image",
+                  "default": "openbao/openbao-hsm"
+                },
+                "tag": {
+                  "type": "string",
+                  "description": "Image tag to use for server image - defaults to chart appVersion"
+                },
+                "pullPolicy": {
+                  "type": "string",
+                  "enum": ["Always", "Never", "IfNotPresent"],
+                  "description": "Image pull policy. If tag is 'latest', set to 'Always'",
+                  "default": "IfNotPresent"
+                }
+              },
+              "additionalProperties": true
+            },
+            "resources": {
+              "type": "object",
+              "description": "Resource requests and limits",
+              "properties": {
+                "requests": {
+                  "type": "object",
+                  "properties": {
+                    "memory": { "type": "string" },
+                    "cpu": { "type": "string" }
+                  },
+                  "additionalProperties": false
+                },
+                "limits": {
+                  "type": "object",
+                  "properties": {
+                    "memory": { "type": "string" },
+                    "cpu": { "type": "string" }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "gateway": {
+              "type": "object",
+              "description": "Kubernetes Gateway API configuration",
+              "additionalProperties": true
+            },
+            "extraInitContainers": {
+              "type": "array",
+              "description": "List of init containers",
+              "items": {
+                "type": "object"
+              }
+            },
+            "extraContainers": {
+              "description": "List of sidecar containers",
+              "oneOf": [
+                { "type": "null" },
+                { "type": "array", "items": { "type": "object" } }
+              ]
+            },
+            "extraArgs": {
+              "type": "string",
+              "description": "Additional OpenBao server arguments",
+              "default": ""
+            },
+            "postStart": {
+              "type": "array",
+              "description": "Commands to run after pod is ready",
+              "items": {
+                "type": "string"
+              }
+            },
+            "extraEnvironmentVars": {
+              "type": "object",
+              "description": "Extra environment variables",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "extraSecretEnvironmentVars": {
+              "type": "array",
+              "description": "Extra environment variables from secrets",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "envName": { "type": "string" },
+                  "secretName": { "type": "string" },
+                  "secretKey": { "type": "string" }
+                },
+                "required": ["envName", "secretName", "secretKey"],
+                "additionalProperties": false
+              }
+            },
+            "volumes": {
+              "description": "Volumes available to all containers",
+              "oneOf": [
+                { "type": "null" },
+                { "type": "array", "items": { "type": "object" } }
+              ]
+            },
+            "volumeMounts": {
+              "description": "Volume mounts for main server container",
+              "oneOf": [
+                { "type": "null" },
+                { "type": "array", "items": { "type": "object" } }
+              ]
+            },
+            "affinity": {
+              "oneOf": [
+                { "type": "string" },
+                { "type": "object" }
+              ],
+              "description": "Pod affinity settings"
+            },
+            "tolerations": {
+              "type": "array",
+              "description": "Pod toleration settings",
+              "items": {
+                "type": "object"
+              }
+            },
+            "nodeSelector": {
+              "type": "object",
+              "description": "Node selector for pod assignment",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "networkPolicy": {
+              "type": "object",
+              "description": "Network policy configuration",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable network policy for server pods",
+                  "default": false
+                }
+              },
+              "additionalProperties": true
+            },
+            "dataStorage": {
+              "type": "object",
+              "description": "Data storage PVC configuration",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable data storage PVC",
+                  "default": true
+                },
+                "size": {
+                  "type": "string",
+                  "description": "Size of the PVC created",
+                  "default": "10Gi"
+                },
+                "mountPath": {
+                  "type": "string",
+                  "description": "Location where the PVC will be mounted",
+                  "default": "/openbao/data"
+                },
+                "storageClass": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "type": "null" }
+                  ],
+                  "description": "Name of the storage class to use. If null it will use the configured default Storage Class"
+                },
+                "accessMode": {
+                  "type": "string",
+                  "description": "Access Mode of the storage device being used for the PVC",
+                  "default": "ReadWriteOnce"
+                },
+                "annotations": {
+                  "type": "object",
+                  "description": "Annotations to apply to the PVC",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "labels": {
+                  "type": "object",
+                  "description": "Labels to apply to the PVC",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": true
+            },
+            "auditStorage": {
+              "type": "object",
+              "description": "Audit logs storage PVC configuration",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable audit storage PVC",
+                  "default": false
+                },
+                "size": {
+                  "type": "string",
+                  "description": "Size of the PVC created",
+                  "default": "10Gi"
+                },
+                "mountPath": {
+                  "type": "string",
+                  "description": "Location where the PVC will be mounted",
+                  "default": "/openbao/audit"
+                },
+                "storageClass": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "type": "null" }
+                  ],
+                  "description": "Name of the storage class to use. If null it will use the configured default Storage Class"
+                },
+                "accessMode": {
+                  "type": "string",
+                  "description": "Access Mode of the storage device being used for the PVC",
+                  "default": "ReadWriteOnce"
+                },
+                "annotations": {
+                  "type": "object",
+                  "description": "Annotations to apply to the PVC",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "labels": {
+                  "type": "object",
+                  "description": "Labels to apply to the PVC",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": true
+            },
+            "standalone": {
+              "type": "object",
+              "description": "Standalone mode configuration",
+              "properties": {
+                "enabled": {
+                  "oneOf": [
+                    { "type": "boolean" },
+                    { "type": "string", "enum": ["-"] }
+                  ],
+                  "description": "Enable standalone mode"
+                }
+              },
+              "additionalProperties": true
+            },
+            "ha": {
+              "type": "object",
+              "description": "High Availability mode configuration. Uses Consul for storage backend by default.",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable HA mode",
+                  "default": false
+                },
+                "replicas": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Number of HA replicas",
+                  "default": 3
+                },
+                "config": {
+                  "type": "string",
+                  "description": "OpenBao configuration for HA mode"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "serverTelemetry": {
+          "type": "object",
+          "description": "Server telemetry configuration for runtime metrics",
+          "additionalProperties": true
+        },
+        "extraObjects": {
+          "type": "array",
+          "description": "Extra Kubernetes manifests to add to this chart",
+          "items": {
+            "oneOf": [
+              { "type": "object" },
+              { "type": "string" }
+            ]
+          }
+        },
+        "snapshotAgent": {
+          "type": "object",
+          "description": "Snapshot Agent configuration for automated backups",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable snapshot agent cronjob",
+              "default": false
+            },
+            "annotations": {
+              "type": "object",
+              "description": "Extra annotations for the job",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "schedule": {
+              "type": "string",
+              "description": "Cron schedule for the snapshot job",
+              "default": "*/15 * * * *"
+            },
+            "restartPolicy": {
+              "type": "string",
+              "enum": ["OnFailure", "Never"],
+              "description": "Restart policy for the cronjob",
+              "default": "OnFailure"
+            },
+            "serviceAccount": {
+              "type": "object",
+              "description": "Service account settings for snapshot agent",
+              "properties": {
+                "create": {
+                  "type": "boolean",
+                  "description": "Create service account",
+                  "default": true
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Service account name"
+                },
+                "annotations": {
+                  "type": "object",
+                  "description": "Service account annotations",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "extraLabels": {
+                  "type": "object",
+                  "description": "Extra labels for service account",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            "image": {
+              "type": "object",
+              "description": "Snapshot agent image configuration",
+              "properties": {
+                "repository": {
+                  "type": "string",
+                  "description": "Image repository",
+                  "default": "ghcr.io/openbao/openbao-snapshot-agent"
+                },
+                "tag": {
+                  "type": "string",
+                  "description": "Image tag",
+                  "default": "0.2.4"
+                }
+              },
+              "additionalProperties": true
+            },
+            "extraVolumes": {
+              "type": "object",
+              "description": "Extra volumes for snapshot agent cronjob",
+              "additionalProperties": true
+            },
+            "s3CredentialsSecret": {
+              "type": "string",
+              "description": "S3 credentials secret name",
+              "default": "my-s3-credentials"
+            },
+            "config": {
+              "type": "object",
+              "description": "Snapshot agent S3 configuration",
+              "properties": {
+                "s3Host": {
+                  "type": "string",
+                  "description": "S3 host endpoint"
+                },
+                "s3Bucket": {
+                  "type": "string",
+                  "description": "S3 bucket name"
+                },
+                "s3Uri": {
+                  "type": "string",
+                  "description": "S3 URI"
+                },
+                "s3ExpireDays": {
+                  "type": "string",
+                  "description": "S3 snapshot expiration in days"
+                },
+                "s3cmdExtraFlag": {
+                  "type": "string",
+                  "description": "Extra flags for s3cmd"
+                },
+                "baoAuthPath": {
+                  "type": "string",
+                  "description": "OpenBao auth path"
+                },
+                "baoRole": {
+                  "type": "string",
+                  "description": "OpenBao role for snapshot agent"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
