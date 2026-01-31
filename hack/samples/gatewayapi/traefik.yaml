@@ -41,12 +41,14 @@ spec:
       enabled: true
       experimental:
         knative: true
+        kubernetesGateway:
+          enabled: true
       gatewayClass:
         enabled: true
         # name: traefik
       providers:
         kubernetesGateway:
           enabled: true
-          experimentalChannel: false
+          experimentalChannel: true
         knative:
           enabled: true
