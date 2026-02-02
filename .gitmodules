@@ -4,3 +4,6 @@
 [submodule "rockoon"]
 	path = upstream/rockoon
 	url = https://github.com/Mirantis/rockoon.git
+[submodule "maas"]
+	path = upstream/maas
+	url = https://opendev.org/airship/maas.git
