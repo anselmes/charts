@@ -140,12 +140,23 @@
                 },
                 "repoHost": {
                   "type": "object"
+                },
+                "manual": {
+                  "type": "object",
+                  "description": "Manual backup configuration"
+                },
+                "repos": {
+                  "type": "array",
+                  "description": "Backup repository configuration",
+                  "items": {
+                    "type": "object"
+                  }
                 }
               },
-              "additionalProperties": false
+              "additionalProperties": true
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         },
         "pmm": {
           "type": "object",
@@ -191,9 +202,30 @@
             }
           },
           "additionalProperties": false
+        },
+        "global": {
+          "type": "object",
+          "description": "Global configuration that affects multiple components"
+        },
+        "crVersion": {
+          "type": "string",
+          "description": "Custom resource version"
+        },
+        "unmanaged": {
+          "type": "boolean",
+          "description": "Whether the cluster is unmanaged"
+        },
+        "imagePullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "description": "Image pull policy"
+        },
+        "pause": {
+          "type": "boolean",
+          "description": "Whether to pause the cluster"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "mysql": {
       "type": "object",
@@ -737,7 +769,7 @@
               "type": "object"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         },
         "externalConfig": {
           "type": "object",
@@ -829,7 +861,7 @@
           "additionalProperties": false
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "redissentinel": {
       "type": "object",
