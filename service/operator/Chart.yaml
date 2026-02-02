@@ -3,7 +3,7 @@ apiVersion: v2
 name: operator
 type: application
 description: A Helm chart that deploys various Operators and their dependencies.
-version: 1.0.1
+version: 1.0.2
 dependencies:
   - alias: postgres
     name: pg-operator

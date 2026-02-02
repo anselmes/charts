@@ -12,6 +12,59 @@
           "type": "boolean",
           "description": "Enable PostgreSQL operator deployment"
         },
+        "nameOverride": {
+          "type": "string",
+          "description": "Override the name of the chart"
+        },
+        "fullnameOverride": {
+          "type": "string",
+          "description": "Override the fullname of the chart"
+        },
+        "replicaCount": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of replicas"
+        },
+        "image": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "PostgreSQL operator image as a string"
+            },
+            {
+              "type": "object",
+              "description": "PostgreSQL operator image configuration",
+              "properties": {
+                "repository": {
+                  "type": "string",
+                  "description": "Container image repository"
+                },
+                "tag": {
+                  "type": "string",
+                  "description": "Container image tag"
+                },
+                "pullPolicy": {
+                  "type": "string",
+                  "enum": ["Always", "IfNotPresent", "Never"],
+                  "description": "Image pull policy"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "imagePullSecrets": {
+          "type": "array",
+          "description": "Image pull secrets",
+          "items": {
+            "type": "object"
+          }
+        },
+        "imagePullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "description": "Image pull policy"
+        },
         "operatorImageRepository": {
           "type": "string",
           "description": "PostgreSQL operator image repository"
@@ -19,6 +72,22 @@
         "watchAllNamespaces": {
           "type": "boolean",
           "description": "Set if operator should be deployed in cluster wide mode"
+        },
+        "logLevel": {
+          "type": "string",
+          "description": "Log level for the operator"
+        },
+        "logStructured": {
+          "type": "boolean",
+          "description": "Enable structured logging"
+        },
+        "global": {
+          "type": "object",
+          "description": "Global configuration that affects multiple components"
+        },
+        "podAnnotations": {
+          "type": "object",
+          "description": "Annotations to be added to pod"
         },
         "resources": {
           "type": "object",
@@ -131,6 +200,74 @@
                 }
               },
               "additionalProperties": false
+            },
+            "serviceDNSDomain": {
+              "type": "string",
+              "description": "Service DNS domain"
+            },
+            "webhook": {
+              "anyOf": [
+                {
+                  "type": "boolean",
+                  "description": "Enable/disable webhook"
+                },
+                {
+                  "type": "object",
+                  "description": "Webhook configuration",
+                  "additionalProperties": true
+                }
+              ]
+            },
+            "watchNamespace": {
+              "type": "string",
+              "description": "Namespace to watch"
+            },
+            "extraArgs": {
+              "type": "array",
+              "description": "Extra arguments",
+              "items": {
+                "type": "string"
+              }
+            },
+            "strategy": {
+              "type": "object",
+              "description": "Deployment strategy",
+              "additionalProperties": true
+            },
+            "podAnnotations": {
+              "type": "object",
+              "description": "Pod annotations",
+              "additionalProperties": true
+            },
+            "env": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "description": "Environment variables as array",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                {
+                  "type": "object",
+                  "description": "Environment variables as object",
+                  "additionalProperties": true
+                }
+              ]
+            },
+            "pprof": {
+              "type": "object",
+              "description": "Profiling configuration",
+              "additionalProperties": true
+            },
+            "automountServiceAccountToken": {
+              "type": "boolean",
+              "description": "Auto mount service account token"
+            },
+            "podLabels": {
+              "type": "object",
+              "description": "Pod labels",
+              "additionalProperties": true
             }
           },
           "additionalProperties": false
@@ -253,9 +390,71 @@
         "affinity": {
           "type": "object",
           "description": "Affinity for pod assignment"
+        },
+        "disableTelemetry": {
+          "type": "boolean",
+          "description": "Disable telemetry collection"
+        },
+        "serviceAccount": {
+          "type": "object",
+          "description": "Service account configuration",
+          "additionalProperties": true
+        },
+        "featureGates": {
+          "type": "object",
+          "description": "Feature gates configuration",
+          "additionalProperties": true
+        },
+        "priorityClassName": {
+          "type": "string",
+          "description": "Priority class name for pods"
+        },
+        "serviceAccountName": {
+          "type": "string",
+          "description": "Service account name"
+        },
+        "securityContext": {
+          "type": "object",
+          "description": "Pod security context",
+          "additionalProperties": true
+        },
+        "podSecurityContext": {
+          "type": "object",
+          "description": "Pod security context",
+          "additionalProperties": true
+        },
+        "certificate": {
+          "type": "object",
+          "description": "Certificate configuration",
+          "additionalProperties": true
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of replicas"
+        },
+        "service": {
+          "type": "object",
+          "description": "Service configuration",
+          "additionalProperties": true
+        },
+        "rbac": {
+          "type": "object",
+          "description": "RBAC configuration",
+          "additionalProperties": true
+        },
+        "manager": {
+          "type": "object",
+          "description": "Manager configuration",
+          "additionalProperties": true
+        },
+        "global": {
+          "type": "object",
+          "description": "Global configuration",
+          "additionalProperties": true
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "mysql": {
       "type": "object",
@@ -338,13 +537,9 @@
         "affinity": {
           "type": "object",
           "description": "Affinity for pod assignment"
-        },
-        "disableTelemetry": {
-          "type": "boolean",
-          "description": "Disable telemetry collection"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "mongo": {
       "type": "object",
