@@ -1,12 +1,13 @@
+# FIXME: Update values as needed
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: envoy-gateway-api
-  namespace: kube-system
+  name: operator
+  namespace: operators
 spec:
   interval: 10m0s
-  releaseName: envoy-gateway-api
+  releaseName: operator
   timeout: 15m0s
   dependsOn:
     - name: flux
@@ -14,8 +15,8 @@ spec:
   chart:
     spec:
       interval: 5m
-      chart: gwapi
-      version: 1.0.3
+      chart: operator
+      version: 1.0.2
       sourceRef:
         kind: HelmRepository
         name: labsonline-catalog
@@ -35,16 +36,9 @@ spec:
   #           newName: ""
   #           newTag: ""
   values:
-    envoy:
-      classes:
-        - name: envoy
-      config:
-        envoyGateway:
-          gateway:
-            controllerName: gateway.envoyproxy.io/gatewayclass-controller
-          provider:
-            type: Kubernetes
-          logging:
-            level:
-              default: info
-          extensionApis: {}
+    postgres:
+      enabled: true
+      watchAllNamespaces: true
+      disableTelemetry: true
+    redis:
+      enabled: true

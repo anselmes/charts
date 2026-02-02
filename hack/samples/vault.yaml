@@ -12,12 +12,16 @@ spec:
   dependsOn:
     - name: flux
       namespace: sre
-    # - name: operator
-    #   namespace: operators
-    # - name: traefik-gateway-api
-    #   namespace: kube-system
-    # - name: cert-manager
-    #   namespace: cert-manager
+    - name: operator
+      namespace: operators
+    - name: vault-postgresql
+      namespace: ucp
+    - name: envoy
+      namespace: kube-system
+    - name: cert-manager
+      namespace: cert-manager
+    - name: vault-ca-issuer
+      namespace: ucp
   chart:
     spec:
       interval: 5m
@@ -42,37 +46,55 @@ spec:
   #           newName: ""
   #           newTag: ""
   values:
+    global:
+      tlsDisable: false
     vault:
       injector:
         metrics:
           enabled: false
       server:
-        # resources:
-        #   requests:
-        #     memory: 256Mi
-        #     cpu: 250m
-        #   limits:
-        #     memory: 256Mi
-        #     cpu: 250m
-        # gateway:
-        #   tlsRoute:
-        #     enabled: true
-        #     hosts:
-        #       - vault.local
-        #     parentRefs:
-        #       - name: traefik
-        #         namespace: kube-system
-        # fixme: init & unseal
-        # postStart:
-        #   - /bin/sh
-        #   - -c
-        #   - bao operator init
-        # note:
-        # openssl rand -out ./unseal-20251231-1.key 32
-        # openssl rand -out ./unseal-20260122-1.key 32
-        # kubectl create secret generic -n ucp unseal-20251231-1 --from-file ./unseal-20251231-1.key
-        # kubectl create secret generic -n ucp unseal-20260122-1 --from-file ./unseal-20260122-1.key
+        gateway:
+          tlsRoute:
+            enabled: true
+            hosts:
+              - vault.k8s.orb.local
+            parentRefs:
+              - name: envoy
+                namespace: kube-system
+        extraEnvironmentVars:
+          PGSSLMODE: require
+          PGSSLROOTCERT: /etc/ssl/certs/pg-ca.crt
+        extraSecretEnvironmentVars:
+          - envName: PGHOST
+            secretName: vault-postgresql-pguser-vault-postgresql
+            secretKey: host
+          - envName: PGPORT
+            secretName: vault-postgresql-pguser-vault-postgresql
+            secretKey: port
+          - envName: PGUSER
+            secretName: vault-postgresql-pguser-vault-postgresql
+            secretKey: user
+          - envName: PGPASSWORD
+            secretName: vault-postgresql-pguser-vault-postgresql
+            secretKey: password
+          - envName: PGDATABASE
+            secretName: vault-postgresql-pguser-vault-postgresql
+            secretKey: dbname
         volumes:
+          - name: pg-ca-cert
+            secret:
+              secretName: vault-postgresql-cluster-cert
+              items:
+                - key: ca.crt
+                  path: ca.crt
+          - name: vault-tls
+            secret:
+              secretName: vault-tls
+              items:
+                - key: tls.crt
+                  path: tls.crt
+                - key: tls.key
+                  path: tls.key
           - name: unseal-20251231-1
             secret:
               secretName: unseal-20251231-1
@@ -80,6 +102,18 @@ spec:
             secret:
               secretName: unseal-20260122-1
         volumeMounts:
+          - name: pg-ca-cert
+            mountPath: /etc/ssl/certs/pg-ca.crt
+            subPath: ca.crt
+            readOnly: true
+          - name: vault-tls
+            mountPath: /etc/ssl/certs/vault-tls.crt
+            subPath: tls.crt
+            readOnly: true
+          - name: vault-tls
+            mountPath: /etc/ssl/private/vault-tls.key
+            subPath: tls.key
+            readOnly: true
           - name: unseal-20251231-1
             mountPath: /openbao/secrets/unseal-20251231-1.key
             subPath: unseal-20251231-1.key
@@ -92,24 +126,20 @@ spec:
           config: |
             ui = true
 
-            # api_addr = "https://vault.k8s.orb.local"
+            api_addr = "https://vault.k8s.orb.local"
 
             listener "tcp" {
-              tls_disable = 1
+              tls_disable = 0
+              tls_cert_file = "/etc/ssl/certs/vault-tls.crt"
+              tls_key_file  = "/etc/ssl/private/vault-tls.key"
               address = "[::]:8200"
               cluster_address = "[::]:8201"
-              #telemetry {
-              #  unauthenticated_metrics_access = "true"
-              #}
+              telemetry {
+               unauthenticated_metrics_access = "true"
+              }
             }
 
-            storage "file" {
-              path = "/openbao/data"
-            }
-
-            # storage "postgresql" {
-            #   connection_url = "postgres://vault:vault@postgres:5432/vault?sslmode=disable"
-            # }
+            storage "postgresql" {}
 
             seal "static" {
               current_key_id = "20260122-1"
@@ -118,15 +148,13 @@ spec:
               previous_key = "file:///openbao/secrets/unseal-20251231-1.key"
             }
 
-            # seal "pkcs11" {
-            #   lib         = "/usr/local/lib/libpkcs11-proxy.so.0.1"
-            #   token_label = "VaultToken"
-            #   key_label   = "vault-root-key-rsa"
-            #   mechanism   = "CKM_RSA_PKCS_OAEP"
-            # }
-
             # Example configuration for enabling Prometheus metrics in your config.
             #telemetry {
             #  prometheus_retention_time = "30s"
             #  disable_hostname = true
             #}
+
+            # FIXME: Secure declarative self-initialization
+            initialize {
+              type = "auto"
+            }

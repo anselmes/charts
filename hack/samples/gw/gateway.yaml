@@ -11,7 +11,7 @@ spec:
   dependsOn:
     - name: flux
       namespace: sre
-    - name: traefik-gateway-api
+    - name: envoy
       namespace: kube-system
     - name: cert-manager
       namespace: cert-manager
@@ -31,17 +31,10 @@ spec:
       retries: 3
   upgrade:
     crds: CreateReplace
-  # TODO: images
-  # postRenderers:
-  #   - kustomize:
-  #       images:
-  #         - name: ""
-  #           newName: ""
-  #           newTag: ""
   values:
     gateways:
       - name: http-gateway
-        className: traefik
+        className: envoy
         listeners:
           - name: http
             port: 80
@@ -52,7 +45,7 @@ spec:
           - name: https
             port: 443
             protocol: HTTPS
-            hostname: "*.k8s.local"
+            hostname: "*.k8s.orb.local"
             allowedRoutes:
               namespaces:
                 from: All
@@ -62,10 +55,10 @@ spec:
                 - name: http-gw-cert
                   issuer: ca-issuer
       - name: grpc-gateway
-        className: traefik
+        className: envoy
         listeners:
           - name: http
-            port: 80
+            port: 8080
             protocol: HTTP
             allowedRoutes:
               namespaces:
@@ -73,9 +66,9 @@ spec:
               kinds:
                 - kind: GRPCRoute
           - name: grpc
-            port: 443
+            port: 8443
             protocol: HTTPS
-            hostname: "*.k8s.local"
+            hostname: "*.k8s.orb.local"
             allowedRoutes:
               namespaces:
                 from: All

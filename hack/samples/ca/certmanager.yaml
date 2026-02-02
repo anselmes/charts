@@ -2,20 +2,22 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: traefik-gateway-api
-  namespace: kube-system
+  name: cert-manager
+  namespace: cert-manager
 spec:
   interval: 10m0s
-  releaseName: traefik-gateway-api
+  releaseName: cert-manager
   timeout: 15m0s
   dependsOn:
     - name: flux
       namespace: sre
+    - name: envoy
+      namespace: kube-system
   chart:
     spec:
       interval: 5m
-      chart: gwapi
-      version: 1.0.3
+      chart: ca
+      version: 1.0.4
       sourceRef:
         kind: HelmRepository
         name: labsonline-catalog
@@ -35,20 +37,13 @@ spec:
   #           newName: ""
   #           newTag: ""
   values:
-    envoy:
-      enabled: false
-    traefik:
+    issuers:
+      - name: ca-issuer
+        clustered: true
+        selfSigned: true
+        secret:
+          create: false
+    certmanager:
       enabled: true
-      experimental:
-        knative: true
-        kubernetesGateway:
-          enabled: true
-      gatewayClass:
-        enabled: true
-        # name: traefik
-      providers:
-        kubernetesGateway:
-          enabled: true
-          experimentalChannel: true
-        knative:
-          enabled: true
+      config:
+        enableGatewayAPI: true

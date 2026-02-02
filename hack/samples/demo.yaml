@@ -11,7 +11,7 @@ spec:
   dependsOn:
     - name: flux
       namespace: sre
-    # - name: traefik-gateway-api
+    # - name: envoy
     #   namespace: kube-system
   chart:
     spec:
@@ -36,21 +36,21 @@ spec:
   #         - name: ""
   #           newName: ""
   #           newTag: ""
-  # values:
-  #   gateway:
-  #     routes:
-  #       - name:  demo
-  #         kind: HTTPRoute
-  #         hostnames:
-  #           - demo.k8s.orb.local
-  #         rules:
-  #           - matches:
-  #               - path:
-  #                   type: PathPrefix
-  #                   value: /
-  #             backendRefs:
-  #               - name: demo-mke-demo-app
-  #                 port: 8080
-  #         gateways:
-  #           - name: traefik
-  #             namespace: kube-system
+  values:
+    gateway:
+      routes:
+        - name:  demo
+          kind: HTTPRoute
+          hostnames:
+            - demo.k8s.orb.local
+          rules:
+            - matches:
+                - path:
+                    type: PathPrefix
+                    value: /
+              backendRefs:
+                - name: demo-mke-demo-app
+                  port: 8080
+          gateways:
+            - name: envoy
+              namespace: kube-system

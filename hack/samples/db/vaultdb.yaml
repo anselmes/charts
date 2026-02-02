@@ -1,0 +1,60 @@
+# FIXME: Update values as needed
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: vault-data
+  namespace: ucp
+spec:
+  interval: 10m0s
+  releaseName: vault-data
+  timeout: 15m0s
+  dependsOn:
+    - name: flux
+      namespace: sre
+    - name: operator
+      namespace: operators
+  chart:
+    spec:
+      interval: 5m
+      chart: data
+      version: 1.0.0
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  # TODO: images
+  # postRenderers:
+  #   - kustomize:
+  #       images:
+  #         - name: ""
+  #           newName: ""
+  #           newTag: ""
+  values:
+    postgres:
+      enabled: true
+      finalizers:
+        - percona.com/delete-pvc
+        - percona.com/delete-ssl
+        - percona.com/delete-backups
+      instances:
+        - name: vaultdb
+          replicas: 1
+          dataVolumeClaimSpec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 5Gi
+      proxy:
+        pgBouncer:
+          replicas: 1
+      backups:
+        enabled: true
