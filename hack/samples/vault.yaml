@@ -55,31 +55,34 @@ spec:
             hosts:
               - vault.k8s.orb.local
             parentRefs:
-              - name: envoy
+              - name: tls-gateway
                 namespace: kube-system
         extraEnvironmentVars:
           PGSSLMODE: require
           PGSSLROOTCERT: /etc/ssl/certs/pg-ca.crt
         extraSecretEnvironmentVars:
+          - envName: INITIAL_ADMIN_PASSWORD
+            secretName: vault-initial-admin-password
+            secretKey: password
           - envName: PGHOST
-            secretName: vault-postgresql-pguser-vault-postgresql
+            secretName: vault-postgres-pguser-vault-postgres
             secretKey: host
           - envName: PGPORT
-            secretName: vault-postgresql-pguser-vault-postgresql
+            secretName: vault-postgres-pguser-vault-postgres
             secretKey: port
           - envName: PGUSER
-            secretName: vault-postgresql-pguser-vault-postgresql
+            secretName: vault-postgres-pguser-vault-postgres
             secretKey: user
           - envName: PGPASSWORD
-            secretName: vault-postgresql-pguser-vault-postgresql
+            secretName: vault-postgres-pguser-vault-postgres
             secretKey: password
           - envName: PGDATABASE
-            secretName: vault-postgresql-pguser-vault-postgresql
+            secretName: vault-postgres-pguser-vault-postgres
             secretKey: dbname
         volumes:
           - name: pg-ca-cert
             secret:
-              secretName: vault-postgresql-cluster-cert
+              secretName: vault-postgres-cluster-cert
               items:
                 - key: ca.crt
                   path: ca.crt
@@ -150,13 +153,47 @@ spec:
             #  disable_hostname = true
             #}
 
-            # FIXME: Secure declarative self-initialization
-            initialize {
-              type = "auto"
+            # Enable userpass auth
+            initialize "auth" {
+              request "enable-userpass" {
+                operation = "update"
+                path      = "sys/auth/userpass"
+                data = {
+                  type = "userpass"
+                }
+              }
+            }
+
+            # Create an admin policy
+            initialize "policy" {
+              request "superuser-policy" {
+                operation = "update"
+                path      = "sys/policies/acl/superuser"
+                data = {
+                  policy = "path \"*\" { capabilities = [\"create\",\"read\",\"update\",\"delete\",\"list\",\"sudo\"] }"
+                }
+              }
+            }
+
+            # Create admin user with password from env var (or swap to file source)
+            initialize "identity" {
+              request "admin-user" {
+                operation = "update"
+                path      = "auth/userpass/users/admin"
+                data = {
+                  password = {
+                    eval_type   = "string"
+                    eval_source = "env"
+                    env_var     = "INITIAL_ADMIN_PASSWORD"
+                    require_present = true
+                  }
+                  token_policies = ["superuser"]
+                }
+              }
             }
     data:
       postgres:
-        enabled: false
+        enabled: true
         postgresVersion: 17
         instances:
           - name: vaultdb

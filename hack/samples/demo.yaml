@@ -52,5 +52,5 @@ spec:
                 - name: demo-mke-demo-app
                   port: 8080
           gateways:
-            - name: envoy
+            - name: http-gateway
               namespace: kube-system

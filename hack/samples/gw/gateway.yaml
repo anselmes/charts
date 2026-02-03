@@ -79,3 +79,28 @@ spec:
               certificateRefs:
                 - name: grpc-gw-cert
                   issuer: ca-issuer
+      - name: tcp-gateway
+        className: envoy
+        listeners:
+          - name: tcp
+            port: 8081
+            protocol: TCP
+            allowedRoutes:
+              namespaces:
+                from: All
+              kinds:
+                - kind: GRPCRoute
+      - name: tls-gateway
+        className: envoy
+        listeners:
+          - name: tls
+            port: 9443
+            protocol: TLS
+            hostname: "*.k8s.orb.local"
+            allowedRoutes:
+              namespaces:
+                from: All
+              kinds:
+                - kind: GRPCRoute
+            tls:
+              mode: Passthrough
