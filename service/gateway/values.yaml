@@ -44,10 +44,15 @@ policies:
   #   validation:
   #     hostname: dev.example.com
   #     wellKnownCACertificates: System
-  #     # caCertificateRefs:
-  #     #   - group: ""
-  #     #     kind: ConfigMap
-  #     #     name: auth-cert
+  #     caCertificateRefs:
+  #       - group: ""
+  #         kind: ConfigMap
+  #         name: auth-cert
+  #   targetRefs:
+  #     - group: ""
+  #       kind: Service
+  #       name: dev-backend
+  #       namespace: default
 
 # MARK: Grants
 
@@ -72,6 +77,9 @@ grants:
 gateways:
   - name: default-gateway
     className: envoy
+    # addresses:
+    #   - type: IPAddress
+    #     value: 10.200.201.2
     listeners:
       - name: http
         port: 80

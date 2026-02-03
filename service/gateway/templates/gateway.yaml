@@ -18,6 +18,11 @@ metadata:
   {{- end }}
 spec:
   gatewayClassName: {{ .className }}
+  {{- range .addresses }}
+  addresses:
+    - type: {{ .type }}
+      value: {{ .value }}
+  {{- end }}
   listeners:
   {{- range .listeners }}
     - name: {{ .name }}

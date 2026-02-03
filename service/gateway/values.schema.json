@@ -331,12 +331,37 @@
                         "minimum": 0,
                         "maximum": 1000000,
                         "default": 1
+                      },
+                      "filters": {
+                        "type": "array",
+                        "description": "Filters to apply to this backend",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": true
+                        }
                       }
                     },
                     "required": ["name"],
                     "additionalProperties": false
                   },
                   "minItems": 1
+                },
+                "timeouts": {
+                  "type": "object",
+                  "description": "Timeout configuration for the route",
+                  "properties": {
+                    "request": {
+                      "type": "string",
+                      "description": "Request timeout duration",
+                      "pattern": "^[0-9]+[smh]$"
+                    },
+                    "backendRequest": {
+                      "type": "string",
+                      "description": "Backend request timeout duration",
+                      "pattern": "^[0-9]+[smh]$"
+                    }
+                  },
+                  "additionalProperties": false
                 }
               },
               "additionalProperties": false
@@ -373,6 +398,26 @@
                 "description": "Well-known CA certificates to use",
                 "enum": ["System"]
               },
+              "subjectAltNames": {
+                "type": "array",
+                "description": "Subject Alternative Names to validate",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": ["Hostname", "URI"]
+                    },
+                    "hostname": {
+                      "type": "string"
+                    },
+                    "uri": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
               "caCertificateRefs": {
                 "type": "array",
                 "description": "CA certificate references",
@@ -403,6 +448,34 @@
               }
             },
             "additionalProperties": false
+          },
+          "targetRefs": {
+            "type": "array",
+            "description": "Target references for the policy",
+            "items": {
+              "type": "object",
+              "properties": {
+                "group": {
+                  "type": "string",
+                  "description": "API group"
+                },
+                "kind": {
+                  "type": "string",
+                  "description": "Resource kind"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Resource name"
+                },
+                "namespace": {
+                  "type": "string",
+                  "description": "Resource namespace",
+                  "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                }
+              },
+              "required": ["kind", "name"],
+              "additionalProperties": false
+            }
           }
         },
         "required": ["name"],
@@ -494,6 +567,41 @@
             "type": "string",
             "description": "Gateway class name"
           },
+          "annotations": {
+            "type": "object",
+            "description": "Gateway annotations",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "labels": {
+            "type": "object",
+            "description": "Gateway labels",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "infrastructure": {
+            "type": "object",
+            "description": "Infrastructure-specific configuration",
+            "properties": {
+              "annotations": {
+                "type": "object",
+                "description": "Infrastructure annotations",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "labels": {
+                "type": "object",
+                "description": "Infrastructure labels",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          },
           "addresses": {
             "type": "array",
             "description": "Gateway addresses",
@@ -548,6 +656,26 @@
                       "type": "string",
                       "description": "TLS mode",
                       "enum": ["Terminate", "Passthrough"]
+                    },
+                    "frontendValidation": {
+                      "type": "object",
+                      "description": "Frontend certificate validation",
+                      "properties": {
+                        "caCertificateRefs": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "group": {"type": "string"},
+                              "kind": {"type": "string", "default": "Secret"},
+                              "name": {"type": "string"},
+                              "namespace": {"type": "string"}
+                            },
+                            "required": ["name"]
+                          }
+                        }
+                      },
+                      "additionalProperties": false
                     },
                     "certificateRefs": {
                       "type": "array",
@@ -672,7 +800,7 @@
             "minItems": 1
           }
         },
-        "required": ["name", "listeners"],
+        "required": ["name", "className", "listeners"],
         "additionalProperties": false
       }
     },
@@ -701,6 +829,32 @@
         }
       },
       "additionalProperties": true
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Chart metadata and configuration",
+      "properties": {
+        "namespace": {
+          "type": "string",
+          "description": "Default namespace for Gateway API resources",
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+        },
+        "labels": {
+          "type": "object",
+          "description": "Common labels applied to all resources",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "annotations": {
+          "type": "object",
+          "description": "Common annotations applied to all resources",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

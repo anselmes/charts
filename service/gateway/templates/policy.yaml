@@ -11,14 +11,13 @@ spec:
     hostname: {{ .validation.hostname }}
     {{- if .validation.wellKnownCACertificates }}
     wellKnownCACertificates: {{ .validation.wellKnownCACertificates }}
-    {{- else }}
+    {{- end }}
     {{- with .validation.caCertificateRefs }}
     caCertificateRefs:
-      {{- toYaml . | nindent 4 }}
+      {{- toYaml . | nindent 6 }}
     {{- end }}
-    {{- end }}
+  {{- with .targetRefs }}
   targetRefs:
-    - group: ""
-      kind: Service
-      name: dev
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 {{- end }}
