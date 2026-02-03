@@ -1,0 +1,371 @@
+---
+dependencies:
+  static:
+    maas_ingress: {}
+    maas_syslog: {}
+    rack_controller:
+      services:
+        - service: maas_region
+          endpoint: internal
+        - service: maas_ingress
+          endpoint: monitor
+      jobs:
+        - maas-export-api-key
+        - maas-export-secret-key
+    region_controller:
+      jobs:
+        - maas-db-sync
+      services:
+        - service: maas_db
+          endpoint: internal
+        - service: maas_ingress
+          endpoint: monitor
+    db_init:
+      services:
+        - service: maas_db
+          endpoint: internal
+    db_sync:
+      jobs:
+        - maas-db-init
+    bootstrap_admin_user:
+      jobs:
+        - maas-db-sync
+      services:
+        - service: maas_region
+          endpoint: internal
+        - service: maas_db
+          endpoint: internal
+        - service: maas_ingress
+          endpoint: monitor
+    import_resources:
+      jobs:
+        - maas-bootstrap-admin-user
+      services:
+        - service: maas_region
+          endpoint: internal
+        - service: maas_db
+          endpoint: internal
+        - service: maas_ingress
+          endpoint: monitor
+    export_api_key:
+      jobs:
+        - maas-bootstrap-admin-user
+      services:
+        - service: maas_region
+          endpoint: internal
+        - service: maas_db
+          endpoint: internal
+        - service: maas_ingress
+          endpoint: monitor
+    enable_tls:
+      jobs:
+        - maas-bootstrap-admin-user
+      services:
+        - service: maas_region
+          endpoint: internal
+
+network_policy:
+  maas:
+    ingress:
+      - {}
+    egress:
+      - {}
+
+manifests:
+  region_statefulset: true
+  rack_statefulset: true
+  syslog_statefulset: true
+  syslog_service: true
+  test_maas_api: true
+  secret_ssh_key: false
+  ingress_region: true
+  configmap_ingress: true
+  maas_ingress: true
+  network_policy: false
+
+labels:
+  rack:
+    node_selector_key: ucp-control-plane
+    node_selector_value: enabled
+  region:
+    node_selector_key: ucp-control-plane
+    node_selector_value: enabled
+  ingress:
+    node_selector_key: ucp-control-plane
+    node_selector_value: enabled
+  syslog:
+    node_selector_key: ucp-control-plane
+    node_selector_value: enabled
+  test:
+    node_selector_key: ucp-control-plane
+    node_selector_value: enabled
+
+network:
+  region_api:
+    ingress:
+      public: false
+
+storage:
+  syslog:
+    pvc:
+      class_name: general
+      size: 1Gi
+  rackd:
+    pvc:
+      class_name: general
+      size: 5Gi
+
+conf:
+  ssh:
+    # A SSH private key strings to mount
+    # to allow MaaS access virsh over SSH
+    # The corresponding public key should be
+    # added to a authorized_keys file to a user
+    # in the libvirt group on the hypervisors
+    private_key: null
+  bind:
+    override:
+    append:
+    # 'cpus: n' number of CPUs for bind to use
+    # 'cpus: ""' to revert to the default (all of them)
+    cpus: 1
+  nginx:
+    # 'worker_processes: auto' (the maas default) launches one worker per core
+    worker_processes: 1
+    # 'worker_connections: 768' is the MAAS default, 512 is the nginx default
+    worker_connections: 768
+  curtin:
+    override: true
+    late_commands: {}
+    # Additional commands to be run during the "late" curtin stage
+    #   https://curtin.readthedocs.io/en/latest/topics/config.html#stages
+    # When naming the keys, consider that the commands are executed in
+    # lexicographic order. The existing late_commands are named:
+    #   driver_NN_*, drydock_NN, and maas
+    # Example:
+    # late_commands:
+    #   install_modules_extra: ["curtin", "in-target", "--", "apt-get",
+    #      "-y", "install", "linux-modules-extra-4.15.0-88-generic"]
+  cloudconfig:
+    override: false
+    sections: {}
+    # Additional user-data sections to add to the default cloud-config.
+    # These apply to the ephemeral environment, used during enlistment,
+    # commissioning, and deployment (pre-curtin).
+    # In particular, bootcmd may be useful:
+    # https://cloudinit.readthedocs.io/en/latest/topics/modules.html#bootcmd
+    # Example:
+    # conf:
+    #   cloudconfig:
+    #     override: true
+    #     sections:
+    #       bootcmd:
+    #         - "rm -fr /var/lib/apt/lists"
+  cache:
+    enabled: false
+  syslog:
+    logpath: /var/log/maas
+    logfile: nodeboot.log
+    logrotate:
+      # How many rotated logs to keep
+      rotate: "30"
+      # Size threshold when a log should rotate
+      size: "100M"
+    # levels (emerg,alert,crit,error,warning,notice,info,debug)
+    # use 'info' as default when overwritting the default
+    log_level: "info"
+  maas:
+    override:
+    append:
+    url:
+      maas_url: null
+    cgroups:
+      # When set to true, this won't mount the host path /sys/fs/cgroup. Used
+      # to enable use of cgroups v2. Also requires running container as privileged
+      disable_cgroups_region: false
+      disable_cgroups_rack: false
+    ntp:
+      # These options allow you to mock out the ntpd binary within the container
+      # by overwriting it with a script that simply sleeps - this is useful in
+      # environments where you do not wish these privileged containers to try and
+      # run ntpd that may conflict with the baremetal host
+      disable_ntpd_region: false
+      disable_ntpd_rack: false
+      # Use external only points region and rack serves and deployed nodes directly
+      # at external NTP servers. Otherwise we have nodes -> rack -> region -> external
+      use_external_only: false
+      ntp_servers: []
+    dns:
+      require_dnssec: false
+      # These are upstream servers
+      dns_servers: []
+    proxy:
+      # Whether deploying nodes should use MaaS region as an APT proxy
+      proxy_enabled: false
+      # Whether MaaS region should utilize an external proxy for accessing repos
+      peer_proxy_enabled: false
+      # An external proxy server to use
+      proxy_server: null
+    images:
+      default_os: ubuntu
+      default_image: jammy
+      default_kernel: ga-24.04
+    credentials:
+      secret:
+        namespace: maas
+        name: maas-api-key
+    syslog:
+      # Remote syslog destination for machine syslogs (during enlistment,
+      # commissioning, and deployment)
+      # Can be specified as 'ip', 'fqdn', 'ip:port', or 'fqdn:port', where
+      # ':port' defaults to ':514'
+      # If remote_syslog is null, the destination will be resolved via a
+      # host_and_port_endpoint_uri_lookup of the public maas_syslog endpoint
+      # (Note that this differs from the MAAS default, which is to send machine
+      # syslogs to MAAS on port 5247)
+      remote_syslog: null
+    extra_settings:
+      # Additional settings available via maas $PROFILE maas set-config
+      # Marks if the initial intro has been completed: true or false
+      completed_intro: true
+      # Enable Google Analytics: true or false
+      enable_analytics: false
+      # network_discovery: 'enabled' or 'disabled'
+      network_discovery: disabled
+      # active_discovery_interval (seconds):
+      # one of '0', '604800', '86400', '43200', '21600', '10800', '3600', '1800', '600'
+      active_discovery_interval: 0
+      # enlist_commissioning: if true, directly go into commissioning during enlistment
+      enlist_commissioning: false
+    # system user for console login/recovery in early phases of deployment
+    system_user: "root"
+    system_passwd: "password"
+    tls:
+      enabled: false
+      create: false
+      insecure: false # set to true to allow self-signed certs
+      ca: ""
+      cert: ""
+      key: ""
+
+secrets:
+  maas_db:
+    admin: maas-db-admin
+    user: maas-db-user
+  maas_users:
+    admin: maas-admin
+  maas_region:
+    name: maas-region-secret
+  ssh_key: ssh-private-key
+  maas_cert: maas-region-api-tls
+  maas_ingress_cert: maas-region-api-ingress-tls
+
+pod:
+  replicas:
+    rack: 2
+    region: 2
+    syslog: 1
+
+endpoints:
+  cluster_domain_suffix: cluster.local
+  maas_syslog:
+    hosts:
+      default: maas-syslog
+    host_fqdn_override:
+      default: null
+  maas_db:
+    auth:
+      admin:
+        username: postgres
+        password: password
+      user:
+        username: maas
+        password: password
+        database: maasdb
+    path: maasdb
+    hosts:
+      default: postgresql
+    host_fqdn_override:
+      default: null
+  maas_region:
+    name: maas-region
+    auth:
+      admin:
+        username: admin
+        password: admin
+        email: none@none
+    hosts:
+      default: maas-region
+      public: maas
+    path:
+      default: /MAAS
+    scheme:
+      default: http
+    host_fqdn_override:
+      default: null
+
+cert_manager:
+  enabled: false
+  create: false
+  issuer:
+    kind: ClusterIssuer
+    name: ca-issuer
+
+data:
+  # MARK: Postgres
+
+  postgres:
+    enabled: false
+    postgresVersion: 17
+    finalizers:
+      - percona.com/delete-pvc
+      - percona.com/delete-ssl
+      - percona.com/delete-backups
+    instances:
+      - name: maas
+        replicas: 3
+        dataVolumeClaimSpec:
+          storageClassName: ""
+          resources:
+            requests:
+              storage: 1Gi
+    proxy:
+      pgBouncer:
+        replicas: 2
+    backups:
+      enabled: false
+      trackLatestRestorableTime: true
+
+gateway:
+  gateways: null
+
+  # MARK: Routes
+
+  routes:
+    []
+    # - name: maas
+    #   kind: HTTPRoute
+    #   hostnames:
+    #     - maas.local
+    #     - matches:
+    #         - path:
+    #             type: PathPrefix
+    #             value: /
+    #       backendRefs:
+    #         - name: maas
+    #           port: 5240
+    #   gateways:
+    #     - name: maas-gateway
+
+  # MARK: Policies
+
+  policies:
+    []
+    # - name: tls-upstream-dev
+    #   validation:
+    #     hostname: dev.example.com
+    #     wellKnownCACertificates: System
+    #     # caCertificateRefs:
+    #     #   - group: ""
+    #     #     kind: ConfigMap
+    #     #     name: auth-cert

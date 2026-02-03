@@ -1,0 +1,16 @@
+---
+apiVersion: k0rdent.mirantis.com/v1beta1
+kind: ServiceTemplate
+metadata:
+  name: maas-3-6-2
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  helm:
+    chartSpec:
+      chart: maas
+      version: 3.6.2
+      interval: 10m0s
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
