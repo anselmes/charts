@@ -49,14 +49,15 @@ spec:
         metrics:
           enabled: false
       server:
-        gateway:
-          tlsRoute:
-            enabled: true
-            hosts:
-              - vault.k8s.orb.local
-            parentRefs:
-              - name: tls-gateway
-                namespace: kube-system
+        # NOTE: orbstack have issues with gw using separate ip
+        # gateway:
+        #   tlsRoute:
+        #     enabled: true
+        #     hosts:
+        #       - vault.k8s.orb.local
+        #     parentRefs:
+        #       - name: tls-gateway
+        #         namespace: kube-system
         extraEnvironmentVars:
           PGSSLMODE: require
           PGSSLROOTCERT: /etc/ssl/certs/pg-ca.crt

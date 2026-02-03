@@ -36,8 +36,19 @@ spec:
   #           newTag: ""
   values:
     envoy:
+      proxies:
+        - name: envoy-proxy
+          mergeGateways: false
+          logging:
+            level:
+              default: info
       classes:
         - name: envoy
+          parametersRef:
+            group: gateway.envoyproxy.io
+            kind: EnvoyProxy
+            name: envoy-proxy
+            namespace: kube-system
       config:
         envoyGateway:
           gateway:

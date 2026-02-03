@@ -35,6 +35,9 @@ spec:
     gateways:
       - name: http-gateway
         className: envoy
+        # addresses:
+        #   - type: IPAddress
+        #     value: 10.200.201.2
         listeners:
           - name: http
             port: 80
@@ -42,6 +45,8 @@ spec:
             allowedRoutes:
               namespaces:
                 from: All
+              kinds:
+                - kind: HTTPRoute
           - name: https
             port: 443
             protocol: HTTPS
@@ -49,58 +54,83 @@ spec:
             allowedRoutes:
               namespaces:
                 from: All
+              kinds:
+                - kind: HTTPRoute
             tls:
               mode: Terminate
               certificateRefs:
                 - name: http-gw-cert
                   issuer: ca-issuer
-      - name: grpc-gateway
-        className: envoy
-        listeners:
-          - name: http
-            port: 8080
-            protocol: HTTP
-            allowedRoutes:
-              namespaces:
-                from: All
-              kinds:
-                - kind: GRPCRoute
-          - name: grpc
-            port: 8443
-            protocol: HTTPS
-            hostname: "*.k8s.orb.local"
-            allowedRoutes:
-              namespaces:
-                from: All
-              kinds:
-                - kind: GRPCRoute
-            tls:
-              mode: Terminate
-              certificateRefs:
-                - name: grpc-gw-cert
-                  issuer: ca-issuer
-      - name: tcp-gateway
-        className: envoy
-        listeners:
-          - name: tcp
-            port: 8081
-            protocol: TCP
-            allowedRoutes:
-              namespaces:
-                from: All
-              kinds:
-                - kind: GRPCRoute
-      - name: tls-gateway
-        className: envoy
-        listeners:
-          - name: tls
-            port: 9443
-            protocol: TLS
-            hostname: "*.k8s.orb.local"
-            allowedRoutes:
-              namespaces:
-                from: All
-              kinds:
-                - kind: GRPCRoute
-            tls:
-              mode: Passthrough
+      # - name: grpc-gateway
+      #   className: envoy
+      #   # addresses:
+      #   #   - type: IPAddress
+      #   #     value: 10.200.201.3
+      #   listeners:
+      #     - name: http
+      #       port: 80
+      #       protocol: HTTP
+      #       allowedRoutes:
+      #         namespaces:
+      #           from: All
+      #         kinds:
+      #           - kind: GRPCRoute
+      #     - name: grpc
+      #       port: 443
+      #       protocol: HTTPS
+      #       hostname: "*.k8s.orb.local"
+      #       allowedRoutes:
+      #         namespaces:
+      #           from: All
+      #         kinds:
+      #           - kind: GRPCRoute
+      #       tls:
+      #         mode: Terminate
+      #         certificateRefs:
+      #           - name: grpc-gw-cert
+      #             issuer: ca-issuer
+      # - name: tcp-gateway
+      #   className: envoy
+      #   # addresses:
+      #   #   - type: IPAddress
+      #   #     value: 10.200.201.4
+      #   listeners:
+      #     - name: tcp
+      #       port: 80
+      #       protocol: TCP
+      #       allowedRoutes:
+      #         namespaces:
+      #           from: All
+      #         kinds:
+      #           - kind: TCPRoute
+      # - name: tls-gateway
+      #   className: envoy
+      #   # addresses:
+      #   #   - type: IPAddress
+      #   #     value: 10.200.201.4
+      #   listeners:
+      #     - name: tls
+      #       port: 443
+      #       protocol: TLS
+      #       hostname: "*.k8s.orb.local"
+      #       allowedRoutes:
+      #         namespaces:
+      #           from: All
+      #         kinds:
+      #           - kind: TLSRoute
+      #       tls:
+      #         mode: Passthrough
+      # - name: udp-gateway
+      #   className: envoy
+      #   # addresses:
+      #   #   - type: IPAddress
+      #   #     value: 10.200.201.5
+      #   listeners:
+      #     - name: udp
+      #       port: 80
+      #       protocol: UDP
+      #       allowedRoutes:
+      #         namespaces:
+      #           from: All
+      #         kinds:
+      #           - kind: UDPRoute
