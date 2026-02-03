@@ -4,6 +4,14 @@
 envoy:
   enabled: true
 
+  proxies:
+    []
+    # - name: envoy-proxy
+    #   mergeGateways: true
+    #   logging:
+    #     level:
+    #       default: info
+
   classes:
     []
     # - name: envoy
@@ -16,7 +24,8 @@ envoy:
     #   # parametersRef:
     #   #   group: gateway.envoyproxy.io
     #   #   kind: EnvoyProxy
-    #   #   name: default-proxy-config
+    #   #   name: envoy-proxy-config
+    #   #   namespace: kube-system
 
   deployment:
     envoyGateway:

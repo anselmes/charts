@@ -14,6 +14,44 @@
           "description": "Enable or disable Envoy Gateway deployment",
           "default": true
         },
+        "proxies": {
+          "type": "array",
+          "title": "Envoy Proxies",
+          "description": "List of Envoy proxy configurations",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "title": "Proxy Name"
+              },
+              "mergeGateways": {
+                "type": "boolean",
+                "title": "Merge Gateways"
+              },
+              "logging": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "object",
+                    "properties": {
+                      "default": {
+                        "type": "string",
+                        "enum": ["debug", "info", "warn", "error"]
+                      }
+                    },
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "default": []
+        },
         "classes": {
           "type": "array",
           "title": "Gateway Classes",
@@ -59,11 +97,16 @@
                   },
                   "name": {
                     "type": "string"
+                  },
+                  "namespace": {
+                    "type": "string"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
-            "required": ["name"]
+            "required": ["name"],
+            "additionalProperties": false
           },
           "default": []
         },
@@ -85,7 +128,8 @@
                       "type": "string",
                       "title": "Image Tag"
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 },
                 "imagePullPolicy": {
                   "type": "string",
@@ -108,31 +152,35 @@
                       "properties": {
                         "memory": {
                           "type": "string",
-                          "pattern": "^[0-9]+(Mi|Gi|Ki)$"
+                          "pattern": "^[0-9]+(Mi|Gi|Ki|m)?$"
                         },
                         "cpu": {
                           "type": "string"
                         }
-                      }
+                      },
+                      "additionalProperties": false
                     },
                     "requests": {
                       "type": "object",
                       "properties": {
                         "memory": {
                           "type": "string",
-                          "pattern": "^[0-9]+(Mi|Gi|Ki)$"
+                          "pattern": "^[0-9]+(Mi|Gi|Ki|m)?$"
                         },
                         "cpu": {
                           "type": "string"
                         }
-                      }
+                      },
+                      "additionalProperties": false
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 },
                 "securityContext": {
                   "$ref": "#/definitions/securityContext"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "ports": {
               "type": "array",
@@ -154,7 +202,8 @@
                     "maximum": 65535
                   }
                 },
-                "required": ["name", "port", "targetPort"]
+                "required": ["name", "port", "targetPort"],
+                "additionalProperties": false
               }
             },
             "priorityClassName": {
@@ -204,9 +253,18 @@
                     "type": "string"
                   }
                 }
+              },
+              "additionalProperties": false
+            },
+            "annotations": {
+              "type": "object",
+              "title": "Deployment Annotations",
+              "additionalProperties": {
+                "type": "string"
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "service": {
           "type": "object",
@@ -214,7 +272,8 @@
           "properties": {
             "trafficDistribution": {
               "type": "string",
-              "title": "Traffic Distribution Policy"
+              "title": "Traffic Distribution Policy",
+              "enum": ["", "PreferClose"]
             },
             "annotations": {
               "type": "object",
@@ -222,8 +281,14 @@
               "additionalProperties": {
                 "type": "string"
               }
+            },
+            "type": {
+              "type": "string",
+              "title": "Service Type",
+              "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "hpa": {
           "type": "object",
@@ -254,7 +319,8 @@
               "type": "object",
               "title": "HPA Behavior"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "config": {
           "type": "object",
@@ -268,9 +334,11 @@
                   "properties": {
                     "controllerName": {
                       "type": "string",
-                      "title": "Gateway Controller Name"
+                      "title": "Gateway Controller Name",
+                      "default": "gateway.envoyproxy.io/gatewayclass-controller"
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 },
                 "provider": {
                   "type": "object",
@@ -278,9 +346,11 @@
                     "type": {
                       "type": "string",
                       "enum": ["Kubernetes"],
-                      "title": "Provider Type"
+                      "title": "Provider Type",
+                      "default": "Kubernetes"
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 },
                 "logging": {
                   "type": "object",
@@ -291,19 +361,26 @@
                         "default": {
                           "type": "string",
                           "enum": ["debug", "info", "warn", "error"],
-                          "title": "Default Log Level"
+                          "title": "Default Log Level",
+                          "default": "info"
                         }
+                      },
+                      "additionalProperties": {
+                        "type": "string"
                       }
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 },
                 "extensionApis": {
                   "type": "object",
                   "title": "Extension APIs"
                 }
-              }
+              },
+              "additionalProperties": false
             }
-          }
+          },
+          "additionalProperties": false
         },
         "createNamespace": {
           "type": "boolean",
@@ -351,12 +428,19 @@
                 },
                 "ttlSecondsAfterFinished": {
                   "type": "integer",
-                  "minimum": 0
+                  "minimum": 0,
+                  "default": 30
                 },
                 "securityContext": {
                   "$ref": "#/definitions/securityContext"
+                },
+                "pod": {
+                  "type": "object",
+                  "title": "Certgen Job Pod Configuration",
+                  "additionalProperties": true
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "rbac": {
               "type": "object",
@@ -373,9 +457,11 @@
                     "type": "string"
                   }
                 }
-              }
+              },
+              "additionalProperties": false
             }
-          }
+          },
+          "additionalProperties": false
         },
         "topologyInjector": {
           "type": "object",
@@ -383,17 +469,34 @@
           "properties": {
             "enabled": {
               "type": "boolean",
+              "title": "Enable Topology Injector",
               "default": true
             },
             "annotations": {
               "type": "object",
+              "title": "Topology Injector Annotations",
               "additionalProperties": {
                 "type": "string"
-              }
-            }
-          }
+              }            },
+            "type": {
+              "type": "string",
+              "title": "Service Type",
+              "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"]            }
+          },
+          "additionalProperties": false
+        },
+        "global": {
+          "type": "object",
+          "title": "Global Configuration",
+          "additionalProperties": true
+        },
+        "podDisruptionBudget": {
+          "type": "object",
+          "title": "Pod Disruption Budget",
+          "additionalProperties": true
         }
-      }
+      },
+      "additionalProperties": false
     },
     "nginx": {
       "type": "object",
@@ -404,19 +507,63 @@
           "title": "Enable NGINX Gateway",
           "default": false
         },
-        "gatewayClassName": {
-          "type": "string",
-          "title": "Gateway Class Name",
-          "default": "nginx"
-        },
-        "gatewayClassAnnotations": {
+        "nginx": {
           "type": "object",
-          "title": "Gateway Class Annotations",
-          "additionalProperties": {
-            "type": "string"
-          }
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "nginxGateway": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "title": "NGINX Gateway Name"
+                },
+                "gatewayClassName": {
+                  "type": "string",
+                  "title": "Gateway Class Name",
+                  "default": "nginx"
+                },
+                "gwAPIExperimentalFeatures": {
+                  "type": "object",
+                  "properties": {
+                    "enable": {
+                      "type": "boolean",
+                      "default": false
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "gwAPIInferenceExtension": {
+                  "type": "object",
+                  "properties": {
+                    "enable": {
+                      "type": "boolean",
+                      "default": false
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "snippetsFilters": {
+                  "type": "object",
+                  "properties": {
+                    "enable": {
+                      "type": "boolean",
+                      "default": false
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
         }
-      }
+      },
+      "additionalProperties": false
     },
     "traefik": {
       "type": "object",
@@ -434,7 +581,28 @@
               "type": "boolean",
               "default": false
             }
-          }
+          },
+          "additionalProperties": false
+        },
+        "experimental": {
+          "type": "object",
+          "properties": {
+            "kubernetesGateway": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "knative": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "additionalProperties": false
         },
         "gateway": {
           "type": "object",
@@ -443,7 +611,8 @@
               "type": "boolean",
               "default": false
             }
-          }
+          },
+          "additionalProperties": false
         },
         "gatewayClass": {
           "type": "object",
@@ -454,43 +623,104 @@
             },
             "name": {
               "type": "string"
-            },
-            "labels": {
+            }
+          },
+          "additionalProperties": false
+        },
+        "providers": {
+          "type": "object",
+          "properties": {
+            "kubernetesCRD": {
               "type": "object",
-              "additionalProperties": {
-                "type": "string"
-              }
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "kubernetesIngress": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "kubernetesGateway": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "experimentalChannel": {
+                  "type": "boolean",
+                  "default": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "knative": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false
+                }
+              },
+              "additionalProperties": false
             }
-          }
+          },
+          "additionalProperties": false
         },
-        "kubernetesIngress": {
+        "ports": {
           "type": "object",
           "properties": {
-            "enabled": {
-              "type": "boolean",
-              "default": false
+            "web": {
+              "type": "object",
+              "properties": {
+                "port": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535,
+                  "default": 80
+                },
+                "exposedPort": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535,
+                  "default": 80
+                }
+              },
+              "additionalProperties": false
+            },
+            "websecure": {
+              "type": "object",
+              "properties": {
+                "port": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535,
+                  "default": 443
+                },
+                "exposedPort": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535,
+                  "default": 443
+                }
+              },
+              "additionalProperties": false
             }
-          }
-        },
-        "kubernetesGateway": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "default": true
-            }
-          }
-        },
-        "knative": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "default": false
-            }
-          }
+          },
+          "additionalProperties": false
         }
-      }
+      },
+      "additionalProperties": false
     }
   },
   "definitions": {
@@ -516,7 +746,8 @@
                 "type": "string"
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "privileged": {
           "type": "boolean"
@@ -542,9 +773,12 @@
               "type": "string",
               "enum": ["RuntimeDefault", "Unconfined"]
             }
-          }
+          },
+          "additionalProperties": false
         }
-      }
+      },
+      "additionalProperties": false
     }
-  }
+  },
+  "additionalProperties": false
 }

@@ -1,0 +1,13 @@
+{{- range .Values.envoy.proxies }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: {{ .name | default "envoy-proxy" }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  mergeGateways: {{ .mergeGateways | default false }}
+  logging:
+    level:
+      default: {{ .logging.level.default | default "info" }}
+{{- end }}
