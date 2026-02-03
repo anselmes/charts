@@ -3,22 +3,26 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: maas-data
+  name: netbox
   namespace: ucp
 spec:
   interval: 10m0s
-  releaseName: maas-data
+  releaseName: netbox
   timeout: 15m0s
   dependsOn:
     - name: flux
       namespace: sre
     - name: operator
       namespace: operators
+    - name: envoy
+      namespace: kube-system
+    - name: cert-manager
+      namespace: cert-manager
   chart:
     spec:
       interval: 5m
-      chart: data
-      version: 1.0.0
+      chart: netbox
+      version: 7.4.1
       sourceRef:
         kind: HelmRepository
         name: labsonline-catalog
@@ -38,23 +42,21 @@ spec:
   #           newName: ""
   #           newTag: ""
   values:
-    postgres:
-      enabled: true
-      finalizers:
-        - percona.com/delete-pvc
-        - percona.com/delete-ssl
-        - percona.com/delete-backups
-      instances:
-        - name: maasdb
-          replicas: 1
-          dataVolumeClaimSpec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: 10Gi
-      proxy:
-        pgBouncer:
-          replicas: 1
-      backups:
-        enabled: true
+    # TODO: netbox values
+    netbox: {}
+    data:
+      postgres:
+        enabled: false
+        postgresVersion: 17
+        instances:
+          - name: netboxdb
+            replicas: 1
+            dataVolumeClaimSpec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 5Gi
+        proxy:
+          pgBouncer:
+            replicas: 1

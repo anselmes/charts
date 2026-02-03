@@ -14,14 +14,10 @@ spec:
       namespace: sre
     - name: operator
       namespace: operators
-    - name: vault-postgresql
-      namespace: ucp
     - name: envoy
       namespace: kube-system
     - name: cert-manager
       namespace: cert-manager
-    - name: vault-ca-issuer
-      namespace: ucp
   chart:
     spec:
       interval: 5m
@@ -158,3 +154,32 @@ spec:
             initialize {
               type = "auto"
             }
+    data:
+      postgres:
+        enabled: false
+        postgresVersion: 17
+        instances:
+          - name: vaultdb
+            replicas: 1
+            dataVolumeClaimSpec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 5Gi
+        proxy:
+          pgBouncer:
+            replicas: 1
+    ca:
+      certificates:
+        - name: vault
+          dns:
+            name: vault.k8s.orb.local
+            aliases:
+              - vault.k8s.orb.local
+              - vault.ucp.svc.cluster.local
+              - vault.ucp.svc
+              - vault
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer

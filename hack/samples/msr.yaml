@@ -12,12 +12,10 @@ spec:
   dependsOn:
     - name: flux
       namespace: sre
-    # - name: operator
-    #   namespace: operators
-    # - name: envoy
-    #   namespace: kube-system
-    # - name: cert-manager
-    #   namespace: cert-manager
+    - name: operator
+      namespace: operators
+    - name: envoy
+      namespace: kube-system
   chart:
     spec:
       interval: 5m
@@ -41,3 +39,124 @@ spec:
   #         - name: ""
   #           newName: ""
   #           newTag: ""
+  values:
+    msr:
+      externalURL: https://msr.k8s.orb.local
+      existingSecretAdminPasswordKey: msr-admin-password # FIXME: admin password
+      expose:
+        type: clusterIP
+      persistence:
+        enabled: true
+        resourcePolicy: keep
+        persistentVolumeClaim:
+          registry:
+            accessMode: ReadWriteOnce
+            size: 5Gi
+          jobservice:
+            jobLog:
+              accessMode: ReadWriteOnce
+              size: 5Gi
+          trivy:
+            accessMode: ReadWriteOnce
+            size: 5Gi
+      nginx:
+        replicas: 1
+      portal:
+        replicas: 1
+      core:
+        replicas: 1
+      jobservice:
+        replicas: 1
+      registry:
+        replicas: 1
+      trivy:
+        replicas: 1
+      exporter:
+        replicas: 1
+      database:
+        type: external
+        external:
+          sslmode: require
+          host: msr-postgres-primary.cicd.svc.cluster.local
+          port: 5432
+          coreDatabase: msr-postgres
+          username: msr-postgres
+          existingSecret: msr-postgres-pguser-msr-postgres
+      redis:
+        type: external
+        external:
+          addr: msrcache-master.cicd.svc.cluster.local:6379
+    data:
+      postgres:
+        enabled: true
+        instances:
+          - name: msrdb
+            replicas: 1
+            dataVolumeClaimSpec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 5Gi
+        proxy:
+          pgBouncer:
+            replicas: 1
+      redisreplication:
+        enabled: true
+        redisReplication:
+          name: msrcache
+          clusterSize: 1
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: local-path
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 1Gi
+    gateway:
+      routes:
+        - name: msr
+          kind: HTTPRoute
+          hostnames:
+            - msr.k8s.orb.local
+          rules:
+            - matches:
+                - path:
+                    type: PathPrefix
+                    value: /api/
+              backendRefs:
+                - name: msr-harbor-core
+                  port: 80
+            - matches:
+                - path:
+                    type: PathPrefix
+                    value: /service/
+              backendRefs:
+                - name: msr-harbor-core
+                  port: 80
+            - matches:
+                - path:
+                    type: PathPrefix
+                    value: /v2/
+              backendRefs:
+                - name: msr-harbor-core
+                  port: 80
+            - matches:
+                - path:
+                    type: PathPrefix
+                    value: /c/
+              backendRefs:
+                - name: msr-harbor-core
+                  port: 80
+            - matches:
+                - path:
+                    type: PathPrefix
+                    value: /
+              backendRefs:
+                - name: msr-harbor-portal
+                  port: 80
+          gateways:
+            - name: http-gateway
+              namespace: kube-system
