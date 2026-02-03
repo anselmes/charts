@@ -26,25 +26,13 @@ kubectl create namespace ucp
 kubectl apply -f hack/samples/gw/envoy.yaml
 
 # Cert Manager
-kubectl apply -f hack/samples/ca/certmanager.yaml
+kubectl apply -f hack/samples/certmanager.yaml
 
 # Gateway
 kubectl apply -f hack/samples/gw/gateway.yaml
 
 # Operators
 kubectl apply -f hack/samples/operator.yaml
-```
-
-## MSR
-
-```shell
-kubectl --namespace cicd \
-  create secret generic msr-redis-secret \
-  --from-literal REDIS_PASSWORD=<(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24 || true)
-
-kubectl apply -f hack/samples/ca/msrca.yaml
-kubectl apply -f hack/samples/db/msrdb.yaml
-# TODO: msr
 ```
 
 ## Vault
@@ -56,26 +44,21 @@ openssl rand -out hack/unseal-20260122-1.key 32
 kubectl --namespace ucp create secret generic unseal-20251231-1 --from-file hack/unseal-20251231-1.key
 kubectl --namespace ucp create secret generic unseal-20260122-1 --from-file hack/unseal-20260122-1.key
 
-kubectl apply -f hack/samples/ca/vaultca.yaml
-kubectl apply -f hack/samples/db/vaultdb.yaml
 kubectl apply -f hack/samples/vault.yaml
 ```
 
 ## Workload
 
-### MaaS
-
 ```shell
-# postgres
-kubectl apply -f hack/samples/db/maasdb.yaml
+# MSR
+kubectl apply -f hack/samples/msr.yaml
 
-# TODO: maas
-```
-
-### Demo App
-
-```shell
+# Demo App
 kubectl apply -f hack/samples/demo.yaml
-```
 
-### TODO: Workload Services
+# TODO: MaaS
+# kubectl apply -f hack/samples/maas.yaml
+
+# TODO: Netbox
+# kubectl apply -f hack/samples/netbox.yaml
+```
