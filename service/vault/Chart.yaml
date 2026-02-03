@@ -9,3 +9,9 @@ dependencies:
     name: openbao
     repository: oci://ghcr.io/openbao/charts
     version: 0.23.5
+  - name: data
+    repository: oci://ghcr.io/labsonline/charts
+    version: 1.0.0
+  - name: ca
+    repository: oci://ghcr.io/labsonline/charts
+    version: 1.0.4

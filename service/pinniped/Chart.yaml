@@ -11,8 +11,6 @@ dependencies:
   - name: ca
     repository: oci://ghcr.io/labsonline/charts
     version: 1.0.4
-    condition: ca.enabled
   - name: gateway
     repository: oci://ghcr.io/labsonline/charts
     version: 1.0.3
-    condition: gateway.enabled

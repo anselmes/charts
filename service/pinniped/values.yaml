@@ -115,79 +115,46 @@ pinniped:
         type: ClusterIP
 
 ca:
-  enabled: false
-
-  # MARK: - Issuer
-
-  issuers:
-    - name: pinniped-ca-issuer
-      selfSigned: true
-      secret:
-        create: false
+  issuers: null
 
   # MARK: - Certificate
 
   certificates:
-    - name: supervisor-tls-cert
-      dns:
-        name: pinniped-supervisor.ucp.svc.cluster.local
-        aliases:
-          - pinniped-supervisor.ucp.svc.cluster.local
-          - pinniped-supervisor.ucp.svc
-          - pinniped-supervisor.ucp
-          - pinniped-supervisor
-      issuerRef:
-        name: pinniped-ca-issuer
-        kind: Issuer
+    []
+    # - name: supervisor-tls-cert
+    #   dns:
+    #     name: pinniped-supervisor.ucp.svc.cluster.local
+    #     aliases:
+    #       - pinniped-supervisor.ucp.svc.cluster.local
+    #       - pinniped-supervisor.ucp.svc
+    #       - pinniped-supervisor.ucp
+    #       - pinniped-supervisor
+    #   issuerRef:
+    #     name: pinniped-ca-issuer
+    #     kind: Issuer
 
 gateway:
-  enabled: false
+  gateways: null
 
   # MARK: Routes
 
   routes:
-    - name: msr
-      kind: HTTPRoute
-      hostnames:
-        - msr.local
-      rules:
-        - matches:
-            - path:
-                type: PathPrefix
-                value: /api/
-          backendRefs:
-            - name: msr-harbor-core
-              port: 80
-        - matches:
-            - path:
-                type: PathPrefix
-                value: /service/
-          backendRefs:
-            - name: msr-harbor-core
-              port: 80
-        - matches:
-            - path:
-                type: PathPrefix
-                value: /v2/
-          backendRefs:
-            - name: msr-harbor-core
-              port: 80
-        - matches:
-            - path:
-                type: PathPrefix
-                value: /c/
-          backendRefs:
-            - name: msr-harbor-core
-              port: 80
-        - matches:
-            - path:
-                type: PathPrefix
-                value: /
-          backendRefs:
-            - name: msr-harbor-portal
-              port: 80
-      gateways:
-        - name: pinniped-gateway
+    []
+    # - name: pinniped
+    #   kind: HTTPRoute
+    #   hostnames:
+    #     - pinniped.local
+    #   rules:
+    #     - matches:
+    #         - path:
+    #             type: PathPrefix
+    #             value: /
+    #       # FIXME: backend service
+    #       backendRefs:
+    #         - name: pinniped
+    #           port: 80
+    #   gateways:
+    #     - name: pinniped-gateway
 
   # MARK: Policies
 
@@ -201,28 +168,3 @@ gateway:
     #     #   - group: ""
     #     #     kind: ConfigMap
     #     #     name: auth-cert
-
-  # MARK: Gateways
-
-  gateways:
-    - name: pinniped-gateway
-      className: envoy
-      listeners:
-        - name: http
-          port: 80
-          protocol: HTTP
-          allowedRoutes:
-            namespaces:
-              from: All
-        # - name: https
-        #   port: 443
-        #   protocol: HTTPS
-        #   hostname: pinniped.local
-        #   allowedRoutes:
-        #     namespaces:
-        #       from: All
-        #   tls:
-        #     mode: Terminate
-        #     certificateRefs:
-        #       - name: pinniped-gw-cert
-        #         issuer: pinniped-ca-issuer

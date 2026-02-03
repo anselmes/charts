@@ -943,13 +943,15 @@ msr:
     cacheCleanInterval: 14400
 
 data:
-  enabled: false
-
   # MARK: Postgres
 
   postgres:
     enabled: false
     postgresVersion: 17
+    finalizers:
+      - percona.com/delete-pvc
+      - percona.com/delete-ssl
+      - percona.com/delete-backups
     instances:
       - name: msr
         replicas: 3
@@ -972,7 +974,7 @@ data:
               storage: 1Gi
     proxy:
       pgBouncer:
-        replicas: 0
+        replicas: 2
         # tolerations:
         #   - key: com.docker.ucp.manager
         #     operator: Exists
@@ -1002,12 +1004,6 @@ data:
       #                   operator: In
       #                   values:
       #                     - "true"
-    # secrets:
-    #   name:
-    #   primaryuser:
-    #   postgres:
-    #   pgbouncer:
-    #   pguser:
 
   # MARK: Redis
 
@@ -1045,70 +1041,56 @@ data:
     #               operator: In
     #               values:
     #                 - "true"
-    # TLS:
-    #   ca: ca.key
-    #   cert: tls.crt
-    #   key: tls.key
-    #   secret:
-    #     secretName: ""
-
-# MARK: Issuers
-
-ca:
-  enabled: false
-  issuers:
-    - name: msr-ca-issuer
-      selfSigned: true
-      secret:
-        create: false
-
-# MARK: Routes
 
 gateway:
-  enabled: false
+  gateways: null
+
+  # MARK: Routes
+
   routes:
-    - name: msr
-      kind: HTTPRoute
-      hostnames:
-        - msr.local
-      rules:
-        - matches:
-            - path:
-                type: PathPrefix
-                value: /api/
-          backendRefs:
-            - name: msr-harbor-core
-              port: 80
-        - matches:
-            - path:
-                type: PathPrefix
-                value: /service/
-          backendRefs:
-            - name: msr-harbor-core
-              port: 80
-        - matches:
-            - path:
-                type: PathPrefix
-                value: /v2/
-          backendRefs:
-            - name: msr-harbor-core
-              port: 80
-        - matches:
-            - path:
-                type: PathPrefix
-                value: /c/
-          backendRefs:
-            - name: msr-harbor-core
-              port: 80
-        - matches:
-            - path:
-                type: PathPrefix
-                value: /
-          backendRefs:
-            - name: msr-harbor-portal
-              port: 80
-      gateways:
-        - name: msr-gateway
+    []
+    # - name: msr
+    #   kind: HTTPRoute
+    #   hostnames:
+    #     - msr.local
+    #   rules:
+    #     - matches:
+    #         - path:
+    #             type: PathPrefix
+    #             value: /api/
+    #       backendRefs:
+    #         - name: msr-harbor-core
+    #           port: 80
+    #     - matches:
+    #         - path:
+    #             type: PathPrefix
+    #             value: /service/
+    #       backendRefs:
+    #         - name: msr-harbor-core
+    #           port: 80
+    #     - matches:
+    #         - path:
+    #             type: PathPrefix
+    #             value: /v2/
+    #       backendRefs:
+    #         - name: msr-harbor-core
+    #           port: 80
+    #     - matches:
+    #         - path:
+    #             type: PathPrefix
+    #             value: /c/
+    #       backendRefs:
+    #         - name: msr-harbor-core
+    #           port: 80
+    #     - matches:
+    #         - path:
+    #             type: PathPrefix
+    #             value: /
+    #       backendRefs:
+    #         - name: msr-harbor-portal
+    #           port: 80
+    #   gateways:
+    #     - name: msr-gateway
 
   # MARK: Policies
 
@@ -1122,28 +1104,3 @@ gateway:
     #     #   - group: ""
     #     #     kind: ConfigMap
     #     #     name: auth-cert
-
-  # MARK: Gateways
-
-  gateways:
-    - name: msr-gateway
-      className: envoy
-      listeners:
-        - name: http
-          port: 80
-          protocol: HTTP
-          allowedRoutes:
-            namespaces:
-              from: All
-        # - name: https
-        #   port: 443
-        #   protocol: HTTPS
-        #   hostname: msr.local
-        #   allowedRoutes:
-        #     namespaces:
-        #       from: All
-        #   tls:
-        #     mode: Terminate
-        #     certificateRefs:
-        #       - name: msr-gw-cert
-        #         issuer: msr-ca-issuer

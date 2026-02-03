@@ -264,3 +264,28 @@ netbox:
     options:
       sslmode: "prefer"
       target_session_attrs: "read-write"
+
+data:
+  # MARK: Postgres
+
+  postgres:
+    enabled: false
+    postgresVersion: 17
+    finalizers:
+      - percona.com/delete-pvc
+      - percona.com/delete-ssl
+      - percona.com/delete-backups
+    instances:
+      - name: msr
+        replicas: 3
+        dataVolumeClaimSpec:
+          storageClassName: ""
+          resources:
+            requests:
+              storage: 1Gi
+    proxy:
+      pgBouncer:
+        replicas: 2
+    backups:
+      enabled: false
+      trackLatestRestorableTime: true

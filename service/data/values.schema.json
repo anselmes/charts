@@ -1145,5 +1145,5 @@
       "additionalProperties": false
     }
   },
-  "additionalProperties": false
+  "additionalProperties": true
 }
