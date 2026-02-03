@@ -46,6 +46,7 @@ kubectl --namespace ucp create secret generic unseal-20260122-1 --from-file hack
 kubectl --namespace ucp create secret generic vault-initial-admin-password --from-literal password=$(openssl rand -base64 32)
 
 kubectl apply -f hack/samples/vault.yaml
+kubectl apply -f hack/samples/gw/vault.yaml
 ```
 
 ## Workload
