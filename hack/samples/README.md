@@ -43,7 +43,7 @@ openssl rand -out hack/unseal-20260122-1.key 32
 
 kubectl --namespace ucp create secret generic unseal-20251231-1 --from-file hack/unseal-20251231-1.key
 kubectl --namespace ucp create secret generic unseal-20260122-1 --from-file hack/unseal-20260122-1.key
-kubectl --namespace ucp create secret generic vault-initial-admin-password --from-literal password=$(openssl rand -base64 32)
+kubectl --namespace ucp create secret generic vault-initial-admin-password --from-literal password=$(openssl rand -hex 8)
 
 kubectl apply -f hack/samples/vault.yaml
 kubectl apply -f hack/samples/gw/vault.yaml
@@ -61,6 +61,20 @@ kubectl apply -f hack/samples/demo.yaml
 # TODO: MaaS
 # kubectl apply -f hack/samples/maas.yaml
 
-# TODO: Netbox
-# kubectl apply -f hack/samples/netbox.yaml
+# Netbox
+kubectl --namespace ucp \
+  create secret generic \
+  netbox-credential \
+  --from-literal email=admin@orb.locals \
+  --from-literal username=admin \
+  --from-literal password=$(openssl rand -hex 8) \
+  --from-literal api_token=$(openssl rand -base64 32)
+
+kubectl --namespace ucp \
+  create secret generic \
+  netbox-oidc-credential \
+  --from-literal oidc-vault.yaml="SOCIAL_AUTH_OIDC_KEY: ${SOCIAL_AUTH_OIDC_KEY}
+SOCIAL_AUTH_OIDC_SECRET: ${SOCIAL_AUTH_OIDC_SECRET}"
+
+kubectl apply -f hack/samples/netbox.yaml
 ```
