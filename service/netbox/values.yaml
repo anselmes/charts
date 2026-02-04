@@ -70,6 +70,11 @@ netbox:
     # host listed must specify a scheme (e.g. http:// or `https://).
     trustedOrigins: []
 
+  # Setting this to True will permit only authenticated users to access any part
+  # of NetBox. By default, anonymous users are permitted to access most data in
+  # NetBox but not make any changes.
+  loginRequired: true
+
   # Set the default preferred language/locale
   defaultLanguage: en-ca
 
@@ -118,6 +123,14 @@ netbox:
   #       optional: false
   extraConfig: []
 
+  ## extraEnvs:
+  ##   - name: FOO
+  ##     valueFrom:
+  ##       secretKeyRef:
+  ##         key: FOO
+  ##         name: secret-resource
+  extraEnvs: []
+
   # If provided, this should be a 50+ character string of random characters. It
   # will be randomly generated if left blank.
   # You can also use an existing secret with "secret_key" instead of "secretKey"
@@ -130,6 +143,61 @@ netbox:
   existingSecret: ""
 
   replicaCount: 1
+
+  # Remote authentication support
+  remoteAuth:
+    enabled: false
+    backends:
+      - social_core.backends.open_id_connect.OpenIdConnectAuth
+    autoCreateUser: true
+    autoCreateGroups: true
+    defaultGroups: []
+    defaultPermissions: {}
+    groupSyncEnabled: true
+    superuserGroups: []
+    superusers: []
+    staffGroups: []
+    staffUsers: []
+    groupSeparator: "|"
+
+    # The following options are specific for backend "netbox.authentication.LDAPBackend"
+    # you can use an existing netbox secret with "ldap_bind_password" instead of "bindPassword"
+    # see https://django-auth-ldap.readthedocs.io
+    ldap:
+      # serverUri: ldap://example.com
+      serverUri: ""
+      startTls: true
+      ignoreCertErrors: false
+      caCertDir: ""
+      caCertData: ""
+      # bindDn: CN=Netbox,OU=EmbeddedDevices,OU=MyCompany,DC=example,dc=com
+      bindDn: ""
+      bindPassword: ""
+      userDnTemplate: ""
+      # userSearchBaseDn: OU=Users,OU=MyCompany,DC=example,dc=com
+      userSearchBaseDn: ""
+      userSearchAttr: sAMAccountName
+      # groupSearchBaseDn: OU=Groups,OU=MyCompany,DC=example,dc=com
+      groupSearchBaseDn: ""
+      groupSearchClass: group
+      groupType: GroupOfNamesType
+      # requireGroupDn:
+      #   - CN=Network Configuration Operators,CN=Builtin,DC=example,dc=com
+      #   - CN=Domain Admins,CN=Users,DC=example,dc=com
+      requireGroupDn: []
+      # isAdminDn:
+      #   - CN=Domain Admins,CN=Users,DC=example,dc=com
+      isAdminDn: []
+      # isSuperUserDn:
+      #   - CN=Domain Admins,CN=Users,DC=example,dc=com
+      isSuperUserDn: []
+      findGroupPerms: true
+      mirrorGroups: true
+      mirrorGroupsExcept: []
+      cacheTimeout: 3600
+      attrFirstName: givenName
+      attrLastName: sn
+      attrMail: mail
 
   persistence:
     enabled: true
@@ -265,7 +333,72 @@ netbox:
       sslmode: "prefer"
       target_session_attrs: "read-write"
 
+  ## Valkey chart configuration
+  ## https://github.com/bitnami/charts/blob/main/bitnami/valkey/values.yaml
+  valkey:
+    enabled: true
+    sentinel:
+      enabled: false
+      primarySet: netbox-kv
+    auth:
+      # Sentinel auth is disabled by default, as Netbox does not support configuring SENTINEL_KWARGS.
+      sentinel: false
+
+  tasksDatabase:
+    database: 0
+    ssl: false
+    insecureSkipTlsVerify: false
+    # When defining caCertPath, make sure you mount the secret containing the CA certificate on all the necessary containers
+    caCertPath: ""
+
+    # Used only when valkey.enabled is false. host and port are not used if
+    # sentinels are given.
+    host: netbox-kv
+    port: 6379
+    sentinels: []
+    #  - mysentinel:26379
+    sentinelService: netbox-kv
+    sentinelTimeout: 300
+    username: ""
+    password: ""
+    existingSecretName: ""
+    existingSecretKey: tasks-password
+
+  cachingDatabase:
+    database: 1
+    ssl: false
+    insecureSkipTlsVerify: false
+    # When defining caCertPath, make sure you mount the secret containing the CA certificate on all the necessary containers
+    caCertPath: ""
+
+    # Used only when valkey.enabled is false. host and port are not used if
+    # sentinels are given.
+    host: netbox-kv
+    port: 6379
+    sentinels: []
+    #  - mysentinel:26379
+    sentinelService: netbox-kv
+    sentinelTimeout: 300
+    username: ""
+    password: ""
+    existingSecretName: ""
+    existingSecretKey: cache-password
+
+    extraVolumes:
+      []
+      # - name: kv-ca
+      #   secret:
+      #     secretName: kv-ca
+
+    extraVolumeMounts:
+      []
+      # - name: kv-ca
+      #   mountPath: /tmp/kv-ca
+      #   subPath: kv_ca
+      #   readOnly: true
+
 data:
+
   # MARK: Postgres
 
   postgres:
@@ -289,3 +422,47 @@ data:
     backups:
       enabled: false
       trackLatestRestorableTime: true
+
+  # MARK: Redis
+
+  redisreplication:
+    enabled: false
+
+    redisReplication:
+      clusterSize: 3
+      image: quay.io/opstree/redis
+      tag: v8.2.2
+      resources: {}
+        # requests:
+        #   cpu: 100m
+        #   memory: 128Mi
+        # limits:
+        #   cpu: 100m
+        #   memory: 128Mi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ""
+          resources:
+            requests:
+              storage: 1Gi
+
+  # MARK: Redis Sentinel
+
+  redissentinel:
+    enabled: false
+
+    redisSentinel:
+      clusterSize: 3
+      image: quay.io/opstree/redis-sentinel
+      tag: v7.0.15
+      resources: {}
+        # requests:
+        #   cpu: 100m
+        #   memory: 128Mi
+        # limits:
+        #   cpu: 100m
+        #   memory: 128Mi
+
+    redisSentinelConfig:
+      redisReplicationName: redis-replication
