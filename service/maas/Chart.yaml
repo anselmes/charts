@@ -5,9 +5,9 @@ type: application
 description: A Helm chart that deploys MaaS and it's dependencies.
 version: 3.6.2
 dependencies:
-  - name: maas
-    repository: file://../../upstream/maas/charts/maas
-    version: 0.1.8
+  - name: helm-toolkit
+    repository: file://../../library/helm-toolkit
+    version: 2025.2.0
   - name: data
     repository: oci://ghcr.io/labsonline/charts
     version: 1.0.0

@@ -78,32 +78,84 @@ manifests:
   syslog_service: true
   test_maas_api: true
   secret_ssh_key: false
-  ingress_region: true
-  configmap_ingress: true
-  maas_ingress: true
+  ingress_region: false
+  configmap_ingress: false
+  maas_ingress: false
   network_policy: false
+
+images:
+  tags:
+    db_init: docker.io/library/postgres:14.5
+    db_sync: quay.io/airshipit/maas-region-controller:latest
+    maas_rack: quay.io/airshipit/maas-rack-controller:latest
+    maas_region: quay.io/airshipit/maas-region-controller:latest
+    bootstrap: quay.io/airshipit/maas-region-controller:latest
+    export_api_key: quay.io/airshipit/maas-region-controller:latest
+    maas_cache: quay.io/airshipit/sstream-cache:latest
+    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
+    ingress: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.26.1
+    ingress_vip: docker.io/busybox:latest
+    error_pages: gcr.io/google_containers/ingress-gce-404-server-with-metrics-amd64:v1.6.0
+    maas_syslog: quay.io/airshipit/maas-region-controller:latest
+    enable_tls: quay.io/airshipit/maas-region-controller:latest
+  pull_policy: IfNotPresent
+  local_registry:
+    # TODO(portdirect): this chart does not yet support local image cacheing
+    active: false
+    exclude:
+      - dep_check
+
+jobs:
+  import_boot_resources:
+    retry_timer: 60
+    # default timeout: 15 minutes
+    timeout: 900
 
 labels:
   rack:
-    node_selector_key: ucp-control-plane
-    node_selector_value: enabled
+    # node_selector_key: ucp-control-plane
+    # node_selector_value: enabled
+    node_selector_key: kubernetes.io/os
+    node_selector_value: linux
   region:
-    node_selector_key: ucp-control-plane
-    node_selector_value: enabled
+    # node_selector_key: ucp-control-plane
+    # node_selector_value: enabled
+    node_selector_key: kubernetes.io/os
+    node_selector_value: linux
   ingress:
-    node_selector_key: ucp-control-plane
-    node_selector_value: enabled
+    # node_selector_key: ucp-control-plane
+    # node_selector_value: enabled
+    node_selector_key: kubernetes.io/os
+    node_selector_value: linux
   syslog:
-    node_selector_key: ucp-control-plane
-    node_selector_value: enabled
+    # node_selector_key: ucp-control-plane
+    # node_selector_value: enabled
+    node_selector_key: kubernetes.io/os
+    node_selector_value: linux
   test:
-    node_selector_key: ucp-control-plane
-    node_selector_value: enabled
+    # node_selector_key: ucp-control-plane
+    # node_selector_value: enabled
+    node_selector_key: kubernetes.io/os
+    node_selector_value: linux
 
 network:
+  maas_ingress:
+    mode: routed
+    interface: maas-vip
+    addr: 172.18.0.2/32
+  region_proxy:
+    node_port:
+      enabled: false
   region_api:
     ingress:
       public: false
+      classes:
+        namespace: "maas-ingress"
+        cluster: "maas-ingress"
+      annotations:
+        nginx.ingress.kubernetes.io/rewrite-target: "/"
+    node_port:
+      enabled: false
 
 storage:
   syslog:
@@ -161,6 +213,8 @@ conf:
     #     sections:
     #       bootcmd:
     #         - "rm -fr /var/lib/apt/lists"
+  drydock:
+    bootaction_url: null
   cache:
     enabled: false
   syslog:
@@ -179,6 +233,7 @@ conf:
     append:
     url:
       maas_url: null
+    ingress_disable_gui: false
     cgroups:
       # When set to true, this won't mount the host path /sys/fs/cgroup. Used
       # to enable use of cgroups v2. Also requires running container as privileged
@@ -207,9 +262,9 @@ conf:
       # An external proxy server to use
       proxy_server: null
     images:
-      default_os: ubuntu
-      default_image: jammy
-      default_kernel: ga-24.04
+      default_os: "ubuntu"
+      default_image: "focal"
+      default_kernel: "ga-20.04"
     credentials:
       secret:
         namespace: maas
@@ -247,6 +302,42 @@ conf:
       ca: ""
       cert: ""
       key: ""
+  drivers: null
+  #### If you populates drivers, it will replace the 3rd party driver
+  #### info that comes with MaaS. see structure below if it is needed
+  #### Additional context about the use of this file can be found here:
+  #### https://github.com/maas/maas/blob/2.3.5/src/maasserver/third_party_drivers.py
+  # - blacklist: string    # a kernel module to blacklist from loading if needed
+  #   comment: string       # free form comment
+  #   key_binary: |    # The GPG key for the repo holding the package, base64 encoded, non-ascii armored
+  #     mQENBFRtGAgBCADlSku65P14hVdx9E/W0n6MwuB3WGqmsyKNoa3HezFdMjWERldINNUdi8O28cZ6
+  #     j2+Hi9L1HeQIQ9+7FHpR3JyQePBJtRX8WSEusfRtML98opDhJxKm8Jyxb7aTvCwdNHz3yxADINkM
+  #     tOj5oRm7VCr8XHkG7YU27ELs8B+BXWvjO21oSosiFurnhT+H3hQsYXfYA55aa21q0qX+L5dFJSNd
+  #     zZVo7m9ybioVv2R5+PfBvdaSxCnmOpcGXFaKAsqVHeTW0pd3sdkin1rkbhOBaU5lFBt2ZiMtKpKH
+  #     pT8TZnqHpFHFbgi8j2ARJj4IDct2OGILddUIZSFyue6WE2hpV5c/ABEBAAG0OEhld2xldHQtUGFj
+  #     a2FyZCBDb21wYW55IFJTQSAoSFAgQ29kZXNpZ25pbmcgU2VydmljZSkgLSAxiQE+BBMBAgAoBQJU
+  #     bRgIAhsDBQkSzAMABgsJCAcDAgYVCAIJCgsEFgIDAQIeAQIXgAAKCRD63Y1ksSdeo6BJCADOfIPP
+  #     LPpIOnFK9jH4t8lLUd+RyMc+alA3uTDPUJa/ZHa6DHfh42iaPYVEV8OG0tnbMlHmwvsZ5c1/MRMw
+  #     1UbxCvD88P2qM4SUrUjQUlSCms2GLGvFftFXBiOJQ7/yBc9o+yoSvwPrrTxSCk4+Sqm0IfVXVzCh
+  #     DM9dM9YPY2Vzjd+LUaYC3X+eSuggUDO0TmJLJd7tZdF9fVXq3lr63BZ5PY98MTCuOoeSMDa9FIUQ
+  #     f6vn6UUJMDSRZ9OzhpNJOKR+ShVRwDK6My8gtVIW1EAW2w3VQWI2UNF07aLeO8UG6nTNWA23+OuZ
+  #     kUdgQovjcq01caSefgOkmiQOx6d74CAkuQENBFRtGAgBCAC35eBfUIpnTdF5lpIBWOsWGKwNZEg1
+  #     f5GRCc3qv2Cd0dpcDPFDiE6Oa0OjtnyzhBXWEQXfckWh53tIl5Sjhoy4Gh7z7vZEgmuw1L+ILy0Q
+  #     00SqMpZFZaXNn4cnkc4wy5XG1bs81ij4Xp8Gkk9oRDJfCxv6ztW7++uhmU/2w4iqJghJRZwjMKl7
+  #     hGis8cx6vP5UCr7K7nnJqHVeO/z82ooE6XgxHHeGrLNPrzebO74PQ5iV/F5Dq9DFwYk61JaoJ9mA
+  #     R9CKn+CDtTTCkbdv7yQKFxXQSludHInRBfuBeM28djOddZF9XCBL3n+KYWC9Mjf0SCyqiUKA/f3P
+  #     c6KaTqCZABEBAAGJASUEGAECAA8FAlRtGAgCGwwFCRLMAwAACgkQ+t2NZLEnXqM0/gf/VwQY9rVG
+  #     X0ZEoEAto+naRi2wLxae8AJ+JTwChaybyOFtIblM4PnG3rUmQCqFM18PNcfeSiX+dd8CuXOI/voI
+  #     hwcfM7HP4hPTykmquHgEHp5t+/gA4+iRYDZvHthURmBzFUl4NS9AhOT7V1udUkn1lAORFc8/bcu1
+  #     yiFIhaQRT3MtOzp+qvThPrspXAgpfOwqjSkPR2YdvvZeqWAs77k2RZQc2aknaMgjWaPLb+V8mBmg
+  #     zRO1RDvShu8hsREaKYVMHyAeKhEYC+lX2bNCImQIs/TqhYo5sn0I5+sbpmFNwtF1gP7AF9DjcFfJ
+  #     ruvNnfrWpNvn7vuBH6g//Qk5ZnBpwg==
+  #   modaliases:  # list of strings with modalias patterns that denote a need for this driver
+  #     - string
+  #   module: string  # the name of the kernel module to load
+  #   package: string # the name of the debian package containing the kernel module
+  #   repository: string # URL to the debian repo containing the package
+  ####
 
 secrets:
   maas_db:
@@ -261,18 +352,287 @@ secrets:
   maas_ingress_cert: maas-region-api-ingress-tls
 
 pod:
+  security_context:
+    ingress:
+      pod:
+        runAsUser: 0
+      container:
+        maas_ingress_vip_init:
+          readOnlyRootFilesystem: false
+          capabilities:
+            add:
+              - "NET_ADMIN"
+              - "SYS_MODULE"
+          runAsUser: 0
+        maas_ingress_vip:
+          readOnlyRootFilesystem: false
+          capabilities:
+            add:
+              - "NET_ADMIN"
+        maas_ingress:
+          readOnlyRootFilesystem: false
+          capabilities:
+            add:
+              - "NET_BIND_SERVICE"
+    ingress_errors:
+      pod:
+        runAsUser: 65534
+      container:
+        maas_ingress_errors:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+    bootstrap_admin_user:
+      pod:
+        runAsUser: 0
+      container:
+        maas_bootstrap_admin_user:
+          readOnlyRootFilesystem: false
+    db_init:
+      pod:
+        runAsUser: 0
+      container:
+        maas_db_init:
+          readOnlyRootFilesystem: true
+    db_sync:
+      pod:
+        runAsUser: 0
+      container:
+        maas_db_sync:
+          readOnlyRootFilesystem: false
+    export_api_key:
+      pod:
+        runAsUser: 0
+      container:
+        exporter:
+          readOnlyRootFilesystem: false
+    import_resources:
+      pod:
+        runAsUser: 0
+      container:
+        region_import_resources:
+          readOnlyRootFilesystem: false
+    syslog:
+      pod:
+        runAsUser: 0
+      container:
+        syslog:
+          readOnlyRootFilesystem: false
+        logrotate:
+          readOnlyRootFilesystem: false
+    rack:
+      pod:
+        runAsUser: 0
+      container:
+        maas_rack:
+          readOnlyRootFilesystem: false
+          capabilities:
+            add:
+              - "DAC_READ_SEARCH"
+              - "NET_ADMIN"
+              - "NET_BIND_SERVICE"
+              - "SYS_ADMIN"
+              - "SYS_PTRACE"
+              - "SYS_RESOURCE"
+              - "SYS_TIME"
+    region:
+      pod:
+        runAsUser: 0
+      container:
+        maas_cache:
+          readOnlyRootFilesystem: false
+        maas_region:
+          readOnlyRootFilesystem: false
+          capabilities:
+            add:
+              - "SYS_ADMIN"
+              - "NET_ADMIN"
+              - "NET_BIND_SERVICE"
+              - "SYS_PTRACE"
+              - "SYS_TIME"
+              - "SYS_RESOURCE"
+              - "DAC_READ_SEARCH"
+    api_test:
+      pod:
+        runAsUser: 0
+      container:
+        maas_api_test:
+          readOnlyRootFilesystem: false
+  affinity:
+    anti:
+      type:
+        rack: requiredDuringSchedulingIgnoredDuringExecution
+        default: preferredDuringSchedulingIgnoredDuringExecution
+      topologyKey:
+        default: kubernetes.io/hostname
+  mounts:
+    maas_rack:
+      init_container: []
+      maas_rack:
+    maas_region:
+      init_container: []
+      maas_region:
+    export_api_key:
+      init_container: []
+      export_api_key:
+    maas_ingress:
+      init_container: []
+      maas_region:
+    maas_syslog:
+      init_container: []
+      syslog: []
   replicas:
     rack: 2
     region: 2
     syslog: 1
+  resources:
+    enabled: false
+    test:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+      requests:
+        memory: "128Mi"
+        cpu: "500m"
+    maas_rack:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+      requests:
+        memory: "128Mi"
+        cpu: "500m"
+    maas_region:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+      requests:
+        memory: "128Mi"
+        cpu: "500m"
+    maas_syslog:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+      requests:
+        memory: "128Mi"
+        cpu: "500m"
+    maas_ingress_vip:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+      requests:
+        memory: "128Mi"
+        cpu: "500m"
+    maas_ingress:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+      requests:
+        memory: "128Mi"
+        cpu: "500m"
+    maas_ingress_errors:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+      requests:
+        memory: "128Mi"
+        cpu: "500m"
+    jobs:
+      db_init:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      db_sync:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      bootstrap_admin_user:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      import_resources:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      export_api_key:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+  probes:
+    rack:
+      maas-rack:
+        readiness:
+          enabled: true
+          params:
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            timeoutSeconds: 60
+    export-api-key:
+      exporter:
+        readiness:
+          enabled: true
+          params:
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            timeoutSeconds: 60
+    import-resources:
+      region-import-resources:
+        readiness:
+          enabled: true
+          params:
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            timeoutSeconds: 60
 
 endpoints:
   cluster_domain_suffix: cluster.local
+  maas_ingress:
+    hosts:
+      default: maas-ingress
+      error_pages: maas-ingress-error
+      monitor: maas-ingress-monitor
+    host_fqdn_override:
+      default: null
+    port:
+      http:
+        default: 80
+      https:
+        default: 443
+      error_pages:
+        default: 8080
+        podport: 10080
+      ingress_default_server:
+        default: 8181
+      healthz:
+        podport: 10254
+      status:
+        podport: 10246
+      stream:
+        podport: 10247
+      profiler:
+        podport: 10245
   maas_syslog:
     hosts:
       default: maas-syslog
     host_fqdn_override:
       default: null
+    port:
+      syslog:
+        public: 514
+        podport: 514
   maas_db:
     auth:
       admin:
@@ -285,6 +645,9 @@ endpoints:
     path: maasdb
     hosts:
       default: postgresql
+    port:
+      postgresql:
+        default: 5432
     host_fqdn_override:
       default: null
   maas_region:
@@ -299,6 +662,157 @@ endpoints:
       public: maas
     path:
       default: /MAAS
+    scheme:
+      default: "http"
+    port:
+      region_api:
+        default: 80
+        secure: 443
+        nodeport: 31900
+        nodeporttls: 31901
+        podport: 5240
+        podporttls: 5443
+        public: 80
+      # NEW: internal API on 5242
+      region_int_api:
+        podport: 5242
+        default: 5242
+      # Internal services range 5241-5247
+      region_internal_5241:
+        podport: 5241
+        default: 5241
+      region_internal_5243:
+        podport: 5243
+        default: 5243
+      region_internal_5244:
+        podport: 5244
+        default: 5244
+      region_internal_5245:
+        podport: 5245
+        default: 5245
+      region_internal_5246:
+        podport: 5246
+        default: 5246
+      region_internal_5247:
+        podport: 5247
+        default: 5247
+      # NEW: Rack HTTP communication for MAAS 3.6.2+
+      region_rack_http:
+        podport: 5248
+        default: 5248
+      # NEW: Temporal for MAAS 3.6.2+
+      region_temporal:
+        podport: 5250
+        default: 5250
+      # NEW: Temporal workers for MAAS 3.6.2+
+      region_temporal_worker1:
+        podport: 5251
+        default: 5251
+      region_temporal_worker2:
+        podport: 5252
+        default: 5252
+      region_temporal_worker3:
+        podport: 5253
+        default: 5253
+      # Extended Temporal range 5254-5270
+      region_temporal_5254:
+        podport: 5254
+        default: 5254
+      region_temporal_5255:
+        podport: 5255
+        default: 5255
+      region_temporal_5256:
+        podport: 5256
+        default: 5256
+      region_temporal_5257:
+        podport: 5257
+        default: 5257
+      region_temporal_5258:
+        podport: 5258
+        default: 5258
+      region_temporal_5259:
+        podport: 5259
+        default: 5259
+      region_temporal_5260:
+        podport: 5260
+        default: 5260
+      region_temporal_5261:
+        podport: 5261
+        default: 5261
+      region_temporal_5262:
+        podport: 5262
+        default: 5262
+      region_temporal_5263:
+        podport: 5263
+        default: 5263
+      region_temporal_5264:
+        podport: 5264
+        default: 5264
+      region_temporal_5265:
+        podport: 5265
+        default: 5265
+      region_temporal_5266:
+        podport: 5266
+        default: 5266
+      region_temporal_5267:
+        podport: 5267
+        default: 5267
+      region_temporal_5268:
+        podport: 5268
+        default: 5268
+      region_temporal_5269:
+        podport: 5269
+        default: 5269
+      region_temporal_5270:
+        podport: 5270
+        default: 5270
+      # Rack-Region communication for MAAS 3.6.2+
+      region_rack_agent_5271:
+        podport: 5271
+        default: 5271
+      region_rack_agent_5272:
+        podport: 5272
+        default: 5272
+      region_rack_agent_5273:
+        podport: 5273
+        default: 5273
+      region_rack_agent_5274:
+        podport: 5274
+        default: 5274
+      # Temporal cluster gossip for MAAS 3.6.2+
+      region_temporal_gossip_5281:
+        podport: 5281
+        default: 5281
+      region_temporal_gossip_5282:
+        podport: 5282
+        default: 5282
+      region_temporal_gossip_5283:
+        podport: 5283
+        default: 5283
+      region_temporal_gossip_5284:
+        podport: 5284
+        default: 5284
+      region_proxy:
+        default: 8000
+        # podport and public need to be the same as of MAAS 2.3.4, so
+        # comment them out and let the default rule
+        # podport: 8000
+        # public: 8000
+      region_syslog:
+        default: 514
+        podport: 514
+    host_fqdn_override:
+      default: null
+  physicalprovisioner:
+    name: drydock
+    hosts:
+      default: drydock-api
+    port:
+      api:
+        default: 9000
+        nodeport: 31900
+    path:
+      default: /api/v1.0
     scheme:
       default: http
     host_fqdn_override:
