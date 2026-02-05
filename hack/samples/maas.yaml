@@ -42,11 +42,85 @@ spec:
   #           newName: ""
   #           newTag: ""
   values:
-    # TODO: maas values
-    maas: {}
+    manifests:
+      test_maas_api: false
+    storage:
+      syslog:
+        pvc:
+          class_name: local-path
+          size: 1Gi
+      rackd:
+        pvc:
+          class_name: local-path
+          size: 5Gi
+    conf:
+      cache:
+        enabled: true
+      maas:
+        images:
+          default_os: ubuntu
+          default_image: jammy
+          default_kernel: ga-24.04
+        ntp:
+          use_external_only: true
+          ntp_servers:
+            - 23.133.168.247
+            - 23.133.168.246
+            - 206.108.0.131
+            - 162.159.200.123
+            - 2001:470:b:4b7::123
+            - 2607:5300:60:1524:6006:6006:6006:6006
+            - 2001:5a0:3601:0:216:6:2:70
+            - 2001:470:b2de::1
+        dns:
+          require_dnssec: true
+          dns_servers:
+            - 1.1.1.1
+            - 9.9.9.9
+            - 2606:4700:4700::1111
+            - 2620:fe::9
+        credentials:
+          secret:
+            namespace: ucp
+        extra_settings:
+          network_discovery: enabled
+        system_passwd: null
+        system_user: null
+        tls:
+          enabled: true
+          create: true
+          insecure: "'true'"
+    secrets:
+      maas_db:
+        admin: maas-db-admin
+        user: maas-db-user
+    pod:
+      replicas:
+        rack: 1
+        region: 1
+        syslog: 1
+    endpoints:
+      maas_region:
+        host_fqdn_override:
+          default: null
+          public:
+            host: maas.k8s.orb.local
+        port:
+          region_api:
+            public: 443
+            internal: 80
+        scheme:
+          default: https
+    cert_manager:
+      enabled: true
+      create: true
+      insecure: true
+      issuer:
+        kind: ClusterIssuer
+        name: ca-issuer
     data:
       postgres:
-        enabled: false
+        enabled: true
         postgresVersion: 17
         instances:
           - name: maasdb
@@ -77,3 +151,17 @@ spec:
           gateways:
             - name: http-gateway
               namespace: kube-system
+    policies:
+      - name: tls-upstream-maas
+        validation:
+          hostname: maas.k8s.orb.local
+          caCertificateRefs:
+            - group: ""
+              kind: Secret
+              name: maas-region-api-tls
+              namespace: ucp
+        targetRefs:
+          - group: ""
+            kind: Service
+            name: maas-region
+            namespace: ucp

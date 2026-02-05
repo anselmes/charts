@@ -58,9 +58,6 @@ kubectl apply -f hack/samples/msr.yaml
 # Demo App
 kubectl apply -f hack/samples/demo.yaml
 
-# TODO: MaaS
-# kubectl apply -f hack/samples/maas.yaml
-
 # Netbox
 kubectl --namespace ucp \
   create secret generic \
