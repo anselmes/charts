@@ -1,0 +1,10 @@
+---
+apiVersion: v2
+name: ldap
+type: application
+description: A Helm chart that deploys LDAP and it's dependencies.
+version: 2025.2.0
+dependencies:
+  - name: helm-toolkit
+    repository: file://../../library/helm-toolkit
+    version: 2025.2.0
