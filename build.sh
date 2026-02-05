@@ -31,6 +31,8 @@ SERVICES=(
   gateway
   gwapi
   knative
+  ldap
+  maas
   monitoring
   msr
   netbox
@@ -50,6 +52,8 @@ TEMPLATES=(
   gateway-service-template
   gwapi-service-template
   knative-service-template
+  ldap-service-template
+  maas-service-template
   monitoring-service-template
   msr-service-template
   netbox-service-template
