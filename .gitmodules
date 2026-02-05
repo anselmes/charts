@@ -7,3 +7,6 @@
 [submodule "maas"]
 	path = upstream/maas
 	url = https://opendev.org/airship/maas.git
+[submodule "osh"]
+	path = upstream/openstack-helm
+	url = https://opendev.org/openstack/openstack-helm.git
