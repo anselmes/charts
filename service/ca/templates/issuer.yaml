@@ -73,7 +73,7 @@ spec:
                   {{- end }}
                   {{- with .vault.auth }}
                   auth:
-                    {{- toYaml . | nindent 16 }}
+                    {{- toYaml . | nindent 20 }}
                   {{- end }}
                 {{- else if eq .type "acme" }}
                 acme:
@@ -85,7 +85,7 @@ spec:
                     {{- with .acme.provider }}
                     - dns01:
                         {{ .type }}:
-                        {{- omit . "type" | toYaml | nindent 20 }}
+                        {{- omit . "type" | toYaml | nindent 24 }}
                     {{- end }}
                     {{- if .acme.zones }}
                       selector:
