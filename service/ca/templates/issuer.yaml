@@ -58,7 +58,7 @@ spec:
                   server: {{ .vault.server }}
                   {{- if .vault.caBundle }}
                   caBundle: >-
-                    {{ .vault.caBundle | b64enc | nindent 20 }}
+                    {{- .vault.caBundle | b64enc | nindent 20 }}
                   {{- end }}
                   {{- if .vault.caBundleSecretRef }}
                   caBundleSecretRef:
