@@ -58,8 +58,8 @@ subjects:
   - kind: ServiceAccount
     name: cilium-resource-creator
     namespace: {{ .Release.Namespace }}
-  roleRef:
-    kind: ClusterRole
-    name: cilium-resource-creator
-    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: cilium-resource-creator
+  apiGroup: rbac.authorization.k8s.io
 {{- end }}

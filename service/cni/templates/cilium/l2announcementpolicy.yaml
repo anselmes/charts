@@ -11,6 +11,9 @@ metadata:
     helm.sh/hook-weight: "5"
 spec:
   template:
+    metadata:
+      labels:
+        {{- include "cni.labels" . | nindent 8 }}
     spec:
       serviceAccountName: cilium-resource-creator
       restartPolicy: OnFailure
@@ -32,7 +35,7 @@ spec:
               metadata:
                 name: l2-announce-policy
                 labels:
-                  {{- include "cni.labels" . | nindent 14 }}
+                  {{- include "cni.labels" . | nindent 18 }}
               spec:
                 externalIPs: {{ .Values.cilium.l2.externalIPs }}
                 loadBalancerIPs: {{ .Values.cilium.l2.loadBalancerIPs }}

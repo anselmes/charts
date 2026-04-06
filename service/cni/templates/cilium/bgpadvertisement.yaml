@@ -14,6 +14,9 @@ metadata:
     helm.sh/hook-weight: "5"
 spec:
   template:
+    metadata:
+      labels:
+        {{- include "cni.labels" $ | nindent 8 }}
     spec:
       serviceAccountName: cilium-resource-creator
       restartPolicy: OnFailure
@@ -35,9 +38,9 @@ spec:
               metadata:
                 name: bgp-advert
                 labels:
-                  {{- include "cni.labels" $ | nindent 14 }}
+                  {{- include "cni.labels" $ | nindent 18 }}
                   {{- range .Values.cilium.bgp.peer.addressFamilies }}
-                  {{- .advertisements.matchLabels | toYaml | nindent 14 }}
+                  {{- .advertisements.matchLabels | toYaml | nindent 18 }}
                   {{- end }}
               spec:
                 advertisements:

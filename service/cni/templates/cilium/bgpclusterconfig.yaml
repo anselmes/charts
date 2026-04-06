@@ -11,6 +11,9 @@ metadata:
     helm.sh/hook-weight: "5"
 spec:
   template:
+    metadata:
+      labels:
+        {{- include "cni.labels" $ | nindent 8 }}
     spec:
       serviceAccountName: cilium-resource-creator
       restartPolicy: OnFailure
@@ -32,7 +35,7 @@ spec:
               metadata:
                 name: bgp-cluster-config
                 labels:
-                  {{- include "cni.labels" $ | nindent 14 }}
+                  {{- include "cni.labels" $ | nindent 18 }}
               spec:
                 {{- if .Values.cilium.bgp.nodeSelector }}
                 nodeSelector: {{ .Values.cilium.bgp.nodeSelector | toYaml | nindent 12 }}
