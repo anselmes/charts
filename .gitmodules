@@ -1,6 +1,3 @@
-[submodule "aws-ebs-csi-driver"]
-	path = upstream/aws-ebs-csi-driver
-	url = https://github.com/kubernetes-sigs/aws-ebs-csi-driver.git
 [submodule "rockoon"]
 	path = upstream/rockoon
 	url = https://github.com/Mirantis/rockoon.git
