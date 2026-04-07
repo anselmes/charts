@@ -39,6 +39,12 @@ spec:
               spec:
                 externalIPs: {{ .Values.cilium.l2.externalIPs }}
                 loadBalancerIPs: {{ .Values.cilium.l2.loadBalancerIPs }}
+              {{- if .Values.cilium.l2.interfaces }}
+                interfaces:
+              {{- range .Values.cilium.l2.interfaces }}
+                  - {{ . }}
+              {{- end }}
+              {{- end }}
               EOF
                   exit 0
                 fi

@@ -39,7 +39,14 @@ spec:
               spec:
                 allowFirstLastIPs: {{ .Values.cilium.pool.allowFirstLastIPs | quote }}
                 blocks:
-                  - cidr: {{ .Values.cilium.pool.cidr }}
+              {{- range .Values.cilium.pool.blocks }}
+              {{- if .cidr }}
+                  - cidr: {{ .cidr }}
+              {{- else if and .start .stop }}
+                  - start: {{ .start }}
+                    stop: {{ .stop }}
+              {{- end }}
+              {{- end }}
               EOF
                   exit 0
                 fi

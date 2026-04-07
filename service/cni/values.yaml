@@ -94,6 +94,11 @@ cilium:
     # Advertise load balancer IPs via L2
     # Set to true to allow load balancer IPs to be advertised using Layer 2.
     loadBalancerIPs: true
+    # Network interfaces to use for L2 announcements
+    # Specify the network interfaces that Cilium should use for Layer 2 announcements.
+    # interfaces:
+    #   - vip
+    #   - vip@bond0
 
   # Configuration for IP address pools
   pool:
@@ -103,9 +108,13 @@ cilium:
     # Allow or disallow the use of the first and last IPs in the pool
     # Set to "Yes" to allow or "No" to disallow the use of the first and last IPs.
     allowFirstLastIPs: "No"
-    # CIDR block for the IP address pool
-    # Specify the CIDR block to use for the IP address pool.
-    cidr: 172.16.0.0/24
+    # Blocks of IP addresses to use for the pool.
+    # Each block can be a CIDR or a start/stop range; multiple blocks are supported.
+    blocks:
+      - cidr: 172.16.0.0/24
+      # - cidr: "2004::0/112"
+      # - start: 172.16.0.128
+      #   stop: 172.16.0.191
 
   # This section contains configuration values for the Cilium Helm chart.
   # Adjust these values to customize the deployment of Cilium CNI in your Kubernetes cluster.
