@@ -7,7 +7,7 @@ This chart manages Container Network Interface plugins (Cilium or Calico) and th
 ## Installation Summary
 
 {{- if .Values.cilium.enabled }}
-- **CNI Plugin**: Cilium v{{ (index .Chart.Dependencies 0).version }}
+- **CNI Plugin**: Cilium v{{ (index .Chart.Dependencies 0).Version }}
 {{- if .Values.cilium.l2.enabled }}
 - **Layer 2 Networking**: Enabled
 {{- end }}
@@ -18,7 +18,7 @@ This chart manages Container Network Interface plugins (Cilium or Calico) and th
 - **BGP Control Plane**: Enabled ({{ len .Values.cilium.bgp.instances }} instance(s))
 {{- end }}
 {{- else if .Values.calico.enabled }}
-- **CNI Plugin**: Calico v{{ (index .Chart.Dependencies 1).version }}
+- **CNI Plugin**: Calico v{{ (index .Chart.Dependencies 1).Version }}
 {{- else }}
 - **CNI Plugin**: None selected (set cilium.enabled=true or calico.enabled=true)
 {{- end }}
@@ -132,10 +132,10 @@ This chart manages Container Network Interface plugins (Cilium or Calico) and th
 **Chart Version**: {{ .Chart.Version }}
 **Dependencies**:
 {{- if .Values.cilium.enabled }}
-- Cilium {{ (index .Chart.Dependencies 0).version }}
+- Cilium {{ (index .Chart.Dependencies 0).Version }}
 {{- end }}
 {{- if .Values.calico.enabled }}
-- Tigera Operator {{ (index .Chart.Dependencies 1).version }}
+- Tigera Operator {{ (index .Chart.Dependencies 1).Version }}
 {{- end }}
 
 **Networking Features**:
