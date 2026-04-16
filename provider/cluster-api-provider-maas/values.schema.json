@@ -1,0 +1,144 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "description": "A KCM provider cluster-api-provider-maas template",
+    "type": "object",
+    "properties": {
+        "configSecret": {
+            "type": "object",
+            "description": "Configuration for the Secret that provides controller configuration variables",
+            "properties": {
+                "create": {
+                    "type": "boolean",
+                    "description": "Specifies whether the configuration Secret should be created by this chart"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Name of the configuration Secret"
+                },
+                "namespace": {
+                    "type": "string",
+                    "description": "Namespace of the configuration Secret"
+                }
+            }
+        },
+        "config": {
+            "type": "object",
+            "description": "Key-value configuration data stored in the configuration Secret. Only used when configSecret.create is true",
+            "properties": {
+                "MAAS_API_KEY": {
+                    "type": "string",
+                    "description": "MAAS API key for authentication"
+                },
+                "MAAS_ENDPOINT": {
+                    "type": "string",
+                    "description": "MAAS API endpoint URL"
+                },
+                "MAAS_DNS_DOMAIN": {
+                    "type": "string",
+                    "description": "DNS domain managed by MAAS"
+                },
+                "KUBERNETES_VERSION": {
+                    "type": "string",
+                    "description": "Kubernetes version to deploy"
+                },
+                "CONTROL_PLANE_MACHINE_IMAGE": {
+                    "type": "string",
+                    "description": "OS image name for control plane machines"
+                },
+                "CONTROL_PLANE_MACHINE_MINCPU": {
+                    "type": "integer",
+                    "description": "Minimum CPU count for control plane machines",
+                    "minimum": 1
+                },
+                "CONTROL_PLANE_MACHINE_MINMEMORY": {
+                    "type": "integer",
+                    "description": "Minimum memory (MiB) for control plane machines",
+                    "minimum": 1
+                },
+                "WORKER_MACHINE_IMAGE": {
+                    "type": "string",
+                    "description": "OS image name for worker machines"
+                },
+                "WORKER_MACHINE_MINCPU": {
+                    "type": "integer",
+                    "description": "Minimum CPU count for worker machines",
+                    "minimum": 1
+                },
+                "WORKER_MACHINE_MINMEMORY": {
+                    "type": "integer",
+                    "description": "Minimum memory (MiB) for worker machines",
+                    "minimum": 1
+                },
+                "CONTROL_PLANE_MACHINE_RESOURCEPOOL": {
+                    "type": "string",
+                    "description": "Optional MAAS resource pool for control plane machines"
+                },
+                "CONTROL_PLANE_MACHINE_TAG": {
+                    "type": "string",
+                    "description": "Optional MAAS machine tag for control plane machines"
+                },
+                "WORKER_MACHINE_RESOURCEPOOL": {
+                    "type": "string",
+                    "description": "Optional MAAS resource pool for worker machines"
+                },
+                "WORKER_MACHINE_TAG": {
+                    "type": "string",
+                    "description": "Optional MAAS machine tag for worker machines"
+                }
+            }
+        },
+        "manager": {
+            "type": "object",
+            "description": "Controller manager settings, such as feature gates, verbosity and other options"
+        },
+        "deployment": {
+            "type": "object",
+            "description": "Deployment-level overrides for the provider controller, including replicas, containers, and scheduling settings"
+        },
+        "patches": {
+            "type": "array",
+            "description": "Optional CAPI Operator spec.patches list",
+            "items": {
+                "type": "object"
+            }
+        },
+        "proxy": {
+            "type": "object",
+            "description": "Proxy settings of the controller",
+            "additionalProperties": false,
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable proxy"
+                }
+            }
+        },
+        "global": {
+            "type": "object",
+            "description": "Global settings shared across charts",
+            "properties": {
+                "registry": {
+                    "type": "string",
+                    "description": "Global container image registry prefix"
+                },
+                "imagePullSecrets": {
+                    "type": "array",
+                    "description": "Global list of image pull secrets",
+                    "items": {
+                        "type": "object"
+                    }
+                },
+                "proxy": {
+                    "type": "object",
+                    "description": "Global proxy secret reference",
+                    "properties": {
+                        "secretName": {
+                            "type": "string",
+                            "description": "Name of the Secret containing HTTP_PROXY, HTTPS_PROXY and NO_PROXY keys"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

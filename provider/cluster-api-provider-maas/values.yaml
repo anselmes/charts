@@ -1,0 +1,34 @@
+configSecret: # @schema type: object; description: Configuration for the Secret that provides controller configuration variables
+  create: true # @schema type: boolean; description: Specifies whether the configuration Secret should be created by this chart
+  name: "maas-variables" # @schema type: string; description: Name of the configuration Secret
+  namespace: "" # @schema type: string; description: Namespace of the configuration Secret
+
+config: # @schema type: object; description: Key-value configuration data stored in the configuration Secret. Only used when configSecret.create is true
+  # MAAS access endpoint and key
+  MAAS_API_KEY: ""
+  MAAS_ENDPOINT: ""
+  MAAS_DNS_DOMAIN: ""
+
+  # Cluster configuration
+  KUBERNETES_VERSION: ""
+  CONTROL_PLANE_MACHINE_IMAGE: ""
+  CONTROL_PLANE_MACHINE_MINCPU: 4
+  CONTROL_PLANE_MACHINE_MINMEMORY: 8192
+  WORKER_MACHINE_IMAGE: ""
+  WORKER_MACHINE_MINCPU: 4
+  WORKER_MACHINE_MINMEMORY: 8192
+
+  # Selecting machine based on resourcepool (optional) and machine tag (optional)
+  CONTROL_PLANE_MACHINE_RESOURCEPOOL: ""
+  CONTROL_PLANE_MACHINE_TAG: ""
+  WORKER_MACHINE_RESOURCEPOOL: ""
+  WORKER_MACHINE_TAG: ""
+
+manager: {} # @schema type: object; description: Controller manager settings, such as feature gates, verbosity and other options
+
+deployment: {} # @schema type: object; description: Deployment-level overrides for the provider controller, including replicas, containers, and scheduling settings
+
+patches: [] # @schema type: array; item: object; description: Optional CAPI Operator spec.patches list.
+
+proxy: # @schema type: object; description: Proxy settings of the controller; additionalProperties: false
+  enabled: true # @schema type: boolean; description: Enable proxy
