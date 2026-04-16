@@ -1,0 +1,9 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: MaasCluster
+metadata:
+  name: {{ include "cluster.name" . }}
+spec:
+  controlPlaneEndpoint:
+    host: {{ .Values.controlPlaneEndpointIP }}
+    port: 6443
+  dnsDomain: {{ .Values.maas.dnsDomain }}

@@ -1,0 +1,15 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: MaasMachineTemplate
+metadata:
+  name: {{ include "maasmachinetemplate.worker.name" . }}
+spec:
+  template:
+    spec:
+      minCPU: {{ .Values.worker.minCPU }}
+      minMemory: {{ .Values.worker.minMemory }}
+      image: {{ .Values.worker.image }}
+      resourcePool: {{ .Values.worker.resourcePool }}
+      tags:
+      {{- range .Values.worker.tags }}
+      - {{ . }}
+      {{- end }}

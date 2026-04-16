@@ -1,0 +1,15 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: MaasMachineTemplate
+metadata:
+  name: {{ include "maasmachinetemplate.controlplane.name" . }}
+spec:
+  template:
+    spec:
+      minCPU: {{ .Values.controlPlane.minCPU }}
+      minMemory: {{ .Values.controlPlane.minMemory }}
+      image: {{ .Values.controlPlane.image }}
+      resourcePool: {{ .Values.controlPlane.resourcePool }}
+      tags:
+      {{- range .Values.controlPlane.tags }}
+      - {{ . }}
+      {{- end }}

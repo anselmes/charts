@@ -1,0 +1,278 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "description": "A KCM cluster maas-hosted-cp template",
+    "type": "object",
+    "properties": {
+        "controlPlaneNumber": {
+            "type": "integer",
+            "description": "Number of control plane replicas",
+            "minimum": 1
+        },
+        "workersNumber": {
+            "type": "integer",
+            "description": "Number of worker nodes",
+            "minimum": 0
+        },
+        "clusterNetwork": {
+            "type": "object",
+            "description": "Cluster network CIDR configuration",
+            "properties": {
+                "pods": {
+                    "type": "object",
+                    "properties": {
+                        "cidrBlocks": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "services": {
+                    "type": "object",
+                    "properties": {
+                        "cidrBlocks": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "clusterLabels": {
+            "type": "object",
+            "description": "Labels to apply to the Cluster resource",
+            "additionalProperties": {
+                "type": "string"
+            }
+        },
+        "clusterAnnotations": {
+            "type": "object",
+            "description": "Annotations to apply to the Cluster resource",
+            "additionalProperties": {
+                "type": "string"
+            }
+        },
+        "auth": {
+            "type": "object",
+            "description": "Authentication settings for the cluster, optional, auto-populated",
+            "properties": {
+                "configSecret": {
+                    "type": "object",
+                    "description": "Reference to the Secret containing the cluster's AuthenticationConfiguration, auto-populated",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Name of the Secret that stores the AuthenticationConfiguration, auto-populated"
+                        },
+                        "key": {
+                            "type": "string",
+                            "description": "The data key in the Secret that contains the AuthenticationConfiguration, auto-populated"
+                        },
+                        "hash": {
+                            "type": "string",
+                            "description": "Hash of the AuthenticationConfiguration data stored in the Secret, auto-populated"
+                        }
+                    }
+                }
+            }
+        },
+        "dataSource": {
+            "type": "object",
+            "description": "Kine data source parameters, auto-populated",
+            "properties": {
+                "kineDataSourceSecretName": {
+                    "type": "string",
+                    "description": "Name of the Secret that stores the data source connection URL, auto-populated"
+                },
+                "caSecret": {
+                    "type": "object",
+                    "description": "Reference to the Secret containing the certificate authority to connect to the data source, auto-populated",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Name of the Secret that stores the certificate authority to connect to the data source, auto-populated"
+                        },
+                        "key": {
+                            "type": "string",
+                            "description": "The data key in the Secret that contains the certificate authority to connect to the data source, auto-populated"
+                        }
+                    }
+                }
+            }
+        },
+        "maas": {
+            "type": "object",
+            "description": "MAAS cluster parameters",
+            "properties": {
+                "dnsDomain": {
+                    "type": "string",
+                    "description": "DNS domain managed by MAAS"
+                }
+            }
+        },
+        "controlPlaneEndpointIP": {
+            "type": "string",
+            "description": "IP address for the control plane endpoint"
+        },
+        "minCPU": {
+            "type": "integer",
+            "description": "Minimum CPU count for MAAS machines",
+            "minimum": 1
+        },
+        "minMemory": {
+            "type": "integer",
+            "description": "Minimum memory (MiB) for MAAS machines",
+            "minimum": 1
+        },
+        "image": {
+            "type": "string",
+            "description": "OS image name for MAAS machines"
+        },
+        "resourcePool": {
+            "type": "string",
+            "description": "Optional MAAS resource pool for machines"
+        },
+        "tags": {
+            "type": "array",
+            "description": "Optional MAAS machine tags",
+            "items": {
+                "type": "string"
+            }
+        },
+        "k0smotron": {
+            "type": "object",
+            "description": "K0smotron parameters",
+            "properties": {
+                "controllerPlaneFlags": {
+                    "type": "array",
+                    "description": "ControlPlaneFlags allows to configure additional flags for k0s control plane and to override existing ones. Flags with arguments must be specified as a single string, e.g. --some-flag=argument",
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "service": {
+                    "type": "object",
+                    "description": "The API service configuration",
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "description": "An ingress method for a service",
+                            "enum": ["ClusterIP", "NodePort", "LoadBalancer"],
+                            "default": "LoadBalancer"
+                        },
+                        "apiPort": {
+                            "type": "number",
+                            "description": "The kubernetes API port. If empty k0smotron will pick it automatically",
+                            "minimum": 1,
+                            "maximum": 65535
+                        },
+                        "konnectivityPort": {
+                            "type": "number",
+                            "description": "The konnectivity port. If empty k0smotron will pick it automatically",
+                            "minimum": 1,
+                            "maximum": 65535
+                        }
+                    }
+                }
+            }
+        },
+        "k0s": {
+            "type": "object",
+            "description": "K0s parameters",
+            "properties": {
+                "version": {
+                    "type": "string",
+                    "description": "K0s version"
+                },
+                "arch": {
+                    "type": "string",
+                    "description": "K0s download URL architecture",
+                    "enum": ["amd64", "arm64", "arm"],
+                    "default": "amd64"
+                },
+                "workerArgs": {
+                    "type": "array",
+                    "description": "Args specifies extra arguments to be passed to k0s worker",
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "api": {
+                    "type": "object",
+                    "description": "Kubernetes API server parameters",
+                    "properties": {
+                        "extraArgs": {
+                            "type": "object",
+                            "description": "Map of key-values (strings) for any extra arguments to pass down to Kubernetes api-server process",
+                            "additionalProperties": true
+                        }
+                    }
+                },
+                "network": {
+                    "type": "object",
+                    "description": "Kubernetes cluster network configuration",
+                    "additionalProperties": true,
+                    "properties": {
+                        "provider": {
+                            "type": "string",
+                            "description": "Network provider to use",
+                            "minLength": 1,
+                            "examples": ["kuberouter", "calico", "custom"]
+                        },
+                        "calico": {
+                            "type": "object",
+                            "description": "Calico-specific configuration",
+                            "additionalProperties": true,
+                            "properties": {
+                                "mode": {
+                                    "type": "string",
+                                    "description": "Calico network mode",
+                                    "minLength": 1,
+                                    "examples": ["ipip", "vxlan", "never"]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "global": {
+            "type": "object",
+            "description": "Global settings shared across charts",
+            "properties": {
+                "registry": {
+                    "type": "string",
+                    "description": "Global container image registry prefix"
+                },
+                "imagePullSecrets": {
+                    "type": "array",
+                    "description": "Global list of image pull secrets",
+                    "items": {
+                        "type": "object"
+                    }
+                },
+                "k0sURL": {
+                    "type": "string",
+                    "description": "Base URL for downloading k0s binaries"
+                },
+                "k0sURLCertSecret": {
+                    "type": "string",
+                    "description": "Name of the Secret containing the CA certificate for the k0s download URL"
+                },
+                "registryCertSecret": {
+                    "type": "string",
+                    "description": "Name of the Secret containing the CA certificate for the private registry"
+                },
+                "registryCredentialSecret": {
+                    "type": "string",
+                    "description": "Name of the Secret containing containerd registry authentication config"
+                }
+            }
+        }
+    }
+}
