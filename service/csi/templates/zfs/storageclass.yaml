@@ -1,0 +1,53 @@
+{{- if and (index .Values.openebs "zfs-localpv").class.filesystem.enabled .Values.openebs.engines.local.zfs.enabled }}
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-zfspv
+  {{- if eq (index .Values.openebs "zfs-localpv").class.defaultClass "filesystem" }}
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+  {{- end }}
+provisioner: zfs.csi.openebs.io
+{{- if (index .Values.openebs "zfs-localpv").class.volumeBindingMode }}
+volumeBindingMode: {{ (index .Values.openebs "zfs-localpv").class.volumeBindingMode }}
+{{- end }}
+allowVolumeExpansion: true
+parameters:
+  compression: on
+  dedup: on
+  fstype: zfs
+  poolname: {{ (index .Values.openebs "zfs-localpv").class.poolname | default "rpool" }}
+  recordsize: "128k"
+  shared: yes
+  thinprovision: yes
+{{- with (index .Values.openebs "zfs-localpv").class.topology }}
+allowedTopologies:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+{{- if and (index .Values.openebs "zfs-localpv").class.block.enabled .Values.openebs.engines.local.zfs.enabled }}
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-zfspv-block
+  {{- if eq (index .Values.openebs "zfs-localpv").class.defaultClass "block" }}
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+  {{- end }}
+provisioner: zfs.csi.openebs.io
+{{- if (index .Values.openebs "zfs-localpv").class.volumeBindingMode }}
+volumeBindingMode: {{ (index .Values.openebs "zfs-localpv").class.volumeBindingMode }}
+{{- end }}
+allowVolumeExpansion: true
+parameters:
+  compression: on
+  dedup: on
+  poolname: {{ (index .Values.openebs "zfs-localpv").class.poolname | default "rpool" }}
+  thinprovision: yes
+{{- with (index .Values.openebs "zfs-localpv").class.topology }}
+allowedTopologies:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}

@@ -3,7 +3,7 @@ apiVersion: v2
 name: csi
 type: application
 description: A Helm chart that deploys various CSI drivers and their dependencies.
-version: 1.0.3
+version: 1.0.4
 dependencies:
   - name: openebs
     repository: https://openebs.github.io/openebs

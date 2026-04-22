@@ -34,6 +34,24 @@ openebs:
           # Enable volume snapshots for ZFS LocalPV
           # Allows creation of point-in-time snapshots of ZFS volumes
           enabled: true
+          className: openebs-zfspv
+          deletionPolicy: Delete
+    class:
+      poolName: ""
+      defaultClass: filesystem
+      # volumeBindingMode: WaitForFirstConsumer
+      filesystem:
+        enabled: true
+        name: openebs-zfspv
+      block:
+        enabled: true
+        name: openebs-zfspv-block
+      # topology:
+      #   - matchLabelExpressions:
+      #     - key: kubernetes.io/hostname
+      #       values:
+      #         - zfspv-node1
+      #         - zfspv-node2
 
   # LVM LocalPV storage engine configuration
   # Provides local storage using Logical Volume Manager (LVM)
@@ -42,7 +60,7 @@ openebs:
       lvmLocalPv:
         # Enable LVM LocalPV Custom Resource Definitions
         # Required for LVM-based local persistent volume provisioning
-        enabled: false
+        enabled: true
       csi:
         volumeSnapshots:
           # Enable volume snapshots for LVM LocalPV
@@ -87,6 +105,11 @@ openebs:
       # Enable LocalPV dynamic provisioning
       # Allows automatic creation of local persistent volumes
       enabled: true
+
+  loki:
+    enabled: false
+  alloy:
+    enabled: false
 
 # MARK: AWS EBS
 
