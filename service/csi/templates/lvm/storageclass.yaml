@@ -17,8 +17,8 @@ parameters:
   storage: lvm
   volgroup: {{ (index .Values.openebs "lvm-localpv").class.volgroup | default "rpool" }}
   fsType: ext4
-  shared: yes
-  thinProvision: yes
+  shared: "yes"
+  thinProvision: "yes"
 {{- with (index .Values.openebs "lvm-localpv").class.topology }}
 allowedTopologies:
   {{- toYaml . | nindent 2 }}
@@ -42,7 +42,7 @@ allowVolumeExpansion: true
 parameters:
   storage: lvm
   volgroup: {{ (index .Values.openebs "lvm-localpv").class.volgroup | default "rpool" }}
-  thinProvision: yes
+  thinProvision: "yes"
 {{- with (index .Values.openebs "lvm-localpv").class.topology }}
 allowedTopologies:
   {{- toYaml . | nindent 2 }}

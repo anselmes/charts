@@ -19,8 +19,8 @@ parameters:
   fstype: zfs
   poolname: {{ (index .Values.openebs "zfs-localpv").class.poolname | default "rpool" }}
   recordsize: "128k"
-  shared: yes
-  thinprovision: yes
+  shared: "yes"
+  thinprovision: "yes"
 {{- with (index .Values.openebs "zfs-localpv").class.topology }}
 allowedTopologies:
   {{- toYaml . | nindent 2 }}
@@ -45,7 +45,7 @@ parameters:
   compression: on
   dedup: on
   poolname: {{ (index .Values.openebs "zfs-localpv").class.poolname | default "rpool" }}
-  thinprovision: yes
+  thinprovision: "yes"
 {{- with (index .Values.openebs "zfs-localpv").class.topology }}
 allowedTopologies:
   {{- toYaml . | nindent 2 }}
