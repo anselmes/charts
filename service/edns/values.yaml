@@ -81,10 +81,8 @@ externaldns:
     - gateway-tlsroute
     - gateway-udproute
     - service
-  provider:
-    # Specify the DNS provider to use. Example: "webhook".
-    # name: webhook
-    env: []
+  domainFilters: []
+  env: []
     # Define environment variables for the DNS provider.
     # Example: Infoblox credentials for managing DNS records.
     # - name: INFOBLOX_HOST
@@ -118,15 +116,17 @@ externaldns:
     #     secretKeyRef:
     #       name: rfc2136-keys
     #       key: rfc2136-tsig-keyname
-    webhook: {}
-    # Configuration for the webhook provider.
-    # image:
-    #   repository: null
-    #   tag: null
-    # Uncomment and configure extra volume mounts if needed.
-    # extraVolumeMounts:
-    #   - name: oscloudsyaml
-    #     mountPath: /etc/openstack/
+  provider:
+    # Specify the DNS provider to use. Example: "webhook".
+    name: webhook
+    webhook:
+      # Configuration for the webhook provider.
+      image:
+        repository: null
+        tag: null
+      env: []
+      args: []
+      extraVolumeMounts: []
   # Uncomment and configure additional arguments for ExternalDNS as needed.
   # extraArgs:
   #   - --rfc2136-host=dns-host-1.yourdomain.com
@@ -134,6 +134,10 @@ externaldns:
   #   - --rfc2136-tsig-axfr
   #   - --rfc2136-tsig-secret-alg=hmac-sha256
   #   - --rfc2136-zone=example.com
+  # Uncomment and configure extra volume mounts if needed.
+  # extraVolumeMounts:
+  #   - name: oscloudsyaml
+  #     mountPath: /etc/openstack/
   # Uncomment and configure extra volumes if needed.
   # extraVolumes:
   #   - name: oscloudsyaml
