@@ -89,7 +89,7 @@ spec:
                     {{- with .acme.provider }}
                     - dns01:
                         {{ .type }}:
-                        {{- omit . "type" | toYaml | nindent 24 }}
+                          {{- omit . "type" | toYaml | nindent 26 }}
                     {{- end }}
                     {{- if .acme.zones }}
                       selector:
