@@ -161,6 +161,7 @@ fabric.properties
 .env
 **.lock
 **.tgz
+logs/
 !.*.json
 !.*.yaml
 !.commitlintrc
