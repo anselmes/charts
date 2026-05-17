@@ -1,0 +1,39 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: hco
+  namespace: kubevirt
+spec:
+  interval: 10m0s
+  releaseName: flux
+  timeout: 15m0s
+  dependsOn:
+    - name: cert-manager
+      namespace: cert-manager
+  chart:
+    spec:
+      interval: 5m
+      chart: hco
+      version: 1.17.1-mira
+      sourceRef:
+        kind: HelmRepository
+        name: kubevirt-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  # TODO: images
+  # postRenderers:
+  #   - kustomize:
+  #       images:
+  #         - name: ""
+  #           newName: ""
+  #           newTag: ""
+  values:
+    hpp:
+      enabled: false
