@@ -1,1 +1,50 @@
+{{- if and (index .Values.openebs "lvm-localpv").class.filesystem.enabled .Values.openebs.engines.local.lvm.enabled }}
 ---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ (index .Values.openebs "lvm-localpv").class.filesystem.name }}
+  {{- if eq (index .Values.openebs "lvm-localpv").class.defaultClass "filesystem" }}
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+  {{- end }}
+provisioner: local.csi.openebs.io
+{{- if (index .Values.openebs "lvm-localpv").class.volumeBindingMode }}
+volumeBindingMode: {{ (index .Values.openebs "lvm-localpv").class.volumeBindingMode }}
+{{- end }}
+allowVolumeExpansion: true
+parameters:
+  storage: lvm
+  volgroup: {{ (index .Values.openebs "lvm-localpv").class.volgroup | default "rpool" }}
+  fsType: ext4
+  shared: yes
+  thinProvision: yes
+{{- with (index .Values.openebs "lvm-localpv").class.topology }}
+allowedTopologies:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+{{- if and (index .Values.openebs "lvm-localpv").class.block.enabled .Values.openebs.engines.local.lvm.enabled }}
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ (index .Values.openebs "lvm-localpv").class.block.name }}
+  {{- if eq (index .Values.openebs "lvm-localpv").class.defaultClass "block" }}
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+  {{- end }}
+provisioner: local.csi.openebs.io
+{{- if (index .Values.openebs "lvm-localpv").class.volumeBindingMode }}
+volumeBindingMode: {{ (index .Values.openebs "lvm-localpv").class.volumeBindingMode }}
+{{- end }}
+allowVolumeExpansion: true
+parameters:
+  storage: lvm
+  volgroup: {{ (index .Values.openebs "lvm-localpv").class.volgroup | default "rpool" }}
+  thinProvision: yes
+{{- with (index .Values.openebs "lvm-localpv").class.topology }}
+allowedTopologies:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}

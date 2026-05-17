@@ -3,7 +3,7 @@
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: openebs-zfspv
+  name: {{ (index .Values.openebs "zfs-localpv").class.filesystem.name }}
   {{- if eq (index .Values.openebs "zfs-localpv").class.defaultClass "filesystem" }}
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
@@ -31,7 +31,7 @@ allowedTopologies:
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: openebs-zfspv-block
+  name: {{ (index .Values.openebs "zfs-localpv").class.block.name }}
   {{- if eq (index .Values.openebs "zfs-localpv").class.defaultClass "block" }}
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"

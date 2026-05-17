@@ -66,6 +66,24 @@ openebs:
           # Enable volume snapshots for LVM LocalPV
           # Allows creation of thin-provisioned LVM snapshots
           enabled: true
+          className: openebs-lvmpv
+          deletionPolicy: Delete
+    class:
+      volgroup: ""
+      defaultClass: filesystem
+      # volumeBindingMode: WaitForFirstConsumer
+      filesystem:
+        enabled: true
+        name: openebs-lvmpv
+      block:
+        enabled: true
+        name: openebs-lvmpv-block
+      # topology:
+      #   - matchLabelExpressions:
+      #     - key: kubernetes.io/hostname
+      #       values:
+      #         - zfspv-node1
+      #         - zfspv-node2
 
   # Storage engines configuration
   # Defines which storage backends are enabled for different use cases
