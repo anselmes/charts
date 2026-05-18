@@ -491,6 +491,8 @@ aistor:
         volumesPerServer: 4
         # The capacity per volume requested per MinIO Pod.
         size: 10Gi
+        # The `storageClass <https://kubernetes.io/docs/concepts/storage/storage-classes/>`__ to associate with volumes generated for this pool.
+        # storageClassName: standard
         # These settings determine the distribution of pods across worker nodes.
         tolerations: []
         # If no worker nodes match the specified selectors, the deployment will fail.
