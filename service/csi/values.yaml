@@ -8,7 +8,6 @@ openebs:
   # Enable OpenEBS storage solutions deployment
   # When enabled, deploys OpenEBS operators and storage engines
   enabled: true
-
   # OpenEBS Custom Resource Definitions (CRDs) configuration
   # These CRDs define the storage resources and behaviors
   openebs-crds:
@@ -20,7 +19,6 @@ openebs:
         # Retain CRDs during chart uninstallation
         # true: CRDs persist after uninstall, false: CRDs are removed
         keep: false
-
   # ZFS LocalPV storage engine configuration
   # Provides high-performance local storage using ZFS datasets
   zfs-localpv:
@@ -52,7 +50,6 @@ openebs:
       #       values:
       #         - zfspv-node1
       #         - zfspv-node2
-
   # LVM LocalPV storage engine configuration
   # Provides local storage using Logical Volume Manager (LVM)
   lvm-localpv:
@@ -84,7 +81,6 @@ openebs:
       #       values:
       #         - zfspv-node1
       #         - zfspv-node2
-
   # Storage engines configuration
   # Defines which storage backends are enabled for different use cases
   engines:
@@ -102,7 +98,6 @@ openebs:
         # Enable Mayastor replicated storage engine
         # High-performance NVMe-over-TCP based replicated storage
         enabled: false
-
   # LocalPV Provisioner configuration
   # Handles dynamic provisioning of local persistent volumes
   localpv-provisioner:
@@ -123,7 +118,6 @@ openebs:
       # Enable LocalPV dynamic provisioning
       # Allows automatic creation of local persistent volumes
       enabled: true
-
   loki:
     enabled: false
   alloy:
@@ -155,7 +149,7 @@ ebs:
     defaultFsType: ext4
     # AWS region for EBS operations
     # Must match the region where Kubernetes cluster is deployed
-    region:
+    region: us-east-1
   # Custom storage classes for different EBS volume types
   # Define multiple storage classes with specific EBS configurations
   storageClasses: []
@@ -418,3 +412,230 @@ vsphere:
     # Allow online volume expansion
     # Enables resizing of persistent volumes without downtime
     allowVolumeExpansion: true
+
+# MARK: AIStore Operator
+
+# AIStor Operator
+# Manages AIStor object storage clusters in Kubernetes environments
+aistorop:
+  # Enable AIStor operator deployment
+  # Manages AIStor object storage clusters in Kubernetes environments
+  enabled: false
+  # The MinIO license can be set directly from the Helm chart. Note that it is not advised
+  # to expose the license key in the Helm chart. Instead, it is recommended to create a
+  # secret manually. It's just here for convenience.
+  license: ""
+  # global settings are settings that will be applied to all operators
+  # unless explicitly overridden in the operator settings.
+  global:
+    # The following settings will be set for all operators. They can
+    # be overridden per operator by setting the same key in the
+    # .operator.<operator> section.
+    operator:
+      # Specify number of replicas
+      replicas: 1
+  # All operators will be disabled by default, with the exception of
+  # the object-store.
+  operators:
+    adminjob:
+      disabled: false
+    aihub:
+      disabled: true
+    object-store:
+      disabled: false
+    prompt:
+      disabled: true
+    warp:
+      disabled: true
+
+# MARK: AIStore Objectstore
+
+# AIStor Object Store configuration
+# Defines the AIStor object storage cluster managed by the AIStor operator
+aistor:
+  # Enable AIStor Object Store deployment
+  # Deploys an AIStor object storage cluster managed by the AIStor operator
+  enabled: false
+  # Root key for dynamically creating a secret for use with configuring root MinIO User
+  secrets:
+    name: minio-env-configuration
+    accessKey: null
+    secretKey: null
+    disableRoot: false
+    existingSecret: true
+  # Root key for AIStor Object Store
+  objectStore:
+    # The Object Store name
+    name: minio
+    existingSecret: true
+    # The mount path where Persistent Volumes are mounted inside Object Store container(s).
+    mountPath: /export
+    # The Sub path inside Mount path where MinIO stores data.
+    subPath: /data
+    # Configures a Prometheus-compatible scraping endpoint at the specified port.
+    # When PVC protection is set to true, the operator will prevent PVCs from being deleted by adding
+    # finalizers to the PVCs. It is recommended to enable this for production use to prevent accidental
+    # data loss when deleting a namespace.
+    pvcProtection: true
+    # Directs the Object Store Operator to add the Object Store's metric scrape configuration to an existing Kubernetes Prometheus deployment managed by the Prometheus Operator.
+    prometheusOperator: false
+    configuration:
+      name: minio-env-configuration
+    pools:
+      # The number of MinIO Object Store Pods / Servers in this pool.
+      # For standalone mode, supply 1. For distributed mode, supply 4 or more.
+      # Note that the operator does not support upgrading from standalone to distributed mode.
+      - name: pool-0
+        servers: 4
+        # The number of volumes attached per MinIO Pod / Server.
+        volumesPerServer: 4
+        # The capacity per volume requested per MinIO Pod.
+        size: 10Gi
+        # These settings determine the distribution of pods across worker nodes.
+        tolerations: []
+        # If no worker nodes match the specified selectors, the deployment will fail.
+        nodeSelector: {}
+        # These settings determine the distribution of pods across worker nodes and can help prevent or allow colocating pods onto the same worker nodes.
+        affinity: {}
+        # We recommend disabling recursive permission changes by setting ``fsGroupChangePolicy`` to ``OnRootMismatch`` as those operations can be expensive for certain workloads (e.g. large volumes with many small files).
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+          fsGroup: 1000
+          fsGroupChangePolicy: OnRootMismatch
+          runAsNonRoot: true
+        # You may need to modify these values to meet your cluster's security and access settings.
+        containerSecurityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        # These settings determine the distribution of pods across worker nodes.
+        topologySpreadConstraints: []
+        # SpreadZoneConfig enables multi-rack deployment for high availability across zones.
+        # When enabled, the operator ensures MinIO pods are distributed across different zones/racks
+        # to prevent data loss from zone failures.
+        # This feature uses pod affinity rules to place each pod in a different zone,
+        # ensuring data redundancy across physical infrastructure boundaries.
+        # Example configuration:
+        # spreadZoneConfig:
+        #   enabled: true
+        #   matchLabel: topology.kubernetes.io/zone  # The node label to use for zone identification
+        #   matchValues:                              # List of zone values to spread pods across
+        #     - zone-1
+        #     - zone-2
+        #     - zone-3
+        #     - zone-4
+        # For rack-based deployments:
+        # spreadZoneConfig:
+        #   enabled: true
+        #   matchLabel: rack  # Custom label for rack identification
+        #   matchValues:
+        #     - rack-1
+        #     - rack-2
+        #     - rack-3
+        #     - rack-4
+    metrics:
+      enabled: false
+      port: 9000
+      protocol: http
+    # Enable SFTP service for the Object Store (default is false)
+    # sftp:
+    #   enabled: true
+    #   serviceExternalTrafficPolicy: Cluster
+    #   serviceType: ClusterIP
+    #   nodePort: 31002
+    #   domainName: ""
+    # Directs the Object Store Operator to expose the S3 API or Web Console services to clients outside of the Kubernetes cluster.
+    # Supports `LoadBalancer`, `NodePort`, and `ClusterIP` (Default)
+    # These configurations do not prevent exposing the services via Ingress, Routes, or other networking features
+    services:
+      console:
+        #name: myminio-console
+        serviceType: ClusterIP
+        #serviceType: NodePort
+        #nodePort: 31000
+        #serviceExternalTrafficPolicy: Local
+        #annotations: {}
+        #labels: {}
+      minio:
+        #name: myminio
+        serviceType: ClusterIP
+        #serviceType: NodePort
+        #nodePort: 31001
+        #serviceExternalTrafficPolicy: Local
+        #annotations: {}
+        #labels: {}
+    # kes:
+    #   replicas: 1
+    #   serviceAccountName: ""
+    #   keyName: minio-key
+    #   securityContext:
+    #     runAsUser: 1000
+    #     runAsGroup: 1000
+    #     runAsNonRoot: true
+    #     fsGroup: 1000
+    #   containerSecurityContext:
+    #     runAsUser: 1000
+    #     runAsGroup: 1000
+    #     runAsNonRoot: true
+    #     allowPrivilegeEscalation: false
+    #     capabilities:
+    #       drop:
+    #         - ALL
+    #     seccompProfile:
+    #       type: RuntimeDefault
+    #   configuration: |-
+    #     address: :7373
+    #     tls:
+    #       key: /tmp/kes/server.key   # Path to the TLS private key
+    #       cert: /tmp/kes/server.crt  # Path to the TLS certificate
+    #       proxy:
+    #         identities: []
+    #         header:
+    #           cert: X-Tls-Client-Cert
+    #     admin:
+    #       identity: ${MINIO_KES_IDENTITY}
+    #     cache:
+    #       expiry:
+    #         any: 5m0s
+    #         unused: 20s
+    #     log:
+    #       error: on
+    #       audit: off
+    #     keystore:
+    #       #  KES configured with fs (File System mode) doesn't work in Kubernetes environments and is not recommended
+    #       #  use a real KMS
+    #       fs:
+    #         path: /tmp/kes/keys   # Path to directory. Keys will be stored as files. Not Recommended for Production.
+    #       # vault:
+    #       #   endpoint: http://vault.default.svc.cluster.local:8200   # The Vault endpoint
+    #       #   namespace: ""       # An optional Vault namespace. See: https://www.vaultproject.io/docs/enterprise/namespaces/index.html
+    #       #   prefix: minio       # An optional K/V prefix. The server will store keys under this prefix.
+    #       #   approle:            # AppRole credentials. See: https://www.vaultproject.io/docs/auth/approle.html
+    #       #     id: ""            # Your AppRole Role ID
+    #       #     secret: ""        # Your AppRole Secret ID
+    #       #     retry: 15s        # Duration until the server tries to re-authenticate after connection loss.
+    #       #   tls:                # The Vault client TLS configuration for mTLS authentication and certificate verification
+    #       #     key: ""           # Path to the TLS client private key for mTLS authentication to Vault
+    #       #     cert: ""          # Path to the TLS client certificate for mTLS authentication to Vault
+    #       #     ca: ""            # Path to one or multiple PEM root CA certificates
+    #       #   status:             # Vault status configuration. The server will periodically reach out to Vault to check its status.
+    #       #     ping: 10s         # Duration until the server checks Vault's status again.
+    #       # aws:
+    #       #   # The AWS SecretsManager key store. The server will store
+    #       #   # secret keys at the AWS SecretsManager encrypted with
+    #       #   # AWS-KMS. See: https://aws.amazon.com/secrets-manager
+    #       #   secretsmanager:
+    #       #     endpoint: ""      # The AWS SecretsManager endpoint      - e.g.: secretsmanager.us-east-2.amazonaws.com
+    #       #     region: ""        # The AWS region of the SecretsManager - e.g.: us-east-2
+    #       #     kmskey: ""        # The AWS-KMS key ID used to en/decrypt secrets at the SecretsManager. By default (if not set) the default AWS-KMS key will be used.
+    #       #     credentials:      # The AWS credentials for accessing secrets at the AWS SecretsManager.
+    #       #       accesskey: ""   # Your AWS Access Key
+    #       #       secretkey: ""   # Your AWS Secret Key
+    #       #       token: ""       # Your AWS session token (usually optional)
