@@ -573,6 +573,32 @@ aistor:
         #serviceExternalTrafficPolicy: Local
         #annotations: {}
         #labels: {}
+    certificates:
+      # This is used by MinIO to verify TLS connections from clients using those CAs
+      trustedCAs: []
+        # - name: ""
+        #   type: kubernetes.io/tls
+        # - name: ""
+        #   type: cert-manager.io/v1
+      # Specify an array of Kubernetes secrets, where each entry corresponds to a secret contains the TLS private key and public certificate pair.
+      server: []
+        # - name: ""
+        #   type: kubernetes.io/tls
+      # Use this field to provide client certificates for MinIO & KES. This can be used to configure
+      # mTLS for MinIO and your KES server. Files will be mounted under /tmp/certs folder, supported types:
+      # Opaque | kubernetes.io/tls | cert-manager.io/v1alpha2 | cert-manager.io/v1
+      # KESClient: {}
+      # Use this field to provide additional client certificate for the MinIO Object Store
+      # Certificate secret files will be mounted under /tmp/certs folder, supported types:
+      # Opaque | kubernetes.io/tls | cert-manager.io/v1alpha2 | cert-manager.io/v1
+      client: []
+        # - name: ""
+        #   type: kubernetes.io/tls
+      # Enable automatic Kubernetes based `certificate generation and signing <https://kubernetes.io/docs/tasks/tls/managing-tls-in-a-cluster>`__
+      disableAutoCert: false
+      # The minimum number of days to expiry before an alert for an expiring certificate is fired.
+      # In the below example, if a given certificate will expire in 7 days then expiration events will only be triggered 1 day before expiry
+      # certExpiryAlertThreshold: 1
     # kes:
     #   replicas: 1
     #   serviceAccountName: ""

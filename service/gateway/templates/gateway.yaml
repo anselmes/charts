@@ -1,20 +1,24 @@
 {{- range .Values.gateways }}
+{{- $issuer := "" }}
+{{- range .listeners }}
+{{- if .tls }}
+{{- range .tls.certificateRefs }}
+{{- if .issuer }}
+{{- $issuer = .issuer }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
 ---
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: Gateway
 metadata:
   name: {{ .name }}
-  {{- range .listeners }}
-  {{- if .tls }}
-  {{- range .tls.certificateRefs }}
-  {{- if .issuer }}
+  {{- if $issuer }}
   labels:
     {{- include "gateway.labels" $ | nindent 4 }}
   annotations:
-    cert-manager.io/cluster-issuer: {{ .issuer }}
-  {{- end }}
-  {{- end }}
-  {{- end }}
+    cert-manager.io/cluster-issuer: {{ $issuer }}
   {{- end }}
 spec:
   gatewayClassName: {{ .className }}

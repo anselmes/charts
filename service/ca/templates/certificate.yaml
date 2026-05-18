@@ -44,7 +44,7 @@ spec:
                   kind: {{ .issuerRef.kind }}
                 dnsNames:
                 {{- range .dns.aliases }}
-                  - {{ . }}
+                  - {{ . | quote }}
                 {{- end }}
                 ipAddresses:
                 {{- range .dns.addresses }}

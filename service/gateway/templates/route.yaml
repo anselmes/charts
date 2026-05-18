@@ -10,14 +10,16 @@ metadata:
   name: {{ .name }}
   labels:
     {{- include "gateway.labels" $ | nindent 4 }}
-  {{- range .hostnames }}
+  {{- if .hostnames }}
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: {{ join "," . }}
+    external-dns.alpha.kubernetes.io/hostname: {{ join "," .hostnames }}
   {{- end }}
 spec:
   {{- if .hostnames }}
   hostnames:
-    {{- toYaml .hostnames | nindent 4 }}
+    {{- range .hostnames }}
+    - {{ . | quote }}
+    {{- end }}
   {{- end }}
   {{- if .rules }}
   rules:

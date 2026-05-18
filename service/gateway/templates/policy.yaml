@@ -8,7 +8,7 @@ metadata:
     {{- include "gateway.labels" $ | nindent 4 }}
 spec:
   validation:
-    hostname: {{ .validation.hostname }}
+    hostname: {{ .validation.hostname | quote }}
     {{- if .validation.wellKnownCACertificates }}
     wellKnownCACertificates: {{ .validation.wellKnownCACertificates }}
     {{- end }}
