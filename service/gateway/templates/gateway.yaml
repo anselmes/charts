@@ -1,10 +1,14 @@
 {{- range .Values.gateways }}
 {{- $issuer := "" }}
+{{- $issuerType := "ClusterIssuer" }}
 {{- range .listeners }}
 {{- if .tls }}
 {{- range .tls.certificateRefs }}
 {{- if .issuer }}
 {{- $issuer = .issuer }}
+{{- if .type }}
+{{- $issuerType = .type }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -18,7 +22,11 @@ metadata:
   labels:
     {{- include "gateway.labels" $ | nindent 4 }}
   annotations:
+    {{- if eq $issuerType "Issuer" }}
+    cert-manager.io/issuer: {{ $issuer }}
+    {{- else }}
     cert-manager.io/cluster-issuer: {{ $issuer }}
+    {{- end }}
   {{- end }}
 spec:
   gatewayClassName: {{ .className }}

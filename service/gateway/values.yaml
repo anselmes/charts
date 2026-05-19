@@ -99,6 +99,7 @@ gateways:
       #     certificateRefs:
       #       - name: default-gw-cert
       #         issuer: self-signed-ca-issuer
+      #         type: ClusterIssuer               # ClusterIssuer (default) or Issuer
   # - name: tls-gateway
   #   className: envoy
   #   listeners:
@@ -136,4 +137,4 @@ gateways:
   #         mode: Terminate
   #         certificateRefs:
   #           - name: grpc-gw-cert
-  #             issuer: self-signed-ca-issuer
+  #             issuer: self-signed-ca-issuer     # type: ClusterIssuer  # ClusterIssuer (default) or Issuer
