@@ -53,7 +53,7 @@ spec:
                 {{- if (.Values.headscale.apiKey).autoManage }}
                 api_key:
                   auto_manage: {{ .Values.headscale.apiKey.autoManage }}
-                  manager_image: headscale-api-key
+                  manager_image: {{ .Values.headscale.apiKey.manager.repository | default "ghcr.io/infradohq/headscale-operator/apikey-manager" }}:{{ .Values.headscale.apiKey.manager.tag | default "latest" }}
                   expiration: {{ .Values.headscale.apiKey.expiration | default "2160h" }}
                   rotation_buffer: {{ .Values.headscale.apiKey.rotationBuffer | default "240h" }}
                 {{- end }}
