@@ -1,0 +1,84 @@
+{{- if .Values.headscale.enabled }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-headscale-{{ .Release.Name }}
+  labels:
+    {{- include "headscale.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+spec:
+  template:
+    spec:
+      serviceAccountName: headscale-resource-creator
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for headscale CRDs to be available..."
+              for i in {1..60}; do
+                if kubectl get crd headscales.headscale.infrado.cloud >/dev/null 2>&1; then
+                  echo "CRD found, creating Headscale"
+                  cat <<EOF | kubectl apply -f -
+              apiVersion: headscale.infrado.cloud/v1beta1
+              kind: Headscale
+              metadata:
+                name: {{ .Release.Name }}
+                namespace: {{ .Release.Namespace }}
+              spec:
+                version: {{ .Values.headscale.version }}
+                replicas: {{ .Values.headscale.replicas }}
+                config:
+                  server_url: {{ .Values.headscale.serverURL }}
+                  grpc_allow_insecure: {{ .Values.headscale.grpcAllowInsecure | default true }}
+                  derp:
+                    server:
+                      enabled: {{ .Values.headscale.derpServerEnabled | default false }}
+                  disable_check_updates: {{ .Values.headscale.disableCheckUpdates | default false }}
+                  database:
+                    type: {{ (.Values.headscale.database).type | default "sqlite" }}
+                  dns:
+                    magic_dns: {{ .Values.headscale.magicDNS | default false }}
+                  {{- if and (.Values.headscale.policy.enabled) (.Values.headscale.policy.acl).inline }}
+                  policy:
+                    mode: {{ .Values.headscale.policy.mode | default "database" }}
+                  {{- end }}
+                {{- if (.Values.headscale.apiKey).autoManage }}
+                api_key:
+                  auto_manage: {{ .Values.headscale.apiKey.autoManage }}
+                  manager_image: headscale-api-key
+                  expiration: {{ .Values.headscale.apiKey.expiration | default "2160h" }}
+                  rotation_buffer: {{ .Values.headscale.apiKey.rotationBuffer | default "240h" }}
+                {{- end }}
+                {{- if and (.Values.headscale.policy.enabled) (.Values.headscale.policy.acl).inline }}
+                acl_policy:
+                  {{- if and (.Values.headscale.policy.acl).tagOwners (not (empty .Values.headscale.policy.acl.tagOwners)) }}
+                  tag_owners:
+                    {{- range $tag, $owners := .Values.headscale.policy.acl.tagOwners }}
+                    "{{ $tag }}":
+                      {{- range $owners }}
+                      - {{ . }}
+                      {{- end }}
+                    {{- end }}
+                  {{- end }}
+                  {{- if (.Values.headscale.policy.acl).inline }}
+                  inline: |
+{{ .Values.headscale.policy.acl.inline | indent 20 }}
+                  {{- end }}
+                {{- end }}
+              EOF
+                  exit 0
+                fi
+                echo "Attempt $i: headscale CRD not ready, waiting 10s..."
+                sleep 10
+              done
+              echo "Timeout waiting for headscale CRD"
+              exit 1
+{{- end }}

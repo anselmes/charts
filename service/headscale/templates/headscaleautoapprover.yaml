@@ -1,0 +1,63 @@
+{{- range .Values.headscale.approvers }}
+{{- if and .enabled (or (not (empty .routes)) (not (empty .exitNodeTags))) }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-headscaleautoapprover-{{ .name | default (printf "%s-approver" $.Release.Name) }}
+  labels:
+    {{- include "headscale.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+spec:
+  template:
+    spec:
+      serviceAccountName: headscale-resource-creator
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for headscale CRDs to be available..."
+              for i in {1..60}; do
+                if kubectl get crd headscaleautoapprovers.headscale.infrado.cloud >/dev/null 2>&1; then
+                  echo "CRD found, creating HeadscaleAutoApprover"
+                  cat <<EOF | kubectl apply -f -
+              apiVersion: headscale.infrado.cloud/v1beta1
+              kind: HeadscaleAutoApprover
+              metadata:
+                name: {{ .name | default (printf "%s-approver" $.Release.Name) }}
+                namespace: {{ $.Release.Namespace }}
+              spec:
+                headscaleRef: {{ .headscaleRef | default $.Release.Name }}
+                {{- if and .routes (not (empty .routes)) }}
+                routes:
+                {{- range .routes }}
+                  - cidr: {{ .cidr }}
+                    tags:
+                    {{- range .tags }}
+                      - {{ . }}
+                    {{- end }}
+                {{- end }}
+                {{- end }}
+                {{- if and .exitNodeTags (not (empty .exitNodeTags)) }}
+                exitNodeTags:
+                {{- range .exitNodeTags }}
+                  - {{ . }}
+                {{- end }}
+                {{- end }}
+              EOF
+                  exit 0
+                fi
+                echo "Attempt $i: headscaleautoapprover CRD not ready, waiting 10s..."
+                sleep 10
+              done
+              echo "Timeout waiting for headscaleautoapprover CRD"
+              exit 1
+{{- end }}
+{{- end }}

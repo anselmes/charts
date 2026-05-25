@@ -1,0 +1,50 @@
+{{- if .Values.headscale.enabled }}
+Headscale {{ .Values.headscale.version }} is being deployed in namespace {{ .Release.Namespace }}.
+
+  Server URL : {{ .Values.headscale.server_url }}
+  Replicas   : {{ .Values.headscale.replicas }}
+
+  The Headscale resource is created via a post-install Job. Check its status:
+    kubectl get headscale {{ .Release.Name }} -n {{ .Release.Namespace }}
+    kubectl get jobs -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+{{- else }}
+Headscale is disabled (headscale.enabled=false). No Headscale instance will be deployed.
+{{- end }}
+{{- $users := list }}
+{{- range .Values.headscale.users }}{{- if .enabled }}{{- $users = append $users .username }}{{- end }}{{- end }}
+{{- if $users }}
+
+Users (HeadscaleUser Jobs scheduled):
+{{- range $users }}
+  - {{ . }}
+{{- end }}
+{{- end }}
+{{- $keys := list }}
+{{- range .Values.headscale.authKeys }}{{- if .enabled }}{{- $keys = append $keys . }}{{- end }}{{- end }}
+{{- if $keys }}
+
+Pre-Auth Keys (HeadscalePreAuthKey Jobs scheduled):
+{{- range $keys }}
+  - {{ .keyName | default "unnamed" }}  user={{ .headscaleUserRef | default (printf "userId:%v" .userId) }}  reusable={{ .reusable | default false }}  ephemeral={{ .ephemeral | default false }}
+{{- end }}
+{{- end }}
+{{- $approvers := list }}
+{{- range .Values.headscale.approvers }}{{- if .enabled }}{{- $approvers = append $approvers . }}{{- end }}{{- end }}
+{{- if $approvers }}
+
+Auto Approvers (HeadscaleAutoApprover Jobs scheduled):
+{{- range $approvers }}
+  - {{ .name | default (printf "%s-approver" $.Release.Name) }}
+{{- end }}
+{{- end }}
+{{- if .Values.operator.enabled }}
+
+Operator  : headscale-operator {{ (.Values.operator.image).tag | default "appVersion" }} deployed.
+{{- end }}
+{{- if .Values.gateway.enabled }}
+
+Gateway routes:
+{{- range .Values.gateway.routes }}
+  - {{ .name }}  {{ range .hostnames }}https://{{ . }}{{ end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,57 @@
+{{- range .Values.headscale.users }}
+{{- if .enabled }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-headscaleuser-{{ .username }}
+  labels:
+    {{- include "headscale.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+spec:
+  template:
+    spec:
+      serviceAccountName: headscale-resource-creator
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for headscale CRDs to be available..."
+              for i in {1..60}; do
+                if kubectl get crd headscaleusers.headscale.infrado.cloud >/dev/null 2>&1; then
+                  echo "CRD found, creating HeadscaleUser"
+                  cat <<EOF | kubectl apply -f -
+              apiVersion: headscale.infrado.cloud/v1beta1
+              kind: HeadscaleUser
+              metadata:
+                name: {{ .username }}
+                namespace: {{ $.Release.Namespace }}
+              spec:
+                headscaleRef: {{ .headscaleRef | default $.Release.Name }}
+                username: {{ .username }}
+              {{- if .name }}
+                displayName: {{ .name }}
+              {{- end }}
+              {{- if .email }}
+                email: {{ .email }}
+              {{- end }}
+              {{- if .pictureURL }}
+                pictureURL: {{ .pictureURL }}
+              {{- end }}
+              EOF
+                  exit 0
+                fi
+                echo "Attempt $i: headscaleuser CRD not ready, waiting 10s..."
+                sleep 10
+              done
+              echo "Timeout waiting for headscaleuser CRD"
+              exit 1
+{{- end }}
+{{- end }}

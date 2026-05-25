@@ -1,0 +1,232 @@
+---
+headscale:
+  enabled: false
+  version: v0.28.0
+  replicas: 1
+  server_url: https://vpn.headscale.local
+  # grpc_allow_insecure: true
+  # derpServerEnabled: false
+  # disableCheckUpdates: false
+  # magicDNS: false
+  # database:
+  #   type: sqlite
+
+  # Automatic API key management (optional)
+  # apiKey:
+  #   autoManage: true                            # Automatically create and rotate API keys
+  #   # expiration: 2160h                         # API key expires in 90 days (2160 hours)
+  #   # rotationBuffer: 240h                      # Rotate 10 days (240 hours) before expiration
+
+  policy:
+    enabled: true
+    # mode: database                              # required for SetPolicy
+    # acl:
+    #   tagOwners: {}
+    #     # "tag:router":
+    #     #   - admin@headscale.local
+    #     # "tag:exit":
+    #     #   - admin@headscale.local
+    #   inline: |                                   # optional base policy for acls/groups/hosts/ssh
+    #     {
+    #       "acls": [{"action": "accept", "src": ["*"], "dst": ["*:*"]}]
+    #     }
+
+  users: []
+    # - enabled: true
+    #   username: jdoe                                  # Username (immutable after creation)
+    #   # name: John Doe                                # Optional: Display name for the user
+    #   # email: jdoe@headscale.local                   # Optional: Email address
+    #   # pictureURL: https://headscale.local/jdoe.jpg  # Optional: Profile picture URL
+    #   # headscaleRef: headscale                       # Reference to the Headscale instance
+
+  authKeys: []
+    # - enabled: true
+    #   keyName: dev-key
+    #   headscaleUserRef: jdoe      # Reference to a HeadscaleUser resource
+    #   secretName: jdoe-dev-key    # Optional: Secret name (defaults to resource name)
+    #   # userId: 1                 # Alternatively, specify user ID directly
+    #   # reusable: false           # Can be used only once (set to true for multiple uses)
+    #   # ephemeral: false          # Creates ephemeral nodes (automatically removed when disconnected)
+    #   # expiration: 24h           # Key expires after 24 hours
+    #   # headscaleRef: headscale   # Reference to the Headscale instance
+    #   tags:                       # Automatically assign tags to nodes using this key
+    #     - tag:dev
+    # - enabled: true
+    #   keyName: ci-key
+    #   headscaleUserRef: ci-user   # Reference to a HeadscaleUser resource
+    #   reusable: true              # Can be used only once (set to true for multiple uses)
+    #   ephemeral: true             # Auto-cleanup disconnected runners
+    #   expiration: 720h            # Key expires after 30 days (720 hours)
+    #   tags:                       # Automatically assign tags to nodes using this key
+    #     - tag:ci
+    #     - tag:ephemeral
+    # - enabled: true
+    #   keyName: test-env-key
+    #   userId: 5
+    #   ephemeral: true             # Auto-cleanup disconnected runners
+    #   expiration: 2h              # Key expires after 2 hours
+    #   tags:                       # Automatically assign tags to nodes using this key
+    #     - tag:test
+    # - enabled: true
+    #   keyName: subnet-router-key
+    #   headscaleUserRef: jdoe      # Reference to a HeadscaleUser resource
+    #   reusable: true              # Can be used only once (set to true for multiple uses)
+    #   tags:                       # Automatically assign tags to nodes using this key
+    #     - tag:router
+
+  approvers: []
+    # - enabled: true
+    #   name: k8s-network
+    #   headscaleRef: headscale # Reference to the Headscale instance (same namespace)
+    #   # Routes a node carrying any of the listed tags will have
+    #   # auto-approved when announced via --advertise-routes
+    #   # routes:
+    #   #   - cidr: 10.10.0.0/16
+    #   #     tags:
+    #   #       - tag:router
+    #   # exitNodeTags: # Tags whose nodes will be auto-approved as exit nodes
+    #   #   - tag:exit
+    # - enabled: true
+    #   name: pod-network
+    #   headscaleRef: headscale # Reference to the Headscale instance (same namespace)
+    #   # Routes a node carrying any of the listed tags will have
+    #   # auto-approved when announced via --advertise-routes
+    #   routes:
+    #     - cidr: 10.244.0.0/16
+    #       tags:
+    #         - tag:router
+    # - enabled: true
+    #   name: home-exit-node
+    #   headscaleRef: headscale # Reference to the Headscale instance (same namespace)
+    #   exitNodeTags:           # Tags whose nodes will be auto-approved as exit nodes
+    #     - tag:exit
+    # - enabled: true
+    #   name: team-prod-routes
+    #   headscaleRef: headscale # Reference to the Headscale instance (same namespace)
+    #   # Routes a node carrying any of the listed tags will have
+    #   # auto-approved when announced via --advertise-routes
+    #   routes:
+    #     - cidr: 10.10.0.0/16
+    #       tags:
+    #         - tag:router
+    # - enabled: true
+    #   name: team-staging-routes
+    #   headscaleRef: headscale # Reference to the Headscale instance (same namespace)
+    #   # Routes a node carrying any of the listed tags will have
+    #   # auto-approved when announced via --advertise-routes
+    #   routes:
+    #     - cidr: 10.20.0.0/16
+    #       tags:
+    #         - tag:router
+
+# MARK: Headscale Operator
+
+operator:
+  enabled: false
+
+  # Operator configuration
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/infradohq/headscale-operator
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion
+    tag: ""
+
+  imagePullSecrets: []
+
+  # Resources for the operator
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+
+  # Liveness probe configuration
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8081
+    initialDelaySeconds: 15
+    periodSeconds: 20
+
+  # Readiness probe configuration
+  readinessProbe:
+    httpGet:
+      path: /readyz
+      port: 8081
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+  # Node selector
+  nodeSelector: {}
+
+  # Tolerations
+  tolerations: []
+
+  # Affinity rules
+  affinity: {}
+
+ca:
+  enabled: false
+
+  # MARK: - Issuers
+
+  issuers:
+    - name: ca-issuer-headscale
+      selfSigned: true
+      secret:
+        create: false
+
+gateway:
+  enabled: false
+
+  # MARK: Routes
+
+  routes:
+    - name: headscale-http
+      kind: HTTPRoute
+      hostnames:
+        - vpn.headscale.local
+      rules:
+        - backendRefs:
+            - name: headscale
+              port: 80
+        # - filters:
+        #     - type: RequestRedirect
+        #       requestRedirect:
+        #         scheme: https
+        #         statusCode: 301
+      gateways:
+        - name: http-gateway-headscale
+
+  # MARK: Gateways
+
+  gateways: []
+    # - name: http-gateway-headscale
+    #   className: envoy
+    #   listeners:
+    #     - name: http
+    #       port: 80
+    #       protocol: HTTP
+    #       allowedRoutes:
+    #         namespaces:
+    #           from: Same
+    #         kinds:
+    #           - kind: HTTPRoute
+    #     # - name: https
+    #     #   port: 443
+    #     #   protocol: HTTPS
+    #     #   hostname: vpn.headscale.local
+    #     #   allowedRoutes:
+    #     #     namespaces:
+    #     #       from: Same
+    #     #     kinds:
+    #     #       - kind: HTTPRoute
+    #     #   tls:
+    #     #     mode: Terminate
+    #     #     certificateRefs:
+    #     #       - name: http-gw-headscale-cert
+    #     #         issuer: ca-issuer-headscale
