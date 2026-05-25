@@ -196,7 +196,7 @@ gateway:
       rules:
         - backendRefs:
             - name: headscale
-              port: 80
+              port: 8080
         # - filters:
         #     - type: RequestRedirect
         #       requestRedirect:
