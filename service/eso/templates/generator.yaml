@@ -1,0 +1,50 @@
+{{- range $i, $generator := .Values.generators }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-generator-{{ $generator.type | default "Password" | lower }}-{{ $generator.name | default (printf "%s-generator-%d" $.Release.Name $i) }}
+  labels:
+    {{- include "eso.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+spec:
+  template:
+    spec:
+      serviceAccountName: external-secrets-resource-creator
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for external-secrets CRDs to be available..."
+              for i in {1..60}; do
+                {{- if (eq $generator.kind "ClusterGenerator") }}
+                if kubectl get crd clustersecretstores.external-secrets.io >/dev/null 2>&1; then
+                  echo "CRD found, creating ClusterGenerator"
+                {{- else }}
+                if kubectl get crd {{ $generator.type | default "Password" | lower }}s.external-secrets.io >/dev/null 2>&1; then
+                  echo "CRD found, creating {{ $generator.type | default "Password" }}"
+                {{- end }}
+                  cat <<EOF | kubectl apply -f -
+              apiVersion: generators.external-secrets.io/v1alpha1
+              kind: {{ $generator.kind | default ($generator.type | default "Password") }}
+              metadata:
+                name: {{ $generator.name | default (printf "%s-generator-%d" $.Release.Name $i) }}
+                {{- if not (eq $generator.kind "ClusterGenerator") }}
+                namespace: {{ $.Release.Namespace }}
+                {{- end }}
+                labels:
+                  {{- include "eso.labels" $ | nindent 18 }}
+              spec:
+                kind: {{ $generator.type | default "Password" }}
+                {{- with $generator.generator }}
+                generator:
+                  {{- toYaml . | nindent 18 }}
+                {{- end }}
+{{- end }}

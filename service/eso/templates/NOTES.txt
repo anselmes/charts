@@ -1,0 +1,41 @@
+External Secrets Operator (ESO) — {{ .Release.Name }} deployed to namespace {{ .Release.Namespace }}.
+
+{{- if .Values.eso.enabled }}
+
+ESO operator is ENABLED (subchart: external-secrets {{ .Chart.Version }}).
+{{- else }}
+
+ESO operator is DISABLED. Ensure it is installed separately before using the resources below.
+{{- end }}
+
+{{- if .Values.secretStores }}
+
+Secret Stores:
+{{- range $i, $store := .Values.secretStores }}
+  - {{ $store.name | default (printf "%s-secret-store-%d" $.Release.Name $i) }} ({{ $store.kind | default "SecretStore" }})
+{{- end }}
+{{- end }}
+
+{{- if .Values.generators }}
+
+Generators (installed via post-install/post-upgrade Jobs):
+{{- range $i, $gen := .Values.generators }}
+  - {{ $gen.name | default (printf "%s-generator-%d" $.Release.Name $i) }} ({{ $gen.kind | default "ClusterGenerator" }} / {{ $gen.type | default "Password" }})
+{{- end }}
+{{- end }}
+
+{{- if .Values.externalSecrets }}
+
+External Secrets:
+{{- range $i, $secret := .Values.externalSecrets }}
+  - {{ $secret.name | default (printf "%s-external-secret-%d" $.Release.Name $i) }} ({{ $secret.kind | default "ExternalSecret" }})
+{{- end }}
+{{- end }}
+
+{{- if .Values.pushSercrets }}
+
+Push Secrets:
+{{- range $i, $secret := .Values.pushSercrets }}
+  - {{ $secret.name | default (printf "%s-push-secret-%d" $.Release.Name $i) }} -> {{ $secret.secretName }}
+{{- end }}
+{{- end }}

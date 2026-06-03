@@ -1,0 +1,314 @@
+---
+# MARK: Generator
+
+generators:
+  - # kind: ClusterGenerator
+    # type: Password
+    # name: my-password
+    generator:
+      passwordSpec:
+        length: 42
+        digits: 5
+        symbols: 5
+        symbolCharacters: -_$@
+        noUpper: false
+        allowRepeat: true
+  - type: UUID
+    generator:
+      uuidSpec: {}
+  - type: SSHKey
+    generator:
+      sshKeySpec:
+        keyType: ed25519
+
+# MARK: Push Secret
+
+pushSercrets:
+  - # name: my-push-secret
+    # refreshInterval: 1h0m0s
+    secretName: my-secret
+    secretStoreRefs:
+      - name: my-secret-store
+        # kind: ClusterSecretStore
+    data: []
+      # - match:
+      #     secretKey: source-key1
+      #     remoteRef:
+      #       remoteKey: vault/secret1
+      # - match:
+      #     secretKey: source-key2
+      #     remoteRef:
+      #       remoteKey: vault/secret2
+      #       property: foo
+
+# MARK: External Secret
+
+externalSecrets: []
+  # - # kind: ClusterExternalSecret
+  #   # The name to be used on the ExternalSecrets
+  #   # name: my-external-secret
+  #   # How often the ClusterExternalSecret should reconcile itself
+  #   # This will decide how often to check and make sure that the ExternalSecrets exist in the matching namespaces
+  #   # refreshTime: 1m
+  #   # This is a list of basic label selector to select the namespaces to deploy ExternalSecrets to.
+  #   # you can read more about them here https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#resources-that-support-set-based-requirements
+  #   # The list is OR'd together, so if any of the namespaceSelectors match the namespace,
+  #   # the ExternalSecret will be deployed to that namespace.
+  #   # matchLabels:
+  #   #   external-secret: enabled
+  #   # This is the spec of the ExternalSecrets to be created
+  #   # The content of this was taken from our ExternalSecret example
+  #   externalSecretSpec:
+  #     secretStoreRef:
+  #       name: my-secret-store
+  #       kind: ClusterSecretStore
+  #     # RefreshPolicy determines how the ExternalSecret should be refreshed:
+  #     # - CreatedOnce: Creates the Secret only if it does not exist and does not update it afterward
+  #     # - Periodic: (default) Synchronizes the Secret at intervals specified by refreshInterval
+  #     # - OnChange: Only synchronizes when the ExternalSecret's metadata or specification changes
+  #     # refreshPolicy: Periodic
+  #     refreshInterval: 1h0m0s
+  #     target:
+  #       name: my-external-secret
+  #     dataFrom: []
+  #       # - sourceRef:
+  #       #     generatorRef:
+  #       #       apiVersion: generators.external-secrets.io/v1alpha1
+  #       #       kind: ClusterGenerator
+  #       #       name: uuid-generator
+  #       # - sourceRef:
+  #       #     generatorRef:
+  #       #       apiVersion: generators.external-secrets.io/v1alpha1
+  #       #       kind: ClusterGenerator
+  #       #       name: password-generator
+  #       # - sourceRef:
+  #       #     generatorRef:
+  #       #       apiVersion: generators.external-secrets.io/v1alpha1
+  #       #       kind: ClusterGenerator
+  #       #       name: ssh-key-generator
+  #     data: []
+  #       # - secretKey: password
+  #       #   remoteRef:
+  #       #     key: secret/admin
+  #       #     property: password
+
+# MARK: Secret Store
+
+secretStores:
+  - # kind: ClusterSecretStore
+    # name: my-secret-store
+    provider: {}
+      # vault:
+      #   server: http://vault.default.svc.cluster.local:8200
+      #   # See https://www.vaultproject.io/docs/enterprise/namespaces
+      #   # namespace: ""
+      #   path: secret
+      #   version: v2
+      #   checkAndSet:
+      #     required: true  # Enable CAS for all write operations
+      #   caProvider:
+      #     # Can be Secret or ConfigMap
+      #     type: Secret
+      #     # namespace is mandatory for ClusterSecretStore and not relevant for SecretStore
+      #     namespace: default
+      #     name: vault-ca
+      #     key: ca.crt
+      #   auth:
+      #     # See https://www.vaultproject.io/docs/enterprise/namespaces
+      #     # namespace: ""
+      #     # VaultAppRole authenticates with Vault using the
+      #     # App Role auth mechanism
+      #     # https://www.vaultproject.io/docs/auth/approle
+      #     appRole:
+      #       # Path where the App Role authentication backend is mounted
+      #       path: approle
+      #       # RoleID configured in the App Role authentication backend
+      #       # vault read -namespace=sandbox -field=role_id auth/approle/role/externalsecret/role-id
+      #       roleId: ""
+      #       # Reference to a key in a K8 Secret that contains the App Role SecretId
+      #       # vault write -f -namespace=sandbox -field=secret_id auth/approle/role/externalsecret/secret-id
+      #       secretRef:
+      #         name: external-secrets-vault-credential
+      #         namespace: default
+      #         key: secret-id
+
+# MARK: External Secrets Operator
+
+eso:
+  enabled: false
+
+  replicaCount: 1
+
+  bitwarden-sdk-server:
+    enabled: false
+    namespaceOverride: ""
+
+  image:
+    repository: ghcr.io/external-secrets/external-secrets
+    pullPolicy: IfNotPresent
+    # -- The image tag to use. The default is the chart appVersion.
+    tag: ""
+    # -- The flavour of tag you want to use
+    # There are different image flavours available, like distroless and ubi.
+    # Please see GitHub release notes for image tags for these flavors.
+    # By default, the distroless image is used.
+    flavour: ""
+
+  imagePullSecrets: []
+  nameOverride: ""
+  fullnameOverride: ""
+  namespaceOverride: ""
+
+  resources: {}
+    # requests:
+    #   cpu: 10m
+    #   memory: 32Mi
+
+  serviceMonitor:
+    # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
+    enabled: false
+
+    # -- How should we react to missing CRD "`monitoring.coreos.com/v1/ServiceMonitor`"
+    #
+    # Possible values:
+    # - `skipIfMissing`: Only render ServiceMonitor resources if CRD is present, skip if missing.
+    # - `failIfMissing`: Fail Helm install if CRD is not present.
+    # - `alwaysRender` : Always render ServiceMonitor resources, do not check for CRD.
+
+    # @schema
+    # enum:
+    # - skipIfMissing
+    # - failIfMissing
+    # - alwaysRender
+    # @schema
+    renderMode: skipIfMissing   # @schema enum: [skipIfMissing, failIfMissing, alwaysRender]
+
+    # -- Metric relabel configs to apply to samples before ingestion. [Metric Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#metric_relabel_configs)
+    metricRelabelings: []
+    # - action: replace
+    #   regex: (.*)
+    #   replacement: $1
+    #   sourceLabels:
+    #   - exported_namespace
+    #   targetLabel: namespace
+
+    # -- Relabel configs to apply to samples before ingestion. [Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config)
+    relabelings: []
+    # - sourceLabels: [__meta_kubernetes_pod_node_name]
+    #   separator: ;
+    #   regex: ^(.*)$
+    #   targetLabel: nodename
+    #   replacement: $1
+    #   action: replace
+
+  grafanaDashboard:
+    # -- If true creates a Grafana dashboard.
+    enabled: false
+
+    # -- Label that ConfigMaps should have to be loaded as dashboards.
+    sidecarLabel: grafana_dashboard
+
+    # -- Label value that ConfigMaps should have to be loaded as dashboards.
+    sidecarLabelValue: "1"
+
+    # -- Annotations that ConfigMaps can have to get configured in Grafana,
+    # See: sidecar.dashboards.folderAnnotation for specifying the dashboard folder.
+    # https://github.com/grafana/helm-charts/tree/main/charts/grafana
+    annotations: {}
+
+    # -- Extra labels to add to the Grafana dashboard ConfigMap.
+    extraLabels: {}
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  topologySpreadConstraints: []
+
+  affinity: {}
+
+  webhook:
+    # -- Annotations to place on validating webhook configuration.
+    annotations: {}
+    replicaCount: 1
+    image:
+      repository: ghcr.io/external-secrets/external-secrets
+      pullPolicy: IfNotPresent
+      # -- The image tag to use. The default is the chart appVersion.
+      tag: ""
+      # -- The flavour of tag you want to use
+      flavour: ""
+    imagePullSecrets: []
+    # -- The port the webhook will listen to
+    nodeSelector: {}
+
+    certManager:
+      # -- Enabling cert-manager support will disable the built in secret and
+      # switch to using cert-manager (installed separately) to automatically issue
+      # and renew the webhook certificate. This chart does not install
+      # cert-manager for you, See https://cert-manager.io/docs/
+      enabled: false
+      cert:
+        # -- For the Certificate created by this chart, setup the issuer. See
+        # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.IssuerSpec
+        issuerRef:
+          group: cert-manager.io
+          kind: Issuer
+          name: my-issuer
+
+    tolerations: []
+
+    topologySpreadConstraints: []
+
+    affinity: {}
+
+    metrics:
+
+      listen:
+        port: 8080
+        auth:
+          # -- Enable Kubernetes RBAC-based authentication for webhook's metrics endpoint. Requires webhook.metrics.listen.secure to be true. Default value is false.
+          enabled: false
+        secure:
+          enabled: false
+          # -- if those are not set or invalid, self-signed certs will be generated
+          # -- TLS cert directory path
+          certDir: /etc/tls
+          # -- TLS cert file path
+          certFile: /etc/tls/tls.crt
+          # -- TLS key file path
+          keyFile: /etc/tls/tls.key
+
+      service:
+        # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
+        enabled: false
+
+        # -- Metrics service port to scrape
+        port: 8080
+
+        # -- Additional service annotations
+        annotations: {}
+
+
+    livenessProbe:
+      enabled: false
+      # -- Set this value to 'live' (for named port) or an integer for liveness probes.
+      # @schema type: [string, integer]
+      port: 8081
+      timeoutSeconds: 5
+      failureThreshold: 5
+      periodSeconds: 10
+      successThreshold: 1
+      initialDelaySeconds: 10
+
+    readinessProbe:
+      enabled: true
+      address: ""
+      # -- Set this value to 'ready' (for named port) or an integer for readiness probes.
+      # @schema type: [string, integer]
+      port: 8081
+      timeoutSeconds: 5
+      failureThreshold: 3
+      periodSeconds: 5
+      successThreshold: 1
+      initialDelaySeconds: 20

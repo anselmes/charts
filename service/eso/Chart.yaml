@@ -1,0 +1,12 @@
+---
+apiVersion: v2
+type: application
+name: eso
+description: A Helm chart that deploys external-secrets and its dependencies.
+version: 2.5.0
+dependencies:
+  - alias: eso
+    name: external-secrets
+    repository: https://charts.external-secrets.io
+    version: 2.5.0
+    condition: eso.enabled
