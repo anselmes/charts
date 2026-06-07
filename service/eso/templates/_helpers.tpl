@@ -50,3 +50,29 @@ Selector labels
 app.kubernetes.io/name: {{ include "eso.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Return true when hook jobs require the resource creator RBAC.
+*/}}
+{{- define "eso.resourceCreatorRequired" -}}
+{{- $required := dict "value" false -}}
+{{- if .Values.generators -}}
+{{- $_ := set $required "value" true -}}
+{{- end -}}
+{{- range .Values.pushSercrets -}}
+{{- if not (empty .data) -}}
+{{- $_ := set $required "value" true -}}
+{{- end -}}
+{{- end -}}
+{{- range .Values.externalSecrets -}}
+{{- if not (empty .externalSecretSpec) -}}
+{{- $_ := set $required "value" true -}}
+{{- end -}}
+{{- end -}}
+{{- range .Values.secretStores -}}
+{{- if not (empty .provider) -}}
+{{- $_ := set $required "value" true -}}
+{{- end -}}
+{{- end -}}
+{{- if $required.value -}}true{{- end -}}
+{{- end -}}

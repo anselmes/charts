@@ -1,45 +1,45 @@
 ---
 # MARK: Generator
 
-generators:
-  - # kind: ClusterGenerator
-    # type: Password
-    # name: my-password
-    generator:
-      passwordSpec:
-        length: 42
-        digits: 5
-        symbols: 5
-        symbolCharacters: -_$@
-        noUpper: false
-        allowRepeat: true
-  - type: UUID
-    generator:
-      uuidSpec: {}
-  - type: SSHKey
-    generator:
-      sshKeySpec:
-        keyType: ed25519
+generators: []
+  # - # kind: ClusterGenerator
+  #   # type: Password
+  #   # name: my-password
+  #   generator:
+  #     passwordSpec:
+  #       length: 42
+  #       digits: 5
+  #       symbols: 5
+  #       symbolCharacters: -_$@
+  #       noUpper: false
+  #       allowRepeat: true
+  # - type: UUID
+  #   generator:
+  #     uuidSpec: {}
+  # - type: SSHKey
+  #   generator:
+  #     sshKeySpec:
+  #       keyType: ed25519
 
 # MARK: Push Secret
 
-pushSercrets:
-  - # name: my-push-secret
-    # refreshInterval: 1h0m0s
-    secretName: my-secret
-    secretStoreRefs:
-      - name: my-secret-store
-        # kind: ClusterSecretStore
-    data: []
-      # - match:
-      #     secretKey: source-key1
-      #     remoteRef:
-      #       remoteKey: vault/secret1
-      # - match:
-      #     secretKey: source-key2
-      #     remoteRef:
-      #       remoteKey: vault/secret2
-      #       property: foo
+pushSercrets: []
+  # - # name: my-push-secret
+  #   # refreshInterval: 1h0m0s
+  #   secretName: my-secret
+  #   secretStoreRefs:
+  #     - name: my-secret-store
+  #       # kind: ClusterSecretStore
+  #   data: []
+  #     # - match:
+  #     #     secretKey: source-key1
+  #     #     remoteRef:
+  #     #       remoteKey: vault/secret1
+  #     # - match:
+  #     #     secretKey: source-key2
+  #     #     remoteRef:
+  #     #       remoteKey: vault/secret2
+  #     #       property: foo
 
 # MARK: External Secret
 
