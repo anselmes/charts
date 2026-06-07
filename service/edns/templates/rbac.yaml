@@ -1,20 +1,27 @@
 {{- if .Values.endpoints }}
+{{- $resourceCreatorName := "external-dns-resource-creator" -}}
+{{- $existingServiceAccount := lookup "v1" "ServiceAccount" .Release.Namespace $resourceCreatorName -}}
+{{- $existingClusterRole := lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" $resourceCreatorName -}}
+{{- $existingClusterRoleBinding := lookup "rbac.authorization.k8s.io/v1" "ClusterRoleBinding" "" $resourceCreatorName -}}
+{{- if not $existingServiceAccount }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: external-dns-resource-creator
+  name: {{ $resourceCreatorName }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "edns.labels" . | nindent 4 }}
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-weight: "-5"
+{{- end }}
+{{- if not $existingClusterRole }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: external-dns-resource-creator
+  name: {{ $resourceCreatorName }}
   labels:
     {{- include "edns.labels" . | nindent 4 }}
   annotations:
@@ -39,11 +46,13 @@ rules:
     verbs:
       - get
       - list
+{{- end }}
+{{- if not $existingClusterRoleBinding }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: external-dns-resource-creator
+  name: {{ $resourceCreatorName }}
   labels:
     {{- include "edns.labels" . | nindent 4 }}
   annotations:
@@ -51,10 +60,11 @@ metadata:
     helm.sh/hook-weight: "-5"
 subjects:
   - kind: ServiceAccount
-    name: external-dns-resource-creator
+    name: {{ $resourceCreatorName }}
     namespace: {{ .Release.Namespace }}
 roleRef:
   kind: ClusterRole
-  name: external-dns-resource-creator
+  name: {{ $resourceCreatorName }}
   apiGroup: rbac.authorization.k8s.io
+{{- end }}
 {{- end }}
