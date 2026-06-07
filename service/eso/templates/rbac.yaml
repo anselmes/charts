@@ -1,0 +1,78 @@
+{{- if or .Values.generators .Values.pushSercrets .Values.externalSecrets .Values.secretStores }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: external-secrets-resource-creator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "eso.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: external-secrets-resource-creator
+  labels:
+    {{- include "eso.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+rules:
+  - apiGroups:
+      - external-secrets.io
+    resources:
+      - clusterexternalsecrets
+      - clustersecretstores
+      - externalsecrets
+      - pushsecrets
+      - secretstores
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+  - apiGroups:
+      - generators.external-secrets.io
+    resources:
+      - clustergenerators
+      - passwords
+      - sshkeys
+      - uuids
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: external-secrets-resource-creator
+  labels:
+    {{- include "eso.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+subjects:
+  - kind: ServiceAccount
+    name: external-secrets-resource-creator
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: external-secrets-resource-creator
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}
