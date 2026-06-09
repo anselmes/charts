@@ -81,6 +81,54 @@ openebs:
       #       values:
       #         - zfspv-node1
       #         - zfspv-node2
+  # Mayastor storage engine configuration
+  # High-performance NVMe-over-TCP based replicated storage solution
+  # Mayastor provides advanced features like replication, encryption, and thin provisioning
+  mayastor:
+    crds:
+      enabled: true
+      csi:
+        volumeSnapshots:
+          # Enable volume snapshots for Mayastor
+          # Allows creation of snapshots for Mayastor volumes
+          enabled: true
+          className: openebs-single-replica
+          deletionPolicy: Delete
+    storageClass:
+      enabled: true
+      nameSuffix: single-replica
+      default: true
+      allowVolumeExpansion: true
+      # Storage class parameters for Mayastor volumes.
+      # These parameters control the behavior of Mayastor volumes provisioned by this storage class.
+      parameters:
+        repl: 1
+        protocol: nvmf
+        fsType: ext4
+        thin: true
+        encrypted: false
+        # nodeAffinityTopologyLabel: |
+        #   zone: us-west-1
+        # nodeHasTopologykey: |
+        #   rack
+        # nodeSpreadTopologyKey: |
+        #   zone
+        # poolAffinityTopologyLabel: |
+        #   zone: us-west-1
+    io_engine:
+      target:
+        nvmf:
+          # -- Enable RDMA
+          # Capability of Mayastor nvmf target to take RDMA connections if the cluster nodes have RDMA device(s)
+          # configured from RNIC.
+          rdma:
+            enabled: false
+          # -- NVMF target interface (ip, mac, name or subnet)
+          # If RDMA is enabled, please set iface to an RDMA
+          # capable netdev name from host network. Example, if an rdma device mlx5_0 is
+          # available on a netdev eth0 on RNIC, as can be seen from `rdma link` command output,
+          # then this field should be set to eth0.
+          iface: ""
   # Storage engines configuration
   # Defines which storage backends are enabled for different use cases
   engines:
