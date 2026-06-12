@@ -63,7 +63,7 @@ spec:
                   caBundle: >-
                     {{- .vault.caBundle | b64enc | nindent 20 }}
                   {{- end }}
-                  {{- if .vault.caBundleSecretRef }}
+                  {{- if and .vault.caBundleSecretRef .secret.name }}
                   caBundleSecretRef:
                     name: {{ .secret.name }}
                     key: {{ .vault.caBundleSecretRef.key }}
