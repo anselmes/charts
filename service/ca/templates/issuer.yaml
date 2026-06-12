@@ -56,6 +56,9 @@ spec:
                 vault:
                   path: {{ .vault.path }}
                   server: {{ .vault.server }}
+                  {{- if .vault.namespace }}
+                  namespace: {{ .vault.namespace }}
+                  {{- end }}
                   {{- if .vault.caBundle }}
                   caBundle: >-
                     {{- .vault.caBundle | b64enc | nindent 20 }}

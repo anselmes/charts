@@ -61,6 +61,7 @@ issuers:
   #   vault:
   #     path: pki_int/sign/application-1
   #     server: https://vault.vault:8200
+  #     namespace: ""                     # Optional Vault namespace.
   #     # caBundleSecretRef:
   #     #   key: ca
   #     # clientCertSecretRef:
