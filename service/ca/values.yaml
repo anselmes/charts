@@ -91,7 +91,7 @@ issuers:
   #       nameserver: 127.0.0.1:53        # DNS server address.
   #       tsigAlgorithm: HMACSHA512       # TSIG algorithm.
   #       tsigKeyName: tsig-cred          # TSIG key name.
-  #       tsigSecretRef:                  # TSIG secret key.
+  #       tsigSecretSecretRef:            # TSIG secret key.
   #         name: ca-secret-rfc2136
   #         key: token
 
