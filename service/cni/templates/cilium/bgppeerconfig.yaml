@@ -50,7 +50,7 @@ spec:
                     safi: {{ .safi }}
                     {{- if .advertisements }}
                     advertisements:
-                      {{- toYaml .advertisements | nindent 18 }}
+                      {{- toYaml .advertisements | nindent 22 }}
                     {{- end }}
                 {{- end }}
               EOF

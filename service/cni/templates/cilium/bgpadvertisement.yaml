@@ -47,14 +47,14 @@ spec:
                   {{-  if .Values.cilium.bgp.advert.service }}
                   - advertisementType: "Service"
                     {{- if .Values.cilium.bgp.advert.service.selector }}
-                    selector: {{ .Values.cilium.bgp.advert.service.selector | toYaml | nindent 18 }}
+                    selector: {{ .Values.cilium.bgp.advert.service.selector | toYaml | nindent 22 }}
                     {{- end }}
                     service:
-                      addresses: {{ .Values.cilium.bgp.advert.service.addresses | toYaml | nindent 20 }}
+                      addresses: {{ .Values.cilium.bgp.advert.service.addresses | toYaml | nindent 24 }}
                   {{- end }}
                   {{-  if .Values.cilium.bgp.advert.podCIDR }}
                   - advertisementType: PodCIDR
-                    attributes: {{ .Values.cilium.bgp.advert.podCIDR.attributes | toYaml | nindent 18 }}
+                    attributes: {{ .Values.cilium.bgp.advert.podCIDR.attributes | toYaml | nindent 22 }}
                   {{- end }}
               EOF
                   exit 0
