@@ -129,9 +129,10 @@ externaldns:
       extraVolumeMounts: []
   # Uncomment and configure additional arguments for ExternalDNS as needed.
   # extraArgs:
+  #   - --create-ptr
+  #   - --rfc2136-tsig-axfr
   #   - --rfc2136-host=dns-host-1.yourdomain.com
   #   - --rfc2136-port=53
-  #   - --rfc2136-tsig-axfr
   #   - --rfc2136-tsig-secret-alg=hmac-sha256
   #   - --rfc2136-zone=example.com
   # Uncomment and configure extra volume mounts if needed.
