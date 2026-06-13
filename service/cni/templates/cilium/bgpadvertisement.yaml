@@ -7,7 +7,9 @@ metadata:
   labels:
     {{- include "cni.labels" $ | nindent 4 }}
     {{- range .Values.cilium.bgp.peer.addressFamilies }}
+    {{- if and .advertisements .advertisements.matchLabels }}
     {{- .advertisements.matchLabels | toYaml | nindent 4 }}
+    {{- end }}
     {{- end }}
   annotations:
     helm.sh/hook: post-install,post-upgrade
@@ -40,7 +42,9 @@ spec:
                 labels:
                   {{- include "cni.labels" $ | nindent 18 }}
                   {{- range .Values.cilium.bgp.peer.addressFamilies }}
+                  {{- if and .advertisements .advertisements.matchLabels }}
                   {{- .advertisements.matchLabels | toYaml | nindent 18 }}
+                  {{- end }}
                   {{- end }}
               spec:
                 advertisements:

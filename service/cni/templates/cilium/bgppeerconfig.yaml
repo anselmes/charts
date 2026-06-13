@@ -37,7 +37,9 @@ spec:
                 labels:
                   {{- include "cni.labels" $ | nindent 18 }}
               spec:
+                {{- if .Values.cilium.bgp.peer.authSecretRef }}
                 authSecretRef: {{ .Values.cilium.bgp.peer.authSecretRef }}
+                {{- end }}
                 ebgpMultihop: {{ .Values.cilium.bgp.peer.multiHop }}
                 timers:
                   holdTimeSeconds: {{ .Values.cilium.bgp.peer.holdTimeSec }}
