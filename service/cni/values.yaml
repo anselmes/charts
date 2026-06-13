@@ -19,9 +19,12 @@ cilium:
       service:
         # Selector for services to advertise (uncomment and configure as needed)
         # Define specific services to advertise via BGP using label selectors.
-        # selector:
-        #   matchExpressions:
-        #     - { key: bgp, operator: In, values: [blue] }
+        selector:
+          matchExpressions:
+            - key: app.kubernetes.io/component
+              operator: In
+              values:
+                - proxy
         # Addresses to advertise via BGP
         # Specify the types of IPs to advertise, such as ExternalIP or LoadBalancerIP.
         addresses:
