@@ -12,11 +12,11 @@ config: # @schema type: object; description: Key-value configuration data stored
   # Cluster configuration
   KUBERNETES_VERSION: ""
   CONTROL_PLANE_MACHINE_IMAGE: ""
-  CONTROL_PLANE_MACHINE_MINCPU: 4
-  CONTROL_PLANE_MACHINE_MINMEMORY: 8192
+  CONTROL_PLANE_MACHINE_MINCPU: "4"
+  CONTROL_PLANE_MACHINE_MINMEMORY: "8192"
   WORKER_MACHINE_IMAGE: ""
-  WORKER_MACHINE_MINCPU: 4
-  WORKER_MACHINE_MINMEMORY: 8192
+  WORKER_MACHINE_MINCPU: "4"
+  WORKER_MACHINE_MINMEMORY: "8192"
 
   # Selecting machine based on resourcepool (optional) and machine tag (optional)
   CONTROL_PLANE_MACHINE_RESOURCEPOOL: ""
@@ -26,7 +26,13 @@ config: # @schema type: object; description: Key-value configuration data stored
 
 manager: {} # @schema type: object; description: Controller manager settings, such as feature gates, verbosity and other options
 
-deployment: {} # @schema type: object; description: Deployment-level overrides for the provider controller, including replicas, containers, and scheduling settings
+deployment: # @schema type: object; description: Deployment-level overrides for the provider controller, including replicas, containers, and scheduling settings
+  imagePullSecrets: [] # @schema type: array; item: object; description: Optional list of image pull secrets for the provider controller deployment
+  containers: # @schema type: array; item: object; description: Optional list of containers for the provider controller deployment
+    - name: manager # @schema type: object; description: Optional container settings for the provider controller deployment
+      imageUrl: ghcr.io/labsonline/capi/cluster-api-provider-maas-controller:v1.0.0 # @schema type: string; description: Optional image URL for the provider controller deployment
+    - name: kube-rbac-proxy # @schema type: object; description: Optional container settings for the provider controller deployment
+      imageUrl: quay.io/brancz/kube-rbac-proxy:v0.19.1 # @schema type: string; description: Optional image URL for the provider controller deployment
 
 patches: [] # @schema type: array; item: object; description: Optional CAPI Operator spec.patches list.
 

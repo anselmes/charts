@@ -46,28 +46,24 @@
                     "description": "OS image name for control plane machines"
                 },
                 "CONTROL_PLANE_MACHINE_MINCPU": {
-                    "type": "integer",
-                    "description": "Minimum CPU count for control plane machines",
-                    "minimum": 1
+                    "type": "string",
+                    "description": "Minimum CPU count for control plane machines"
                 },
                 "CONTROL_PLANE_MACHINE_MINMEMORY": {
-                    "type": "integer",
-                    "description": "Minimum memory (MiB) for control plane machines",
-                    "minimum": 1
+                    "type": "string",
+                    "description": "Minimum memory (MiB) for control plane machines"
                 },
                 "WORKER_MACHINE_IMAGE": {
                     "type": "string",
                     "description": "OS image name for worker machines"
                 },
                 "WORKER_MACHINE_MINCPU": {
-                    "type": "integer",
-                    "description": "Minimum CPU count for worker machines",
-                    "minimum": 1
+                    "type": "string",
+                    "description": "Minimum CPU count for worker machines"
                 },
                 "WORKER_MACHINE_MINMEMORY": {
-                    "type": "integer",
-                    "description": "Minimum memory (MiB) for worker machines",
-                    "minimum": 1
+                    "type": "string",
+                    "description": "Minimum memory (MiB) for worker machines"
                 },
                 "CONTROL_PLANE_MACHINE_RESOURCEPOOL": {
                     "type": "string",

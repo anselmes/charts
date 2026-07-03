@@ -10,5 +10,7 @@ spec:
       version: v1beta1
       kind: MaasCluster
   clusterIdentities:
-    - Secret
+    - group: ''
+      kind: Secret
+      version: v1
   description: MaaS infrastructure provider for Cluster API
