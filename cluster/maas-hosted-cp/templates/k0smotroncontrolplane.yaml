@@ -49,8 +49,6 @@ spec:
   kineDataSourceSecretName: {{ .Values.dataSource.kineDataSourceSecretName }}
   {{- end }}
   controllerPlaneFlags:
-    - --enable-cloud-provider=false
-    - --debug=true
     {{- range $arg := .Values.k0smotron.controllerPlaneFlags }}
     - {{ toYaml $arg }}
     {{- end }}
