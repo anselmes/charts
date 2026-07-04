@@ -103,9 +103,6 @@ spec:
       - "sudo update-ca-certificates"
       {{- end }}
     args:
-      - --enable-worker
-      - --disable-components=konnectivity-server
-      - --kubelet-extra-args="--fail-cgroupv1=false"
       {{- range $arg := .Values.k0s.cpArgs }}
       - {{ toYaml $arg }}
       {{- end }}
