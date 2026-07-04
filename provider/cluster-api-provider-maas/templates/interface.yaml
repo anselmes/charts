@@ -1,7 +1,7 @@
 apiVersion: k0rdent.mirantis.com/v1beta1
 kind: ProviderInterface
 metadata:
-  name: cluster-api-provider-vsphere
+  name: cluster-api-provider-maas
   annotations:
     helm.sh/resource-policy: keep
 spec:
