@@ -27,9 +27,9 @@ dataSource: # @schema description: Kine data source parameters, auto-populated, 
     key: "ca.crt" # @schema description: The data key in the Secret that contains the certificate authority to connect to the data source, auto-populated; type: string
 
 # MaaS cluster parameters
+controlPlaneEndpointIP: ""
 maas:
   dnsDomain: ""
-controlPlaneEndpointIP: ""
 
 # MaaS machines parameters
 minCPU: 4
@@ -60,3 +60,9 @@ k0s: # @schema description: K0s parameters; type: object
     provider: calico # @schema description: Network provider to use; type: string; examples: [kuberouter, calico, custom]; minLength: 1
     calico: # @schema description: Calico-specific configuration; type: object; additionalProperties: true
       mode: vxlan # @schema description: Calico network mode; type: string; examples: [ipip, vxlan, never]; minLength: 1
+
+preStartCommands: [] # @schema description: Pre-start commands to run on the node before k0s is started; type: array; item: string; uniqueItems: true
+postStartCommands: [] # @schema description: Post-start commands to run on the node after k0s is started; type: array; item: string; uniqueItems: true
+
+# K0s custom userdata parameters
+customUserDataRef: {} # @schema description: Reference to the Secret containing the custom userdata for the node; type: object

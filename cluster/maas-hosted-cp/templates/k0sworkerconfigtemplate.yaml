@@ -40,3 +40,12 @@ spec:
         {{- if or $global.registryCertSecret $global.k0sURLCertSecret }}
         - "sudo update-ca-certificates"
         {{- end }}
+        {{- range $cmd := .Values.preStartCommands }}
+        - {{ toYaml $cmd }}
+        {{- end }}
+      {{- with .Values.postStartCommands }}
+      postStartCommands: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.customUserDataRef }}
+      customUserDataRef: {{ toYaml . | nindent 8 }}
+      {{- end }}

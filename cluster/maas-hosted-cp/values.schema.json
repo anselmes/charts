@@ -241,6 +241,26 @@
                 }
             }
         },
+        "preStartCommands": {
+            "type": "array",
+            "description": "Pre-start commands to run on the node before k0s is started",
+            "uniqueItems": true,
+            "items": {
+                "type": "string"
+            }
+        },
+        "postStartCommands": {
+            "type": "array",
+            "description": "Post-start commands to run on the node after k0s is started",
+            "uniqueItems": true,
+            "items": {
+                "type": "string"
+            }
+        },
+        "customUserDataRef": {
+            "type": "object",
+            "description": "Reference to the Secret containing the custom userdata for the node"
+        },
         "global": {
             "type": "object",
             "description": "Global settings shared across charts",

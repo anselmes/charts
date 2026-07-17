@@ -102,6 +102,12 @@ spec:
       {{- if or $global.registryCertSecret $global.k0sURLCertSecret }}
       - "sudo update-ca-certificates"
       {{- end }}
+      {{- range $cmd := .Values.preStartCommands }}
+      - {{ toYaml $cmd }}
+      {{- end }}
+    {{- with .Values.postStartCommands }}
+    postStartCommands: {{ toYaml . | nindent 6 }}
+    {{- end }}
     args:
       {{- range $arg := .Values.k0s.cpArgs }}
       - {{ toYaml $arg }}
@@ -132,6 +138,9 @@ spec:
         images:
           repository: "{{ $global.registry }}"
         {{- end }}
+    {{- with .Values.customUserDataRef }}
+    customUserDataRef: {{ toYaml . | nindent 6 }}
+    {{- end }}
   machineTemplate:
     infrastructureRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
