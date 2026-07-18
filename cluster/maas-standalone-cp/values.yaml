@@ -64,3 +64,8 @@ postStartCommands: [] # @schema description: Post-start commands to run on the n
 
 # K0s custom userdata parameters
 customUserDataRef: {} # @schema description: Reference to the Secret containing the custom userdata for the node; type: object
+
+# Additional files written on nodes via k0smotron (k0sConfigSpec.files). Use this instead of
+# write_files in customUserDataRef: the custom userdata is appended to the generated cloud-config
+# as plain text, so a top-level write_files key there clobbers the k0s bootstrap files.
+extraFiles: [] # @schema description: Additional files to write on nodes (k0smotron k0sConfigSpec.files format, supports content or contentFrom.secretRef); type: array; item: object

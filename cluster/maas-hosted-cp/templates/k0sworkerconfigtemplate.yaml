@@ -36,6 +36,9 @@ spec:
         {{- end }}
         {{- end }}
         {{- end }}
+        {{- with .Values.extraFiles }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       preStartCommands:
         {{- if or $global.registryCertSecret $global.k0sURLCertSecret }}
         - "sudo update-ca-certificates"

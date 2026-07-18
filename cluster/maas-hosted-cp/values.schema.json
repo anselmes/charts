@@ -261,6 +261,13 @@
             "type": "object",
             "description": "Reference to the Secret containing the custom userdata for the node"
         },
+        "extraFiles": {
+            "type": "array",
+            "description": "Additional files to write on nodes (k0smotron k0sConfigSpec.files format, supports content or contentFrom.secretRef)",
+            "items": {
+                "type": "object"
+            }
+        },
         "global": {
             "type": "object",
             "description": "Global settings shared across charts",

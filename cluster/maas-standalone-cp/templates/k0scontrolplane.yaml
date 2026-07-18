@@ -97,6 +97,9 @@ spec:
                 - effect: NoSchedule
                   key: node.cloudprovider.kubernetes.io/uninitialized
                   value: "true"
+      {{- with .Values.extraFiles }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
     preStartCommands:
       - sed -i 's/"externalAddress":"{{ .Values.controlPlaneEndpointIP }}",//' /etc/k0s.yaml
       {{- if or $global.registryCertSecret $global.k0sURLCertSecret }}
