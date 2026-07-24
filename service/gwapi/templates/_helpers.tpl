@@ -50,3 +50,15 @@ Selector labels
 app.kubernetes.io/name: {{ include "gwapi.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Validate crds.install value.
+Valid values: standard, experimental, none, or empty string.
+standard and experimental are mutually exclusive (single string choice).
+*/}}
+{{- define "gwapi.validateCrdsInstall" -}}
+{{- $valid := list "standard" "experimental" "none" "" -}}
+{{- if not (has .Values.crds.install $valid) -}}
+{{- fail (printf "gwapi: crds.install must be one of: standard, experimental, none (got: %q)" .Values.crds.install) -}}
+{{- end -}}
+{{- end -}}

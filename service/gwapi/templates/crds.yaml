@@ -1,0 +1,10 @@
+{{- include "gwapi.validateCrdsInstall" . -}}
+{{- if eq .Values.crds.install "standard" -}}
+{{- range $path, $bytes := .Files.Glob "files/crds/standard/*" }}
+{{ $bytes | toString }}
+{{- end }}
+{{- else if eq .Values.crds.install "experimental" -}}
+{{- range $path, $bytes := .Files.Glob "files/crds/experimental/*" }}
+{{ $bytes | toString }}
+{{- end }}
+{{- end -}}

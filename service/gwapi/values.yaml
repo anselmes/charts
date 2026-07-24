@@ -1,19 +1,35 @@
 ---
+# MARK: CRDs
+
+crds:
+  # -- Gateway API CRD channel to install.
+  # Allowed values: standard, experimental, none (or empty string).
+  # standard and experimental are mutually exclusive.
+  # When set to standard or experimental, set envoy.crds.enabled: false (default)
+  # to avoid conflicting with Envoy's bundled Gateway API CRDs.
+  # When set to none/empty, set envoy.crds.enabled: true so that Envoy
+  # installs the Gateway API CRDs via its own bundled sub-chart.
+  install: standard
+
 # MARK: Envoy
 
 envoy:
   enabled: true
 
-  proxies:
-    []
+  # -- Disable Envoy's bundled Gateway API CRDs when crds.install is standard or
+  # experimental, since this chart manages them. Set to true when crds.install
+  # is none/empty to let Envoy install them instead.
+  crds:
+    enabled: false
+
+  proxies: []
     # - name: envoy-proxy
     #   mergeGateways: true
     #   logging:
     #     level:
     #       default: info
 
-  classes:
-    []
+  classes: []
     # - name: envoy
     #   description: "Default Envoy Gateway class"
     #   # controllerName: gateway.envoyproxy.io/gatewayclass-controller  # Uses default from config.envoyGateway.gateway.controllerName
@@ -135,37 +151,6 @@ envoy:
     enabled: true
     annotations: {}
 
-# MARK: Nginx
-
-nginx:
-  enabled: false
-
-  nginx:
-    enabled: true
-
-    nginxGateway:
-      # -- The name of the NGINX Gateway Fabric deployment - if not present, then by default uses release name given during installation.
-      name: ""
-
-      # -- The name of the GatewayClass that will be created as part of this release. Every NGINX Gateway
-      # Fabric must have a unique corresponding GatewayClass resource. NGINX Gateway Fabric only processes resources that
-      # belong to its class - i.e. have the "gatewayClassName" field resource equal to the class.
-      gatewayClassName: nginx
-
-      gwAPIExperimentalFeatures:
-        # -- Enable the experimental features of Gateway API which are supported by NGINX Gateway Fabric. Requires the Gateway
-        # APIs installed from the experimental channel.
-        enable: false
-
-      gwAPIInferenceExtension:
-        # -- Enable Gateway API Inference Extension support. Allows for configuring InferencePools to route traffic to AI workloads.
-        enable: false
-
-      snippetsFilters:
-        # -- Enable SnippetsFilters feature. SnippetsFilters allow inserting NGINX configuration into the generated NGINX
-        # config for HTTPRoute and GRPCRoute resources.
-        enable: false
-
 # MARK: Traefik
 
 traefik:
@@ -220,3 +205,237 @@ traefik:
     websecure:
       port: 443
       exposedPort: 443
+
+# MARK: Nginx
+
+nginx:
+  enabled: false
+
+  nginx:
+    enabled: true
+
+    nginxGateway:
+      # -- The name of the NGINX Gateway Fabric deployment - if not present, then by default uses release name given during installation.
+      name: ""
+
+      # -- The name of the GatewayClass that will be created as part of this release. Every NGINX Gateway
+      # Fabric must have a unique corresponding GatewayClass resource. NGINX Gateway Fabric only processes resources that
+      # belong to its class - i.e. have the "gatewayClassName" field resource equal to the class.
+      gatewayClassName: nginx
+
+      gwAPIExperimentalFeatures:
+        # -- Enable the experimental features of Gateway API which are supported by NGINX Gateway Fabric. Requires the Gateway
+        # APIs installed from the experimental channel.
+        enable: false
+
+      gwAPIInferenceExtension:
+        # -- Enable Gateway API Inference Extension support. Allows for configuring InferencePools to route traffic to AI workloads.
+        enable: false
+
+      snippetsFilters:
+        # -- Enable SnippetsFilters feature. SnippetsFilters allow inserting NGINX configuration into the generated NGINX
+        # config for HTTPRoute and GRPCRoute resources.
+        enable: false
+
+# MARK: Cloudflare
+
+cloudflare:
+  enabled: false
+
+  # -- Number of controller replicas
+  replicaCount: 1
+
+  # -- GatewayClassConfig configuration
+  # This section drives the optional GatewayClassConfig CRD rendered by the chart.
+  # The in-process L7 proxy embeds cloudflared transport and is deployed by the
+  # chart itself; the tunnel token is supplied directly to the proxy via
+  # `proxy.tunnelTokenSecretRef` (see below).
+  gatewayClassConfig:
+    # -- Create GatewayClassConfig resource
+    create: false
+    # -- Name of the GatewayClassConfig (defaults to release fullname)
+    name: ""
+
+    # -- Cloudflare account ID. Optional - auto-detected when the API token has access to a single account.
+    accountId: ""
+
+    # -- Cloudflare Tunnel ID (REQUIRED)
+    # Get from: Zero Trust Dashboard > Networks > Tunnels
+    # Example: "550e8400-e29b-41d4-a716-446655440000"
+    tunnelID: ""
+
+    # -- Reference to Secret containing Cloudflare API credentials (REQUIRED)
+    # The Secret must contain an "api-token" key with a valid Cloudflare API token.
+    # Optionally, it can contain an "account-id" key; if not present, account ID is auto-detected.
+    cloudflareCredentialsSecretRef:
+      # -- Name of the Secret containing API credentials
+      name: cloudflare-credentials
+      # -- Namespace of the Secret (defaults to release namespace)
+      namespace: ""
+      # -- Key in the Secret containing the API token (defaults to "api-token")
+      key: ""
+
+  # -- Controller configuration
+  controller:
+    # -- Name of the GatewayClass resource to create
+    gatewayClassName: cloudflare
+
+    # -- Distributed tracing (OpenTelemetry) for the controller. Off by
+    # default. When enabled, the controller instruments its outbound
+    # Cloudflare API and proxy config-push clients and exports spans over
+    # OTLP/gRPC. This is independent of proxy.tracing (the data-plane knob).
+    tracing:
+      # -- Enable distributed tracing on the controller. Defaults to false.
+      enabled: false
+      # -- OTLP/gRPC collector endpoint. A bare host:port uses plaintext
+      # gRPC; prefix with http:// or https:// to choose plaintext vs TLS.
+      # Empty defers to the standard OTEL_EXPORTER_OTLP_ENDPOINT /
+      # OTEL_EXPORTER_OTLP_TRACES_ENDPOINT environment variables.
+      endpoint: ""
+      # -- Head-sampling probability in [0, 1], applied at the trace root
+      # via ParentBased(TraceIDRatioBased). 1.0 samples every trace.
+      sampleRate: 1.0
+
+  # -- Image pull secrets for private registries
+  imagePullSecrets: []
+
+  # -- Container image configuration
+  image:
+    # -- Image repository
+    repository: ghcr.io/lexfrei/cloudflare-tunnel-gateway-controller
+    # -- Image pull policy
+    pullPolicy: IfNotPresent
+    # -- Image tag (defaults to appVersion)
+    tag: ""
+
+  # -- Container resource requests and limits
+  # @default -- See values.yaml for recommended production defaults
+  # When resources is empty ({}), the chart will use recommended defaults.
+  # Specify explicit values to override defaults.
+  resources:
+    # Recommended resource limits for production
+    # Can be overridden for specific environments
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  # -- Node selector for pod scheduling
+  nodeSelector: {}
+
+  # -- Tolerations for pod scheduling
+  tolerations: []
+
+  # -- Affinity rules for pod scheduling
+  affinity: {}
+
+  # -- ServiceMonitor configuration for Prometheus Operator
+  serviceMonitor:
+    # -- Enable ServiceMonitor creation
+    enabled: false
+    # -- Scrape interval (uses Prometheus default if empty)
+    interval: ""
+    # -- Additional labels for ServiceMonitor (for Prometheus selector)
+    labels: {}
+
+  # -- L7 Proxy configuration (enhanced-cloudflared data plane).
+  # The L7 proxy is the only data plane; the chart always renders the proxy
+  # Deployment + Service + (optional) NetworkPolicy and ServiceMonitor.
+  # `proxy.tunnelTokenSecretRef` is required.
+  proxy:
+    # -- Number of proxy replicas
+    replicas: 2
+    # -- Proxy container image
+    image:
+      # -- Proxy image repository
+      repository: ghcr.io/lexfrei/cloudflare-tunnel-gateway-controller-proxy
+      # -- Image pull policy
+      pullPolicy: IfNotPresent
+      # -- Image tag (defaults to appVersion)
+      tag: ""
+
+    # -- Data-plane Prometheus metrics, served at /metrics on the config API
+    # port (no auth — the endpoint carries no secrets and the port is
+    # cluster-internal). The endpoint also exposes the embedded cloudflared
+    # connector metrics (cloudflared_tunnel_*).
+    metrics:
+      # -- Expose request-level metrics (in-flight, duration, status classes,
+      # bytes, backend errors) on the config API port. Disabling this also
+      # suppresses the proxy ServiceMonitor (its template is gated on BOTH
+      # toggles) — a scrape against a metrics-less proxy would 404.
+      enabled: true
+
+    # -- Reference to Secret containing tunnel token (REQUIRED)
+    tunnelTokenSecretRef:
+      # -- Name of the Secret containing tunnel token
+      name: cloudflare-tunnel-token
+      # -- Key in the Secret containing the tunnel token
+      key: tunnel-token
+
+    # -- Structured per-request access logging on the in-process proxy.
+    # Off by default (zero allocation on the hot path). When enabled,
+    # emits one JSON line per request via the proxy's stdout slog
+    # (method, host, path, query, status, bytes_written, duration_ms,
+    # user_agent). Cluster logging stack scrapes stdout already, so no
+    # additional sink wiring is needed.
+    accessLog:
+      # -- Enable per-request access logging. Defaults to false; setting
+      # it true on a high-traffic gateway will materially increase log
+      # volume -- pair with samplingRate < 1.0.
+      enabled: false
+      # -- Fraction of non-5xx requests to log when enabled, in [0, 1].
+      # 1.0 logs everything; 0.0 logs only 5xx (server-side failures
+      # are always recorded regardless of rate so the operator never
+      # loses error signal). The proxy clamps out-of-range values:
+      # a typo like `samplingRate: 50` degrades to "always log" rather
+      # than "silently log nothing".
+      samplingRate: 1.0
+      # -- Zero the `query` field in every emitted line. For
+      # applications that ride tokens, signed-URL credentials, or PII
+      # in query parameters (?token=..., ?sid=..., ?email=...). The
+      # `path` field is unaffected -- operators still see WHICH endpoint
+      # was hit, just not WHICH parameters carried sensitive values.
+      # Defaults to false (verbatim query for triage signal); turn on
+      # when the application surface makes query-string privacy a real
+      # concern and route-level (headers vs query) / sink-level (log
+      # pipeline scrubbing) mitigations aren't viable.
+      stripQuery: false
+
+    # -- Distributed tracing (OpenTelemetry) on the in-process proxy.
+    # Off by default (zero cost on the hot path). When enabled, each
+    # request gets a server span, backend calls get a linked client span,
+    # and W3C traceparent / tracestate are propagated to backends. Spans
+    # export over OTLP/gRPC; the existing log enrichment then surfaces
+    # trace_id / span_id on structured log lines.
+    tracing:
+      # -- Enable distributed tracing on the proxy. Defaults to false.
+      enabled: false
+      # -- OTLP/gRPC collector endpoint. A bare host:port (e.g.
+      # "otel-collector.observability:4317") uses plaintext gRPC; prefix
+      # with http:// or https:// to choose plaintext vs TLS explicitly.
+      # Empty defers to the standard OTEL_EXPORTER_OTLP_ENDPOINT /
+      # OTEL_EXPORTER_OTLP_TRACES_ENDPOINT environment variables.
+      endpoint: ""
+      # -- Head-sampling probability in [0, 1], applied at the trace root
+      # via ParentBased(TraceIDRatioBased). 1.0 samples every trace; 0.1
+      # samples a tenth. An upstream sampling decision is respected, so
+      # partial traces stay intact when the proxy sits behind the edge.
+      sampleRate: 1.0
+
+    # -- Container resource requests and limits
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+    # -- Node selector for pod scheduling
+    nodeSelector: {}
+    # -- Tolerations for pod scheduling
+    tolerations: []
+    # -- Affinity rules for pod scheduling
+    affinity: {}
