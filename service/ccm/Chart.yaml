@@ -3,7 +3,7 @@ apiVersion: v2
 name: ccm
 type: application
 description: A Helm chart that deploys various Cloud Controller Managers and their dependencies.
-version: 1.0.3
+version: 1.0.4
 dependencies:
   - alias: aws
     name: aws-cloud-controller-manager
@@ -13,10 +13,10 @@ dependencies:
   - alias: openstack
     name: openstack-cloud-controller-manager
     repository: https://kubernetes.github.io/cloud-provider-openstack
-    version: 2.35.0
+    version: 2.36.1
     condition: openstack.enabled
   - alias: vsphere
     name: vsphere-cpi
     repository: https://kubernetes.github.io/cloud-provider-vsphere
-    version: 1.35.1
+    version: 1.36.0
     condition: vsphere.enabled

@@ -3,40 +3,40 @@ apiVersion: v2
 name: data
 type: application
 description: A Helm chart that deploys various Databases and their dependencies.
-version: 1.0.0
+version: 1.0.1
 dependencies:
   - alias: postgres
     name: pg-db
     repository: https://percona.github.io/percona-helm-charts
-    version: 2.8.2
+    version: 3.0.1
     condition: postgres.enabled
   - alias: mysql
     name: ps-db
     repository: https://percona.github.io/percona-helm-charts
-    version: 1.0.0
+    version: 1.2.0
     condition: mysql.enabled
   - alias: mongo
     name: psmdb-db
     repository: https://percona.github.io/percona-helm-charts
-    version: 1.21.2
+    version: 1.23.0
     condition: mongo.enabled
   - alias: rediscluster
     name: redis-cluster
     repository: https://ot-container-kit.github.io/helm-charts
-    version: 0.17.3
+    version: 0.17.4
     condition: rediscluster.enabled
   - alias: redisreplication
     name: redis-replication
     repository: https://ot-container-kit.github.io/helm-charts
-    version: 0.16.12
+    version: 0.17.0
     condition: redisreplication.enabled
   - alias: redissentinel
     name: redis-sentinel
     repository: https://ot-container-kit.github.io/helm-charts
-    version: 0.16.11
+    version: 0.16.13
     condition: redissentinel.enabled
   - alias: redis
     name: redis
     repository: https://ot-container-kit.github.io/helm-charts
-    version: 0.16.8
+    version: 0.16.9
     condition: redis.enabled

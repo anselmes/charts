@@ -2,7 +2,7 @@ apiVersion: v2
 name: gwapi
 type: application
 description: A Helm chart that deploys Envoy as the Gateway API for Kubernetes.
-version: 1.0.4
+version: 1.0.5
 dependencies:
   - alias: envoy
     name: gateway-helm
@@ -21,5 +21,5 @@ dependencies:
   - alias: cloudflare
     name: cloudflare-tunnel-gateway-controller
     repository: oci://ghcr.io/lexfrei/charts
-    version: 3.3.1
+    version: 3.4.0
     condition: cloudflare.enabled

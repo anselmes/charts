@@ -3,11 +3,11 @@ apiVersion: v2
 name: netbox
 type: application
 description: A Helm chart that deploys Netbox and it's dependencies.
-version: 7.4.1
+version: 8.3.38
 dependencies:
   - name: netbox
     repository: oci://ghcr.io/netbox-community/netbox-chart
-    version: 7.4.1
+    version: 8.3.38
   - name: data
     repository: oci://ghcr.io/labsonline/charts
-    version: 1.0.0
+    version: 1.0.1

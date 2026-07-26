@@ -3,15 +3,15 @@ apiVersion: v2
 type: application
 name: ca
 description: A Helm chart that deploys cert-manager and its dependencies.
-version: 1.0.5
+version: 1.0.6
 dependencies:
   - alias: certmanager
     name: cert-manager
     repository: https://charts.jetstack.io
-    version: 1.19.2
+    version: 1.21.0
     condition: certmanager.enabled
   - alias: trustmanager
     name: trust-manager
     repository: https://charts.jetstack.io
-    version: 0.20.3
+    version: 0.24.0
     condition: trustmanager.enabled

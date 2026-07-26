@@ -3,44 +3,34 @@ apiVersion: v2
 name: csi
 type: application
 description: A Helm chart that deploys various CSI drivers and their dependencies.
-version: 1.0.7
+version: 1.0.8
 dependencies:
   - name: openebs
     repository: https://openebs.github.io/openebs
-    version: 4.4.0
+    version: 4.5.1
     condition: openebs.enabled
   - alias: rook
     name: rook-ceph
     repository: https://charts.rook.io/release
-    version: v1.19.3
+    version: 1.20.2
     condition: rook.enabled
   - alias: ceph
     name: rook-ceph-cluster
     repository: https://charts.rook.io/release
-    version: v1.19.3
+    version: 1.20.2
     condition: ceph.enabled
   - alias: ebs
     name: aws-ebs-csi-driver
     repository: https://kubernetes-sigs.github.io/aws-ebs-csi-driver
-    version: 2.58.0
+    version: 2.63.0
     condition: ebs.enabled
   - alias: cinder
     name: openstack-cinder-csi
     repository: https://kubernetes.github.io/cloud-provider-openstack
-    version: 2.35.0
+    version: 2.36.0
     condition: cinder.enabled
   - alias: vsphere
     name: vsphere-csi-driver
     repository: https://charts.mirantis.com
-    version: 0.0.3
+    version: 0.0.4
     condition: vsphere.enabled
-  - alias: aistorop
-    name: aistor-operator
-    repository: https://helm.min.io
-    version: 5.6.4
-    condition: aistorop.enabled
-  - alias: aistor
-    name: aistor-objectstore
-    repository: https://helm.min.io
-    version: 1.0.14
-    condition: aistor.enabled

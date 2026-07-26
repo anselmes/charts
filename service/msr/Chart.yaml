@@ -3,14 +3,14 @@ apiVersion: v2
 name: msr
 type: application
 description: A Helm chart that deploys Mirantis Secure Registry and its dependencies.
-version: 4.13.3
+version: 4.13.6
 dependencies:
   - name: msr
     repository: oci://registry.mirantis.com/harbor/helm
-    version: 4.13.3
+    version: 4.13.6
   - name: data
     repository: oci://ghcr.io/labsonline/charts
-    version: 1.0.0
+    version: 1.0.1
   - name: gateway
     repository: oci://ghcr.io/labsonline/charts
     version: 1.0.3
