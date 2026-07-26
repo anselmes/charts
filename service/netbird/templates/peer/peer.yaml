@@ -1,0 +1,87 @@
+{{- if and .Values.peer.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "netbird.labels" $ | nindent 4 }}
+spec:
+  replicas: {{ .Values.peer.replicas }}
+  selector:
+    matchLabels:
+      app: netbird
+  template:
+    metadata:
+      labels:
+        app: netbird
+    spec:
+      containers:
+        - name: netbird
+          image: netbirdio/netbird:latest
+          env:
+            - name: NB_SETUP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-setup-key
+                  key: NB_SETUP_KEY
+            - name: NB_HOSTNAME
+              value: {{ .Values.peer.hostname }}
+            - name: NB_LOG_LEVEL
+              value: {{ .Values.peer.logLevel }}
+          {{- if .Values.peer.config.enabled }}
+          volumeMounts:
+            - name: config
+              mountPath: /var/lib/netbird/default.json
+              subPath: default.json
+          {{- end }}
+          {{- with .Values.peer.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+                - SYS_RESOURCE
+                - SYS_ADMIN
+          livenessProbe:
+            exec:
+              command:
+                - netbird
+                - status
+                - --check
+                - live
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - netbird
+                - status
+                - --check
+                - ready
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            exec:
+              command:
+                - netbird
+                - status
+                - --check
+                - startup
+            periodSeconds: 2
+            timeoutSeconds: 10
+            failureThreshold: 30
+      {{- if .Values.peer.config.enabled }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ .Release.Name }}-config
+      {{- end }}
+{{- end }}

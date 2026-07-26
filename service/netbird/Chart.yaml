@@ -1,0 +1,17 @@
+---
+apiVersion: v2
+type: application
+name: netbird
+description: A Helm chart that deploys netbird-operator and its dependencies.
+version: 0.8.0
+dependencies:
+  - alias: operator
+    name: netbird-operator
+    repository: oci://ghcr.io/netbirdio/helm-charts
+    version: 0.8.0
+    condition: operator.enabled
+  - alias: gatewayAPICRDs
+    name: gwapi
+    repository: oci://ghcr.io/labsonline/charts
+    version: 1.0.5
+    condition: operator.gatewayAPI.enabled

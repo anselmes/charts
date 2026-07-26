@@ -1,0 +1,148 @@
+---
+# MARK: Sidecard Client
+
+client:
+  enabled: false
+
+  # This is the SetupKey used to enroll the sidecar client with the
+  # management server. If ephemeral is true, the peer is automatically
+  # removed once it goes offline.
+  setupKey:
+    ephemeral: true
+
+  # Pod labels used to select which pods get the netbird sidecar profile
+  # applied.
+  matchLabels:
+    netbird: client
+
+# MARK: Routing Peer
+
+peer:
+  enabled: false
+
+  hostname: netbird-k8s-router  # name that will appear in the management UI
+  logLevel: info                # log level for the peer, can be one of: debug, info, warn, error
+  replicas: 1                   # number of replicas for the peer deployment
+
+  # This is the configuration for the peer, it will be mounted as a configmap
+  # to /var/lib/netbird/default.json
+  config:
+    enabled: false
+    # The managementURL and adminURL should be set to the management and admin
+    # endpoints of your netbird installation. If you are using the default cloud
+    # service, you can use the following values:
+    managementURL: https://api.netbird.io:443
+
+    # The adminURL should be set to the admin endpoint of your netbird
+    # installation. If you are using the default cloud service, you can use
+    # the following value:
+    adminURL: https://app.netbird.io:443
+
+  # This is the configuration for the peer secret, it will be mounted as a secret
+  # to /var/lib/netbird/setup.key. If create is set to true, a
+  # new secret will be created with the name specified in name and the key
+  # specified in key. If create is set to false, the secret specified in name
+  # will be used and the key specified in key will be used to retrieve the value.
+  secret:
+    create: true
+    name: netbird-setup-key
+    key: ""
+
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 500m
+
+# MARK: Operator
+
+operator:
+  enabled: false
+
+  webhook:
+    # TLS configuration for webhook
+    # Optional, unused if webhook.enableCertManager is set to true
+    tls: {}
+
+    # Use cert-manager to provision webhook certificates (recommended)
+    enableCertManager: true
+
+  operator:
+    # This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+    replicaCount: 1
+
+    # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
+    image:
+      # Set operator image registry
+      registry: ghcr.io
+      # Set operator image repository
+      repository: netbirdio/netbird-operator
+      # This sets the pull policy for images.
+      pullPolicy: IfNotPresent
+      # Overrides the image tag whose default is the chart appVersion.
+      tag: ""
+
+    metrics:
+      enabled: true
+      type: ClusterIP
+      port: 8080
+
+    # This is for the secretes for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+    imagePullSecrets: []
+    # This is to override the chart name.
+    nameOverride: ""
+    fullnameOverride: ""
+
+    # This is for setting Kubernetes Annotations to a Pod.
+    # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+    podAnnotations: {}
+    # This is for setting Kubernetes Labels to a Pod.
+    # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+    podLabels: {}
+
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+    # Additional volumes on the output Deployment definition.
+    volumes: []
+
+    # Additional volumeMounts on the output Deployment definition.
+    volumeMounts: []
+
+    nodeSelector: {}
+
+    tolerations: []
+
+    affinity: {}
+
+  netbirdAPI:
+    keyFromSecret:
+      name: netbird-mgmt-api-key
+      key: NB_API_KEY
+
+  gatewayAPI:
+    enabled: false
+
+# MARK: CRDs
+
+gatewayAPICRDs:
+
+  crds:
+    # -- Gateway API CRD channel to install.
+    # Allowed values: standard, experimental, none (or empty string).
+    # standard and experimental are mutually exclusive.
+    # When set to standard or experimental, set envoy.crds.enabled: false (default)
+    # to avoid conflicting with Envoy's bundled Gateway API CRDs.
+    # When set to none/empty, set envoy.crds.enabled: true so that Envoy
+    # installs the Gateway API CRDs via its own bundled sub-chart.
+    install: standard
+
+  envoy:
+    enabled: false

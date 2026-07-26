@@ -1,0 +1,9 @@
+{{- if and .Values.operator.gatewayAPI.enabled }}
+---
+apiVersion: netbird.io/v1
+kind: NBRoutingPeer
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec: {}
+{{- end }}

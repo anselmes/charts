@@ -1,0 +1,21 @@
+{{- if and .Values.peer.enabled .Values.peer.config.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "netbird.labels" $ | nindent 4 }}
+data:
+  default.json: |
+    {
+      "ManagementURL": {{ .Values.peer.config.managementURL | quote }},
+      "AdminURL": {{ .Values.peer.config.adminURL | quote }},
+      "WgIface": "wt0",
+      "BlockInbound": false,
+      "BlockLANAccess": false,
+      "RosenpassEnabled": false,
+      "PrivateKey": ""
+    }
+{{- end }}

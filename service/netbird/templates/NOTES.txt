@@ -1,0 +1,89 @@
+# netbird
+
+Thank you for installing the netbird Helm chart!
+
+This chart deploys the netbird-operator and the resources needed to enroll
+this cluster (and optionally its pods) into a NetBird network.
+
+## Installation Summary
+
+{{- if .Values.operator.enabled }}
+- **netbird-operator**: Installed
+  {{- if .Values.operator.gatewayAPI.enabled }}
+  - Gateway API support: Enabled (GatewayClasses + Gateway API CRDs)
+  {{- else }}
+  - Gateway API support: Disabled
+  {{- end }}
+{{- else }}
+- **netbird-operator**: Disabled
+{{- end }}
+{{- if .Values.peer.enabled }}
+- **Routing peer**: {{ .Release.Name }} ({{ .Values.peer.hostname }}, {{ .Values.peer.replicas }} replica(s))
+{{- else }}
+- **Routing peer**: Disabled
+{{- end }}
+{{- if .Values.client.enabled }}
+- **Sidecar client**: Enabled
+  - Setup key ephemeral: {{ .Values.client.setupKey.ephemeral }}
+  - Pod selector: {{ range $key, $value := .Values.client.matchLabels }}{{ $key }}={{ $value }} {{ end }}
+{{- else }}
+- **Sidecar client**: Disabled
+{{- end }}
+
+## Verification Steps
+
+1. **Check the operator**:
+   ```bash
+   kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+   ```
+
+{{- if .Values.operator.gatewayAPI.enabled }}
+
+2. **Check the gateways**:
+   ```bash
+   kubectl get gatewayclass
+   kubectl get gateway -n {{ .Release.Namespace }}
+   ```
+{{- end }}
+
+{{- if .Values.peer.enabled }}
+
+3. **Check the routing peer**:
+   ```bash
+   kubectl get deployment {{ .Release.Name }} -n {{ .Release.Namespace }}
+   kubectl logs -n {{ .Release.Namespace }} deployment/{{ .Release.Name }}
+   ```
+{{- end }}
+
+{{- if .Values.client.enabled }}
+
+4. **Check setup key and sidecar profile creation jobs**:
+   ```bash
+   kubectl get jobs -n {{ .Release.Namespace }} -l helm.sh/hook=post-install,post-upgrade
+   kubectl get setupkeys,sidecarprofiles -n {{ .Release.Namespace }}
+   ```
+{{- end }}
+
+## Troubleshooting
+
+**If the operator is not ready:**
+```bash
+kubectl describe pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+kubectl get crd | grep netbird.io
+```
+
+{{- if .Values.client.enabled }}
+
+**If setup key or sidecar profile jobs fail:**
+```bash
+kubectl logs -n {{ .Release.Namespace }} jobs/create-key-{{ .Release.Name }} --follow
+kubectl logs -n {{ .Release.Namespace }} jobs/create-profile-{{ .Release.Name }} --follow
+```
+{{- end }}
+
+## Cleanup
+
+To remove all resources:
+```bash
+helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
+```
