@@ -1,0 +1,24 @@
+{{- if and .Values.proxy.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "netbird.name" . }}-reverse-proxy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "netbird.labels" $ | nindent 4 }}
+spec:
+  type: {{ .Values.proxy.service.type }}
+  selector:
+    {{- include "netbird.selectorLabels" . | nindent 4 }}
+    app: netbird-reverse-proxy
+  ports:
+    - port: {{ .Values.proxy.service.ports.http }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: {{ .Values.proxy.service.ports.https }}
+      targetPort: https
+      protocol: TCP
+      name: https
+{{- end }}

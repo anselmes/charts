@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: create-key-{{ .Release.Name }}
+  name: create-key-{{ include "netbird.name" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "netbird.labels" $ | nindent 4 }}
@@ -31,12 +31,12 @@ spec:
               apiVersion: netbird.io/v1alpha1
               kind: SetupKey
               metadata:
-                name: {{ .Release.Name }}-sidecar
+                name: {{ include "netbird.name" . }}-setup-key
                 namespace: {{ .Release.Namespace }}
                 labels:
                   {{- include "netbird.labels" $ | nindent 18 }}
               spec:
-                name: sidecar
+                name: netbird
                 ephemeral: {{ .Values.client.setupKey.ephemeral }}
               EOF
                   exit 0

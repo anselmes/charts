@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: create-profile-{{ .Release.Name }}
+  name: create-profile-{{ include "netbird.name" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "netbird.labels" $ | nindent 4 }}
@@ -31,13 +31,13 @@ spec:
               apiVersion: netbird.io/v1alpha1
               kind: SidecarProfile
               metadata:
-                name: {{ .Release.Name }}-profile
+                name: {{ include "netbird.name" . }}-profile
                 namespace: {{ .Release.Namespace }}
                 labels:
                   {{- include "netbird.labels" $ | nindent 18 }}
               spec:
                 setupKeyRef:
-                  name: {{ .Release.Name }}-sidecar
+                  name: {{ include "netbird.name" . }}-setup-key
                 podSelector:
                   matchLabels:
                     {{- range $key, $value := .Values.client.matchLabels }}

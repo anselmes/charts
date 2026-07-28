@@ -3,85 +3,94 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name }}
+  name: {{ include "netbird.name" . }}-peer
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "netbird.labels" $ | nindent 4 }}
+    app: netbird
 spec:
-  replicas: {{ .Values.peer.replicas }}
+  replicas: {{ .Values.peer.replicaCount }}
   selector:
     matchLabels:
+      {{- include "netbird.selectorLabels" $ | nindent 6 }}
       app: netbird
   template:
     metadata:
+      {{- with .Values.peer.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
+        {{- include "netbird.labels" $ | nindent 8 }}
+        {{- with .Values.peer.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         app: netbird
     spec:
+      {{- with .Values.peer.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.peer.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
-        - name: netbird
-          image: netbirdio/netbird:latest
+        - name: {{ .Chart.Name }}
+          {{- with .Values.peer.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.peer.image.repository }}:{{ .Values.peer.image.tag | default "latest" }}"
+          imagePullPolicy: {{ .Values.peer.image.pullPolicy }}
           env:
             - name: NB_SETUP_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Release.Name }}-setup-key
+                  name: {{ include "netbird.name" . }}-setup-key
                   key: NB_SETUP_KEY
             - name: NB_HOSTNAME
               value: {{ .Values.peer.hostname }}
             - name: NB_LOG_LEVEL
               value: {{ .Values.peer.logLevel }}
+          {{- with .Values.peer.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.peer.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.peer.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.peer.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- if .Values.peer.config.enabled }}
           volumeMounts:
             - name: config
               mountPath: /var/lib/netbird/default.json
               subPath: default.json
           {{- end }}
-          {{- with .Values.peer.resources }}
-          resources:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          securityContext:
-            capabilities:
-              add:
-                - NET_ADMIN
-                - SYS_RESOURCE
-                - SYS_ADMIN
-          livenessProbe:
-            exec:
-              command:
-                - netbird
-                - status
-                - --check
-                - live
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
-          readinessProbe:
-            exec:
-              command:
-                - netbird
-                - status
-                - --check
-                - ready
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
-          startupProbe:
-            exec:
-              command:
-                - netbird
-                - status
-                - --check
-                - startup
-            periodSeconds: 2
-            timeoutSeconds: 10
-            failureThreshold: 30
       {{- if .Values.peer.config.enabled }}
       volumes:
         - name: config
           configMap:
-            name: {{ .Release.Name }}-config
+            name: {{ include "netbird.name" . }}-config
+      {{- end }}
+      {{- with .Values.peer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.peer.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.peer.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
       {{- end }}
 {{- end }}

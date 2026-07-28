@@ -3,7 +3,7 @@
 apiVersion: netbird.io/v1
 kind: NBRoutingPeer
 metadata:
-  name: {{ .Release.Name }}
+  name: {{ include "netbird.name" . }}
   namespace: {{ .Release.Namespace }}
 spec: {}
 {{- end }}

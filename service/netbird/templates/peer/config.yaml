@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-config
+  name: {{ include "netbird.name" . }}-config
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "netbird.labels" $ | nindent 4 }}

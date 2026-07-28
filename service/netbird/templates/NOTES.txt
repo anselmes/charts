@@ -18,9 +18,14 @@ this cluster (and optionally its pods) into a NetBird network.
 - **netbird-operator**: Disabled
 {{- end }}
 {{- if .Values.peer.enabled }}
-- **Routing peer**: {{ .Release.Name }} ({{ .Values.peer.hostname }}, {{ .Values.peer.replicas }} replica(s))
+- **Routing peer**: {{ include "netbird.name" . }}-peer ({{ .Values.peer.hostname }}, {{ .Values.peer.replicaCount }} replica(s))
 {{- else }}
 - **Routing peer**: Disabled
+{{- end }}
+{{- if .Values.proxy.enabled }}
+- **Reverse proxy**: {{ include "netbird.name" . }}-reverse-proxy ({{ .Values.proxy.replicaCount }} replica(s), domain: {{ .Values.proxy.config.domain }})
+{{- else }}
+- **Reverse proxy**: Disabled
 {{- end }}
 {{- if .Values.client.enabled }}
 - **Sidecar client**: Enabled
@@ -50,14 +55,23 @@ this cluster (and optionally its pods) into a NetBird network.
 
 3. **Check the routing peer**:
    ```bash
-   kubectl get deployment {{ .Release.Name }} -n {{ .Release.Namespace }}
-   kubectl logs -n {{ .Release.Namespace }} deployment/{{ .Release.Name }}
+   kubectl get deployment {{ include "netbird.name" . }}-peer -n {{ .Release.Namespace }}
+   kubectl logs -n {{ .Release.Namespace }} deployment/{{ include "netbird.name" . }}-peer
+   ```
+{{- end }}
+
+{{- if .Values.proxy.enabled }}
+
+4. **Check the reverse proxy**:
+   ```bash
+   kubectl get deployment {{ include "netbird.name" . }}-reverse-proxy -n {{ .Release.Namespace }}
+   kubectl logs -n {{ .Release.Namespace }} deployment/{{ include "netbird.name" . }}-reverse-proxy
    ```
 {{- end }}
 
 {{- if .Values.client.enabled }}
 
-4. **Check setup key and sidecar profile creation jobs**:
+5. **Check setup key and sidecar profile creation jobs**:
    ```bash
    kubectl get jobs -n {{ .Release.Namespace }} -l helm.sh/hook=post-install,post-upgrade
    kubectl get setupkeys,sidecarprofiles -n {{ .Release.Namespace }}
@@ -76,8 +90,8 @@ kubectl get crd | grep netbird.io
 
 **If setup key or sidecar profile jobs fail:**
 ```bash
-kubectl logs -n {{ .Release.Namespace }} jobs/create-key-{{ .Release.Name }} --follow
-kubectl logs -n {{ .Release.Namespace }} jobs/create-profile-{{ .Release.Name }} --follow
+kubectl logs -n {{ .Release.Namespace }} jobs/create-key-{{ include "netbird.name" . }} --follow
+kubectl logs -n {{ .Release.Namespace }} jobs/create-profile-{{ include "netbird.name" . }} --follow
 ```
 {{- end }}
 

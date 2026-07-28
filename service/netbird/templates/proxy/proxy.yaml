@@ -1,0 +1,95 @@
+{{- if and .Values.proxy.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "netbird.name" . }}-reverse-proxy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "netbird.labels" $ | nindent 4 }}
+    app: netbird-reverse-proxy
+spec:
+  replicas: {{ .Values.proxy.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "netbird.selectorLabels" $ | nindent 6 }}
+      app: netbird-reverse-proxy
+  template:
+    metadata:
+      {{- with .Values.proxy.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "netbird.labels" $ | nindent 8 }}
+        {{- with .Values.proxy.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        app: netbird-reverse-proxy
+    spec:
+      {{- with .Values.proxy.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.proxy.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}-reverse-proxy
+          {{- with .Values.proxy.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.proxy.image.repository }}:{{ .Values.proxy.image.tag | default "latest" }}"
+          imagePullPolicy: {{ .Values.proxy.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.proxy.service.ports.http }}
+              protocol: TCP
+            - name: https
+              containerPort: {{ .Values.proxy.service.ports.https }}
+              protocol: TCP
+          env:
+            - name: NB_PROXY_CERTIFICATE_DIRECTORY
+              value: /certs
+            - name: NB_PROXY_ALLOW_INSECURE
+              value: {{ .Values.proxy.config.allowInsecure | quote }}
+            - name: NB_PROXY_MANAGEMENT_ADDRESS
+              value: {{ .Values.proxy.config.managementAddress }}
+            - name: NB_PROXY_DOMAIN
+              value: {{ .Values.proxy.config.domain }}
+            - name: NB_PROXY_LOG_LEVEL
+              value: {{ .Values.proxy.config.logLevel }}
+            - name: NB_PROXY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "netbird.name" . }}-proxy-token
+                  key: NB_PROXY_TOKEN
+            - name: NB_PROXY_PRIVATE
+              value: "true"
+            - name: NB_PROXY_ADDRESS
+              value: :443
+          {{- with .Values.proxy.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: certs
+              mountPath: /certs
+      volumes:
+        - name: certs
+          emptyDir: {}
+      {{- with .Values.proxy.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.proxy.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.proxy.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

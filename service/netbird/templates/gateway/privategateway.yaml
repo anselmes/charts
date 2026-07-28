@@ -3,12 +3,12 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: {{ .Release.Name }}-private
+  name: {{ include "netbird.name" . }}-private
   namespace: {{ .Release.Namespace }}
 spec:
   gatewayClassName: netbird-private
   listeners:
   - protocol: gateway.netbird.io/NBRoutingPeer
-    name: {{ .Release.Name }}
+    name: {{ include "netbird.name" . }}
     port: 1
 {{- end }}
