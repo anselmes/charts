@@ -267,21 +267,4 @@ operator:
       key: NB_API_KEY
 
   gatewayAPI:
-    enabled: false
-
-# MARK: CRDs
-
-gatewayAPICRDs:
-
-  crds:
-    # -- Gateway API CRD channel to install.
-    # Allowed values: standard, experimental, none (or empty string).
-    # standard and experimental are mutually exclusive.
-    # When set to standard or experimental, set envoy.crds.enabled: false (default)
-    # to avoid conflicting with Envoy's bundled Gateway API CRDs.
-    # When set to none/empty, set envoy.crds.enabled: true so that Envoy
-    # installs the Gateway API CRDs via its own bundled sub-chart.
-    install: standard
-
-  envoy:
-    enabled: false
+    enabled: true

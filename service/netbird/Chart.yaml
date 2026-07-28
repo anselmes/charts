@@ -10,8 +10,3 @@ dependencies:
     repository: oci://ghcr.io/netbirdio/helm-charts
     version: 0.8.0
     condition: operator.enabled
-  - alias: gatewayAPICRDs
-    name: gwapi
-    repository: oci://ghcr.io/labsonline/charts
-    version: 1.0.5
-    condition: operator.gatewayAPI.enabled
