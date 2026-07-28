@@ -1,9 +1,10 @@
 {{- include "gwapi.validateCrdsInstall" . -}}
-{{- if eq .Values.crds.install "standard" -}}
-{{- range $path, $bytes := .Files.Glob "files/crds/standard/*" }}
-{{ $bytes | toString }}
+{{- /* Standard CRDs are managed via the crds/ directory (Helm-native), not rendered here. */ -}}
+{{- /* Non-CRD resources bundled with the standard channel (e.g. ValidatingAdmissionPolicy) */ -}}
+{{- if or (eq .Values.crds.install "standard") (eq .Values.crds.install "experimental") }}
+{{ .Files.Get "files/crds/vap_safeupgrades.yaml" }}
 {{- end }}
-{{- else if eq .Values.crds.install "experimental" -}}
+{{- if eq .Values.crds.install "experimental" -}}
 {{- range $path, $bytes := .Files.Glob "files/crds/experimental/*" }}
 {{ $bytes | toString }}
 {{- end }}

@@ -5,10 +5,13 @@ crds:
   # -- Gateway API CRD channel to install.
   # Allowed values: standard, experimental, none (or empty string).
   # standard and experimental are mutually exclusive.
+  # standard: CRDs are managed via the Helm-native crds/ directory (applied on
+  #   helm install, NOT re-applied on helm upgrade). Use --skip-crds to skip.
+  # experimental: CRDs are rendered as templates (includes standard + experimental).
+  # none/empty: No CRDs installed via this chart. Use envoy.crds.enabled: true
+  #   to let Envoy install them instead.
   # When set to standard or experimental, set envoy.crds.enabled: false (default)
   # to avoid conflicting with Envoy's bundled Gateway API CRDs.
-  # When set to none/empty, set envoy.crds.enabled: true so that Envoy
-  # installs the Gateway API CRDs via its own bundled sub-chart.
   install: standard
 
 # MARK: Envoy

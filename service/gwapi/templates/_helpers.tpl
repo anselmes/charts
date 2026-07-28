@@ -54,7 +54,9 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{/*
 Validate crds.install value.
 Valid values: standard, experimental, none, or empty string.
-standard and experimental are mutually exclusive (single string choice).
+standard: uses Helm-native crds/ directory (not rendered as templates).
+experimental: rendered via templates/crds.yaml from files/crds/experimental/.
+none/empty: no CRDs installed by this chart; use --skip-crds for standard crds/.
 */}}
 {{- define "gwapi.validateCrdsInstall" -}}
 {{- $valid := list "standard" "experimental" "none" "" -}}
