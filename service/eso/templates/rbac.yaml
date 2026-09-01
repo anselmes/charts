@@ -76,12 +76,21 @@ metadata:
     helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-weight: "-5"
 subjects:
-  - kind: ServiceAccount
-    name: {{ $resourceCreatorName }}
-    namespace: {{ .Release.Namespace }}
+  {{- $subjects := list (dict "kind" "ServiceAccount" "name" $resourceCreatorName "namespace" .Release.Namespace) -}}
+  {{- if $existingClusterRoleBinding }}
+  {{- range $existingClusterRoleBinding.subjects }}
+  {{- if not (and (eq .kind "ServiceAccount") (eq .name $resourceCreatorName) (eq .namespace $.Release.Namespace)) }}
+  {{- $subjects = append $subjects . }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+  {{- range $subjects }}
+  - kind: {{ .kind }}
+    name: {{ .name }}
+    namespace: {{ .namespace }}
+  {{- end }}
 roleRef:
   kind: ClusterRole
   name: {{ $resourceCreatorName }}
   apiGroup: rbac.authorization.k8s.io
-{{- end }}
 {{- end }}
