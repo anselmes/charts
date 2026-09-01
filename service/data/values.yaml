@@ -266,15 +266,15 @@ mongo:
               storage: 3Gi
     mongos:
       size: 3
-      affinity:
-        antiAffinityTopologyKey: "kubernetes.io/hostname"
-      resources:
-        limits:
-          cpu: "600m"
-          memory: "1Gi"
-        requests:
-          cpu: "300m"
-          memory: "1Gi"
+      affinity: {}
+        # antiAffinityTopologyKey: kubernetes.io/hostname
+      resources: {}
+        # limits:
+        #   cpu: 600m
+        #   memory: 1Gi
+        # requests:
+        #   cpu: 300m
+        #   memory: 1Gi
       expose:
         enabled: false
         type: ClusterIP
