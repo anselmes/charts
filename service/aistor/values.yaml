@@ -194,6 +194,9 @@ aistor:
     prometheusOperator: false
     configuration:
       name: minio-env-configuration
+    env: []
+      # - name: GODEBUG
+      #   value: fips140=on
     pools:
       # The number of MinIO Object Store Pods / Servers in this pool.
       # For standalone mode, supply 1. For distributed mode, supply 4 or more.
