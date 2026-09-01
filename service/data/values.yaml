@@ -165,11 +165,11 @@ mysql:
       repository: percona/pmm-client
       tag: 3.4.1
     serverHost: monitoring-service
-    resources:
-      requests:
-        memory: 150M
-        cpu: 300m
-      limits: {}
+    resources: {}
+      # requests:
+      #   memory: 150M
+      #   cpu: 300m
+      # limits: {}
 
   backup:
     enabled: true
