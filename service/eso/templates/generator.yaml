@@ -38,15 +38,23 @@ spec:
               metadata:
                 name: {{ $generator.name | default (printf "%s-generator-%d" $.Release.Name $i) }}
                 {{- if not (eq $generator.kind "ClusterGenerator") }}
-                namespace: {{ $.Release.Namespace }}
+                namespace: {{ $generator.namespace | default $.Release.Namespace }}
                 {{- end }}
                 labels:
                   {{- include "eso.labels" $ | nindent 18 }}
               spec:
+                {{- if (eq $generator.kind "ClusterGenerator") }}
                 kind: {{ $generator.type | default "Password" }}
                 {{- with $generator.generator }}
                 generator:
                   {{- toYaml . | nindent 18 }}
+                {{- end }}
+                {{- else }}
+                {{- with $generator.generator }}
+                {{- range $_, $spec := . }}
+                {{- toYaml $spec | nindent 16 }}
+                {{- end }}
+                {{- end }}
                 {{- end }}
               EOF
                   exit 0
