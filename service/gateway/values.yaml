@@ -56,8 +56,7 @@ policies: []
 
 # Define resource grants for the Gateway API.
 # Grants specify which resources (e.g., Secrets) can be referenced by Gateways.
-grants:
-  []
+grants: []
   # - name: allow-gateways-to-ref-secrets
   #   to:
   #     - group: ""
