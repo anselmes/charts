@@ -50,7 +50,6 @@ rules:
       - get
       - list
 {{- end }}
-{{- if not $existingClusterRoleBinding }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
