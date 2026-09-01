@@ -87,15 +87,15 @@ postgres:
     serverHost: monitoring-service
 
   secrets:
-    name:
+    name: ""
     # replication user password
-    primaryuser:
+    primaryuser: ""
     # superuser password
-    postgres:
+    postgres: ""
     # pgbouncer user password
-    pgbouncer:
+    pgbouncer: ""
     # pguser user password
-    pguser:
+    pguser: ""
 
 # MARK: MySQL
 
