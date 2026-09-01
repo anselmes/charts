@@ -1,4 +1,128 @@
 ---
+# MARK: Admin Job
+adminJob:
+  enabled: false
+  name: create-bucket-job
+  # execution: parallel
+  # failureStrategy: stopOnFailure
+  # ttlSecondsAfterFinished: 3600  # Delete after 1 hour
+  commands: []
+    # Create bucket
+    # - name: create-bucket
+    #   op: make-bucket
+    #   args:
+    #     name: data-bucket
+    # Create bucket with versioning enabled using custom command
+    # - name: create-versioned-bucket
+    #   command:
+    #     - mc
+    #     - mb
+    #     - --with-versioning
+    #     - myminio/versioned-data
+    # Check bucket status using custom command
+    # - name: check-bucket-status
+    #   command:
+    #     - mc
+    #     - stat
+    #     - myminio/versioned-data
+    # Create user using env to load specific secret key
+    # - name: add-user-user
+    #   op: admin/user/add
+    #   args:
+    #     user: user
+    #     password: $(PASSWORD)
+    #   env:
+    #     - name: PASSWORD
+    #       valueFrom:
+    #         secretKeyRef:
+    #           name: user-credentials
+    #           key: PASSWORD
+    # Create user using envFrom to load all secret keys as environment variables
+    # - name: add-user-user
+    #   op: admin/user/add
+    #   args:
+    #     user: $(USER)
+    #     password: $(PASSWORD)
+    #   envFrom:
+    #     - secretRef:
+    #         name: user-credentials
+    # Create policy from ConfigMap
+    # - name: create-policy
+    #   op: admin/policy/create
+    #   args:
+    #     name: data-bucket-access
+    #     policy: /policies/bucket-policy.json
+    #   volumeMounts:
+    #     - name: policies
+    #       mountPath: /policies
+    #   volumes:
+    #     - name: policies
+    #       configMap:
+    #         name: custom-policies
+    #         items:
+    #           - key: bucket-policy.json
+    #             path: bucket-policy.json
+    # Attach policy to user (depends on user and policy creation)
+    # - name: attach-policy-user
+    #   op: admin/policy/attach
+    #   dependsOn:
+    #     - create-user-user
+    #     - create-policy
+    #   args:
+    #     policy: data-bucket-access
+    #     user: user
+    # Attach policy to user using envFrom (depends on user and policy creation)
+    # - name: attach-policy-user
+    #   op: admin/policy/attach
+    #   dependsOn:
+    #     - create-user-user
+    #     - create-policy
+    #   args:
+    #     policy: data-bucket-access
+    #     user: $(USER)
+    #   envFrom:
+    #     - secretRef:
+    #         name: user-credentials
+  serviceAccountName:
+    create: false
+    name: minio-job
+  secret:
+    create: false
+    name: user-credentials
+    user: ""
+    password: ""
+  config:
+    create: false
+    name: custom-policies
+    # policy: |
+    #   {
+    #     "Version": "2012-10-17",
+    #     "Statement": [
+    #       {
+    #         "Effect": "Allow",
+    #         "Action": ["s3:*"],
+    #         "Resource": [
+    #           "arn:aws:s3:::data-bucket",
+    #           "arn:aws:s3:::data-bucket/*"
+    #         ]
+    #       }
+    #     ]
+    #   }
+  objectStore:
+    # name: minio
+    # namespace: minio
+    policy:
+      enabled: false
+      policies: []
+        # - consoleAdmin
+  podAnnotations: {}
+    # prometheus.io/scrape: "true"
+    # prometheus.io/port: "9090"
+  podLabels: {}
+    # app.kubernetes.io/component: admin-task
+    # environment: production
+    # team: platform
+
 # MARK: Operator
 
 # AIStor Operator
