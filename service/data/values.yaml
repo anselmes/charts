@@ -290,10 +290,10 @@ mongo:
     image:
       repository: percona/fluentbit
       tag: 4.0.1
-    resources:
-      requests:
-        memory: 100M
-        cpu: 200m
+    resources: {}
+      # requests:
+      #   memory: 100M
+      #   cpu: 200m
 
 # MARK: Redis Cluster
 
