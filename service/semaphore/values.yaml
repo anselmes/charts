@@ -1,0 +1,396 @@
+---
+# MARK: Semaphore UI
+
+semaphoreui:
+  # -- Replicas for the deployment
+  replicaCount: 1
+
+  image:
+    # -- Image repository used by deployment
+    repository: semaphoreui/semaphore
+
+    # -- Optional tag for the repository, defaults to app version
+    tag: ""
+
+    # -- Image pull policy
+    pullPolicy: IfNotPresent
+
+    # -- Optional name of pull secret if using a private registry
+    pullSecrets: []
+
+  # -- Define additional labels
+  labels: {}
+
+  # -- Define additional annotations
+  annotations: {}
+
+  # -- Security context for the deployment
+  securityContext:
+    fsGroup: 1001
+
+  # -- Security context for the pod
+  podSecurityContext: {}
+
+  # -- List of extra init containers
+  extraInitContainers: []
+
+  # -- List of extra sidecar containers
+  extraSidecarContainers: []
+
+  # -- List of extra volumes
+  extraVolumes: []
+    # - name: extra
+    #   emptyDir: {}
+
+  # -- List of extra volume mounts
+  extraVolumeMounts: []
+    # - name: extra
+    #   mountPath: /usr/local/share
+    #   readOnly: true
+
+  persistence:
+    # -- Enable persistence for workdir
+    enabled: true
+
+    # -- Size for boltdb volume
+    size: 10G
+
+    # -- Storage class used for workdir volume
+    storageClass: ""
+
+    # -- Access modes used for workdir volume
+    accessModes:
+      - ReadWriteOnce
+
+  secrets:
+    # -- Cookie hash secret, generated if not present
+    cookieHash: ""
+
+    # -- Key used within secret for cookieHash
+    cookieHashKey: cookieHash
+
+    # -- Cookie encryption secret, generated if not present
+    cookieEncryption: ""
+
+    # -- Key used within secret for cookieEncryption
+    cookieEncryptionKey: cookieEncryption
+
+    # -- Access key encryption secret, generated if not present
+    accesskeyEncryption: ""
+
+    # -- Key used within secret for accesskeyEncryption
+    accesskeyEncryptionKey: accesskeyEncryption
+
+    # -- Existing secret to use for secrets
+    existingSecret: ""
+
+  general:
+    # -- Host to access Semaphore
+    host: ""
+
+    # -- Maximum parallel tasks
+    maxParallelTasks: 0
+
+    # -- Disable password login
+    passwordLoginDisable: false
+
+    # -- Allow non-admins to create projects
+    nonAdminCanCreateProject: false
+
+    # -- Enable usage of remote runners
+    useRemoteRunner: true
+
+    # -- Additional Python packages
+    additionalPythonPackages: []
+
+  database:
+    # -- Type of database backend
+    type: bolt
+
+    # -- Read username from secret
+    usernameFromSecret: true
+
+    # -- Username for database
+    username: semaphore
+
+    # -- Key used within secret for username
+    usernameKey: username
+
+    # -- Password for database
+    password: ""
+
+    # -- Key used within secret for password
+    passwordKey: password
+
+    # -- Existing secret to use for credentials
+    existingSecret: ""
+
+    # -- Host for database connection
+    host: ""
+
+    # -- Port for database connection
+    port: ""
+
+    # -- Name of the used database
+    name: semaphore
+
+    # -- Options for database connection
+    options: {}
+
+    persistence:
+      # -- Enable persistence for boltdb
+      enabled: true
+
+      # -- Size for boltdb volume
+      size: 5G
+
+      # -- Storage class used for boltdb volume
+      storageClass: ""
+
+      # -- Access modes used for boltdb volume
+      accessModes:
+        - ReadWriteOnce
+
+  ldap:
+    # -- Enable LDAP authentication
+    enable: false
+
+    # -- Address of LDAP server
+    server: ""
+
+    # -- Enable TLS connection to LDAP
+    needtls: false
+
+    # Search DN for LDAP
+    searchdn: ""
+
+    # -- Search filter for LDAP
+    filter: ""
+
+    # -- BindDN for LDAP authentication
+    binddn: ""
+
+    # -- Key used within secret for username
+    binddnKey: username
+
+    # -- Password for LDAP authentication
+    password: ""
+
+    # -- Key used within secret for username
+    passwordKey: password
+
+    # -- Existing secret to use for ldap
+    existingSecret: ""
+
+    # -- Mapping for LDAP attributes
+    mappings:
+      dn: dn
+      mail: mail
+      uid: uid
+      cn: cn
+
+  oidc:
+    # -- Enable oidc authentication
+    enable: false
+
+    # -- Dictionary of oidc providers
+    providers: {}
+      # keycloak:
+      #   display_name: Keycloak
+      #   provider_url: https://auth.example.com/auth/realms/example
+      #   redirect_url: https://semaphore.example.com/api/auth/oidc/keycloak/redirect
+      #   client_id: semaphore
+      #   client_secret: ""
+      #   username_claim: preferred_username
+      #   name_claim: preferred_username
+      #   email_claim: email
+
+  email:
+    # -- Enable email alerting
+    alert: false
+
+    # -- Sender for email alerting
+    sender: ""
+
+    # -- Host of the SMTP server
+    host: ""
+
+    # -- Port of the SMTP server
+    port: ""
+
+    # -- Enable a secure connection
+    secure: false
+
+    # -- Username for SMTP server
+    username: ""
+
+    # -- Key used within secret for username
+    usernameKey: username
+
+    # -- Password for SMTP server
+    password: ""
+
+    # -- Key used within secret for password
+    passwordKey: password
+
+    # -- Existing secret to use for email
+    existingSecret: ""
+
+  telegram:
+    # -- Enable telegram alerting
+    alert: false
+
+    # -- Chat used for telegram
+    chat: ""
+
+    # -- Key used within secret for chat
+    chatKey: chat
+
+    # -- Token used for telegram
+    token: ""
+
+    # -- Key used within secret for token
+    tokenKey: token
+
+    # -- Existing secret to use for telegram
+    existingSecret: ""
+
+  slack:
+    # -- Enable slack alerting
+    alert: false
+
+    # -- URL used for slack
+    url: ""
+
+    # -- Key used within secret for url
+    urlKey: url
+
+    # -- Existing secret to use for slack
+    existingSecret: ""
+
+  runner:
+    # -- Runner registration token
+    token: ""
+
+    # -- Key used within secret for token
+    tokenKey: token
+
+    # -- Existing secret to use for runner
+    existingSecret: ""
+
+  billing:
+    # -- Enable billing
+    enabled: false
+
+  admin:
+    # -- Create an local admin user
+    create: false
+
+    # -- Fullname for local admin
+    fullname: Admin
+
+    # -- Key used within secret for fullname
+    fullnameKey: fullname
+
+    # -- Username for local admin
+    username: admin
+
+    # -- Key used within secret for username
+    usernameKey: username
+
+    # -- Password for local admin
+    password: ""
+
+    # -- Key used within secret for password
+    passwordKey: password
+
+    # -- Email for local admin
+    email: admin@localhost
+
+    # -- Key used within secret for email
+    emailKey: email
+
+    # -- Existing secret to use for admin
+    existingSecret: ""
+
+  # -- Resources for the deployment
+  resources:
+    limits: {}
+    requests:
+      cpu: 100m
+      memory: 64Mi
+
+  # -- Node selector for the deployment
+  nodeSelector: {}
+
+  # -- Affinity for the deployment
+  affinity: {}
+
+  # -- Tolerations for the deployment
+  tolerations: []
+
+  # -- List of environment variables from existing secrets
+  envFromSecrets: []
+
+  # -- List of environment variables from existing configmaps
+  envFromConfigMaps: []
+
+  # -- Extra environment variables from mapping
+  extraEnvVariables: {}
+
+  # -- Extra environment variables from secrets
+  extraEnvSecrets: {}
+
+# MARK: Cert Manager
+
+ca:
+  enabled: false
+  issuers:
+    - name: semaphore-ca-issuer
+      selfSigned: true
+      secret:
+        create: false
+
+# MARK: Gateway
+
+gateway:
+  enabled: false
+  routes:
+    - name: semaphore-http-route
+      kind: HTTPRoute
+      hostnames:
+        - semaphore.local
+      rules:
+        - backendRefs:
+            - name: semaphoreui
+              port: 3000
+        - filters:
+            - type: RequestRedirect
+              requestRedirect:
+                scheme: https
+                statusCode: 301
+      gateways:
+        - name: semaphore-gateway
+  gateways: []
+    # - name: semaphore-gateway
+    #   className: envoy
+    #   listeners:
+    #     - name: http
+    #       port: 80
+    #       protocol: HTTP
+    #       allowedRoutes:
+    #         namespaces:
+    #           from: Same
+    #     - name: https
+    #       port: 443
+    #       protocol: HTTPS
+    #       hostname: semaphore.local
+    #       allowedRoutes:
+    #         namespaces:
+    #           from: Same
+    #       tls:
+    #         mode: Terminate
+    #         certificateRefs:
+    #           - name: semaphore-gw-cert
+    #             issuer: semaphore-ca-issuer
+    #             type: Issuer
