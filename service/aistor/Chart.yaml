@@ -3,7 +3,7 @@ apiVersion: v2
 name: aistor
 type: application
 description: A Helm chart that deploys MinIO AIStor and its dependencies.
-version: 1.0.0
+version: 1.0.2
 dependencies:
   - alias: aistorop
     name: aistor-operator
