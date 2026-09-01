@@ -157,6 +157,9 @@ aistorop:
       disabled: true
     warp:
       disabled: true
+  env: []
+    # - name: GODEBUG
+    #   value: fips140=on
 
 # MARK: Objectstore
 
