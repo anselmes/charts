@@ -383,3 +383,129 @@ aistor:
     #       #       accesskey: ""   # Your AWS Access Key
     #       #       secretkey: ""   # Your AWS Secret Key
     #       #       token: ""       # Your AWS session token (usually optional)
+
+# MARK: External Secret
+
+secret:
+  enabled: false
+  generators: []
+    # - kind: Password
+    #   name: aistor-password-generator
+    #   generator:
+    #     passwordSpec:
+    #       length: 42
+    #       digits: 5
+    #       symbols: 5
+    #       symbolCharacters: -_$@
+    #       noUpper: false
+    #       allowRepeat: true
+    #       secretKeys:
+    #         - accessKey
+    #         - secretKey
+  externalSecrets: []
+    # - name: minio-env-configuration
+    #   externalSecretSpec:
+    #     refreshPolicy: CreatedOnce
+    #     target:
+    #       creationPolicy: Orphan
+    #       immutable: true
+    #       template:
+    #         data:
+    #           config.env: |-
+    #             export MINIO_ROOT_USER="{{ .accessKey }}"
+    #             export MINIO_ROOT_PASSWORD="{{ .secretKey }}"
+    #     dataFrom:
+    #       - sourceRef:
+    #           generatorRef:
+    #             apiVersion: generators.external-secrets.io/v1alpha1
+    #             kind: Password
+    #             name: aistor-password-generator
+    # - kind: ExternalSecret
+    #   name: minio-license
+    #   externalSecretSpec:
+    #     secretStoreRef:
+    #       name: vault
+    #       kind: ClusterSecretStore
+    #     data:
+    #       # checkov:skip=CKV_SECRET_6
+    #       - secretKey: minio.license
+    #         remoteRef:
+    #           key: minio
+    #           property: license
+
+# MARK: Cert Manager
+
+ca:
+  enabled: false
+  issuers:
+    - name: minio-ca-issuer
+      selfSigned: true
+      secret:
+        create: false
+
+# MARK: Gateway
+
+gateway:
+  enabled: false
+  routes:
+    - name: minio-http-route
+      kind: HTTPRoute
+      hostnames:
+        - minio.local
+      rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+          backendRefs:
+            - name: minio
+              port: 443
+        - filters:
+            - type: RequestRedirect
+              requestRedirect:
+                scheme: https
+                statusCode: 301
+      gateways:
+        - name: minio-gateway
+    - name: minio-console-http-route
+      kind: HTTPRoute
+      hostnames:
+        - console.minio.local
+      rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+          backendRefs:
+            - name: minio-console
+              port: 9443
+        - filters:
+            - type: RequestRedirect
+              requestRedirect:
+                scheme: https
+                statusCode: 301
+      gateways:
+        - name: minio-gateway
+  gateways: []
+    # - name: minio-gateway
+    #   className: envoy
+    #   listeners:
+    #     - name: http
+    #       port: 80
+    #       protocol: HTTP
+    #       allowedRoutes:
+    #         namespaces:
+    #           from: Same
+    #     - name: https
+    #       port: 443
+    #       protocol: HTTPS
+    #       hostname: "*.minio.local"
+    #       allowedRoutes:
+    #         namespaces:
+    #           from: Same
+    #       tls:
+    #         mode: Terminate
+    #         certificateRefs:
+    #           - name: minio-gw-cert
+    #             issuer: minio-ca-issuer
+    #             type: Issuer
