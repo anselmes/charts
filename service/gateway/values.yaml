@@ -37,8 +37,7 @@ routes: []
 
 # Define policies for the Gateway API.
 # Policies can include validation rules, such as hostname validation or certificate references.
-policies:
-  []
+policies: []
   # - name: tls-upstream-dev
   #   validation:
   #     hostname: dev.example.com
