@@ -147,14 +147,14 @@ mysql:
 
       size: 3
 
-      resources:
-        requests:
-          memory: 1Gi
-          cpu: 600m
-        limits: {}
+      resources: {}
+        # requests:
+        #   memory: 1Gi
+        #   cpu: 600m
+        # limits: {}
 
-      affinity:
-        antiAffinityTopologyKey: "kubernetes.io/hostname"
+      affinity: {}
+        # antiAffinityTopologyKey: kubernetes.io/hostname
 
       nodeSelector: {}
       tolerations: []
