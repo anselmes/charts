@@ -26,18 +26,18 @@ postgres:
   instances:
     - name: instance1
       replicas: 3
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 1
-              podAffinityTerm:
-                labelSelector:
-                  matchLabels:
-                    postgres-operator.crunchydata.com/data: postgres
-                topologyKey: kubernetes.io/hostname
+      affinity: {}
+        # podAntiAffinity:
+        #   preferredDuringSchedulingIgnoredDuringExecution:
+        #     - weight: 1
+        #       podAffinityTerm:
+        #         labelSelector:
+        #           matchLabels:
+        #             postgres-operator.crunchydata.com/data: postgres
+        #         topologyKey: kubernetes.io/hostname
 
       dataVolumeClaimSpec:
-    #    storageClassName: standard
+        # storageClassName: standard
         accessModes:
           - ReadWriteOnce
         resources:
