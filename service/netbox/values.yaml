@@ -397,72 +397,72 @@ netbox:
       #   subPath: kv_ca
       #   readOnly: true
 
-data:
+# data:
 
-  # MARK: Postgres
+#   # MARK: Postgres
 
-  postgres:
-    enabled: false
-    postgresVersion: 17
-    finalizers:
-      - percona.com/delete-pvc
-      - percona.com/delete-ssl
-      - percona.com/delete-backups
-    instances:
-      - name: msr
-        replicas: 3
-        dataVolumeClaimSpec:
-          storageClassName: ""
-          resources:
-            requests:
-              storage: 1Gi
-    proxy:
-      pgBouncer:
-        replicas: 2
-    backups:
-      enabled: false
-      trackLatestRestorableTime: true
+#   postgres:
+#     enabled: false
+#     postgresVersion: 17
+#     finalizers:
+#       - percona.com/delete-pvc
+#       - percona.com/delete-ssl
+#       - percona.com/delete-backups
+#     instances:
+#       - name: msr
+#         replicas: 3
+#         dataVolumeClaimSpec:
+#           storageClassName: ""
+#           resources:
+#             requests:
+#               storage: 1Gi
+#     proxy:
+#       pgBouncer:
+#         replicas: 2
+#     backups:
+#       enabled: false
+#       trackLatestRestorableTime: true
 
-  # MARK: Redis
+#   # MARK: Redis
 
-  redisreplication:
-    enabled: false
+#   redisreplication:
+#     enabled: false
 
-    redisReplication:
-      clusterSize: 3
-      image: quay.io/opstree/redis
-      tag: v8.2.2
-      resources: {}
-        # requests:
-        #   cpu: 100m
-        #   memory: 128Mi
-        # limits:
-        #   cpu: 100m
-        #   memory: 128Mi
-    storageSpec:
-      volumeClaimTemplate:
-        spec:
-          storageClassName: ""
-          resources:
-            requests:
-              storage: 1Gi
+#     redisReplication:
+#       clusterSize: 3
+#       image: quay.io/opstree/redis
+#       tag: v8.2.2
+#       resources: {}
+#         # requests:
+#         #   cpu: 100m
+#         #   memory: 128Mi
+#         # limits:
+#         #   cpu: 100m
+#         #   memory: 128Mi
+#     storageSpec:
+#       volumeClaimTemplate:
+#         spec:
+#           storageClassName: ""
+#           resources:
+#             requests:
+#               storage: 1Gi
 
-  # MARK: Redis Sentinel
+#   # MARK: Redis Sentinel
 
-  redissentinel:
-    enabled: false
+#   redissentinel:
+#     enabled: false
 
-    redisSentinel:
-      clusterSize: 3
-      image: quay.io/opstree/redis-sentinel
-      tag: v7.0.15
-      resources: {}
-        # requests:
-        #   cpu: 100m
-        #   memory: 128Mi
-        # limits:
-        #   cpu: 100m
-        #   memory: 128Mi
+#     redisSentinel:
+#       clusterSize: 3
+#       image: quay.io/opstree/redis-sentinel
+#       tag: v7.0.15
+#       resources: {}
+#         # requests:
+#         #   cpu: 100m
+#         #   memory: 128Mi
+#         # limits:
+#         #   cpu: 100m
+#         #   memory: 128Mi
 
-    redisSentinelConfig:
-      redisReplicationName: redis-replication
+#     redisSentinelConfig:
+#       redisReplicationName: redis-replication
