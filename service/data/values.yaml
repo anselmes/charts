@@ -117,14 +117,14 @@ mysql:
     # configuration: |
     #   max_connections=250
 
-    resources:
-      requests:
-        memory: 2Gi
-      limits:
-        memory: 4Gi
+    resources: {}
+      # requests:
+      #   memory: 2Gi
+      # limits:
+      #   memory: 4Gi
 
-    affinity:
-      antiAffinityTopologyKey: "kubernetes.io/hostname"
+    affinity: {}
+      # antiAffinityTopologyKey: kubernetes.io/hostname
 
     exposePrimary:
       enabled: true
