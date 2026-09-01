@@ -489,7 +489,7 @@ redissentinel:
       #   memory: 128Mi
 
   redisSentinelConfig:
-    redisReplicationName: "redis-replication"
+    redisReplicationName: redis-replication
     redisReplicationPassword:
       secretName: ""
       secretKey: ""
