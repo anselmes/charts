@@ -29,7 +29,7 @@ spec:
                 if kubectl get crd clustersecretstores.external-secrets.io >/dev/null 2>&1; then
                   echo "CRD found, creating ClusterGenerator"
                 {{- else }}
-                if kubectl get crd {{ $generator.type | default "Password" | lower }}s.external-secrets.io >/dev/null 2>&1; then
+                if kubectl get crd {{ $generator.type | default "Password" | lower }}s.generators.external-secrets.io >/dev/null 2>&1; then
                   echo "CRD found, creating {{ $generator.type | default "Password" }}"
                 {{- end }}
                   cat <<EOF | kubectl apply -f -
