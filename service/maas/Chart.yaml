@@ -8,9 +8,6 @@ dependencies:
   - name: helm-toolkit
     repository: file://../../library/helm-toolkit
     version: ">=2025.2.0"
-  - name: data
-    repository: oci://ghcr.io/labsonline/charts
-    version: 1.0.1
   - name: gateway
     repository: oci://ghcr.io/labsonline/charts
-    version: 1.0.3
+    version: 1.0.4
