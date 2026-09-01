@@ -3,8 +3,7 @@
 
 # List of certificates to be managed by cert-manager.
 # Each certificate defines the desired state of a TLS certificate.
-certificates:
-  []
+certificates: []
   # - name: example-certificate  # Name of the certificate resource.
   #   duration: 2160h            # Validity duration of the certificate (90 days).
   #   renewal: 360h              # Time before expiration to renew the certificate (15 days).
