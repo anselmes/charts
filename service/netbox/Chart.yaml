@@ -8,6 +8,3 @@ dependencies:
   - name: netbox
     repository: oci://ghcr.io/netbox-community/netbox-chart
     version: 8.3.38
-  - name: data
-    repository: oci://ghcr.io/labsonline/charts
-    version: 1.0.1
