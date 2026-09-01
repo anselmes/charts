@@ -48,31 +48,36 @@ postgres:
     pgBouncer:
       replicas: 3
       image: docker.io/percona/percona-pgbouncer:1.25.0-1
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 1
-              podAffinityTerm:
-                labelSelector:
-                  matchLabels:
-                    postgres-operator.crunchydata.com/role: pgbouncer
-                topologyKey: kubernetes.io/hostname
+      affinity: {}
+        # podAntiAffinity:
+        #   preferredDuringSchedulingIgnoredDuringExecution:
+        #     - weight: 1
+        #       podAffinityTerm:
+        #         labelSelector:
+        #           matchLabels:
+        #             postgres-operator.crunchydata.com/role: pgbouncer
+        #         topologyKey: kubernetes.io/hostname
 
   backups:
+    # Do not set to false: the Percona PG operator requires backups.pgbackrest.image
+    # unconditionally (it's mandatory infra for WAL archiving, not just scheduled
+    # backups), but the pg-db chart only renders the pgbackrest block when this is
+    # true. To disable scheduled backups without breaking the operator, remove the
+    # `schedules` key from backups.pgbackrest.repos[] instead of setting this false.
     enabled: true
     trackLatestRestorableTime: true
     pgbackrest:
       image: docker.io/percona/percona-pgbackrest:2.57.0-1
       repoHost:
-        affinity:
-          podAntiAffinity:
-            preferredDuringSchedulingIgnoredDuringExecution:
-              - weight: 1
-                podAffinityTerm:
-                  labelSelector:
-                    matchLabels:
-                      postgres-operator.crunchydata.com/data: pgbackrest
-                  topologyKey: kubernetes.io/hostname
+        affinity: {}
+          # podAntiAffinity:
+          #   preferredDuringSchedulingIgnoredDuringExecution:
+          #     - weight: 1
+          #       podAffinityTerm:
+          #         labelSelector:
+          #           matchLabels:
+          #             postgres-operator.crunchydata.com/data: pgbackrest
+          #         topologyKey: kubernetes.io/hostname
 
   pmm:
     enabled: false
