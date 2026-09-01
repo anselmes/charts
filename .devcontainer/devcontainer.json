@@ -1,6 +1,6 @@
 {
   "name": "Charts",
-  "dockerComposeFile": ["${localWorkspaceFolder}/compose-dev.yaml"],
+  "dockerComposeFile": ["${localWorkspaceFolder}/.devcontainer/compose.yml"],
   "service": "charts",
   "workspaceFolder": "/home/devcontainer",
   "postCreateCommand": "${containerWorkspaceFolder}/scripts/configure.sh",
