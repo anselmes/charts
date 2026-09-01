@@ -5,13 +5,13 @@
 postgres:
   enabled: false
 
-  finalizers:
-  # Set this if you want that operator deletes the PVCs on cluster deletion
-  #  - percona.com/delete-pvc
-  # Set this if you want that operator deletes the ssl objects on cluster deletion
-  #  - percona.com/delete-ssl
-  # Set this if you want that operator deletes the backups on cluster deletion
-  #  - percona.com/delete-backups
+  finalizers: []
+    # Set this if you want that operator deletes the PVCs on cluster deletion
+    #  - percona.com/delete-pvc
+    # Set this if you want that operator deletes the ssl objects on cluster deletion
+    #  - percona.com/delete-ssl
+    # Set this if you want that operator deletes the backups on cluster deletion
+    #  - percona.com/delete-backups
 
   repository: docker.io/percona/percona-distribution-postgresql
   image: docker.io/percona/percona-distribution-postgresql:17.7-2
