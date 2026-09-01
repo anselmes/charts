@@ -3,4 +3,4 @@ apiVersion: v2
 name: gateway
 type: application
 description: A Helm chart that deploys the Gateway service for Kubernetes.
-version: 1.0.3
+version: 1.0.4
