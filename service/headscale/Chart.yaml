@@ -12,9 +12,9 @@ dependencies:
     condition: operator.enabled
   - name: ca
     repository: oci://ghcr.io/labsonline/charts
-    version: 1.0.6
+    version: 1.0.7
     condition: ca.enabled
   - name: gateway
     repository: oci://ghcr.io/labsonline/charts
-    version: 1.0.3
+    version: 1.0.4
     condition: gateway.enabled
