@@ -1,4 +1,4 @@
-{{- if and .Values.cilium.bgp.enabled }}
+{{- if and .Values.cilium.enabled .Values.cilium.bgp.enabled }}
 {{- range .Values.cilium.bgp.instances }}
 {{- if .overrides.enabled }}
 ---
