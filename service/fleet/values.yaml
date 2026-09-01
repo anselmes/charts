@@ -1,0 +1,280 @@
+fleet:
+  ## Section: Kubernetes
+  # All settings related to how Fleet is deployed in Kubernetes
+  hostName: fleet.local
+  replicas: 3 # The number of Fleet instances to deploy
+  imageRepository: fleetdm/fleet
+  imageTag: v4.90.0 # Version of Fleet to deploy
+  # imagePullPolicy is optional. If unset, Kubernetes defaults to IfNotPresent
+  # for tagged images and Always for the :latest tag. Valid values: Always,
+  # IfNotPresent, Never.
+  # imagePullPolicy: IfNotPresent
+  # imagePullSecrets is optional.
+  # imagePullSecrets:
+  #   - name: docker
+  #   - name: internal
+  resources:
+    limits:
+      cpu: 1 # 1 CPU Core
+      memory: 4Gi
+    requests:
+      cpu: 0.1 # 0.1 CPU Core
+      memory: 50Mi
+
+  # Node labels for pod assignment
+  # ref: https://kubernetes.io/docs/user-guide/node-selection/
+  nodeSelector: {}
+
+  # Tolerations for pod assignment
+  # ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+
+  # Configurable affinity for pod assignment
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                    - fleet
+            topologyKey: kubernetes.io/hostname
+          weight: 100
+
+  ## Section: Fleet
+  # All of the settings relating to configuring the Fleet server
+  fleet:
+    # Name of the Secret resource storing S3 bucket and optionally TLS secrets
+    secretName: fleet
+    # Whether or not to run `fleet db prepare` to run SQL migrations before starting Fleet
+    autoApplySQLMigrations: true
+    tls:
+      enabled: false
+      uniqueTLSSecret: true
+      secretName: fleet-tls
+      certSecretKey: tls.crt
+      keySecretKey: tls.key
+    auth:
+      bcryptCost: 12
+      saltKeySize: 24
+    app:
+      tokenKeySize: 24
+      inviteTokenValidityPeriod: 120h # 5 days
+    session:
+      keySize: 64
+      duration: 2160h # 90 days
+    logging:
+      debug: false
+      json: false
+      disableBanner: false
+    mdm:
+      windows:
+        wstepIdentityCertKey: ""
+        wstepIdentityKeyKey: ""
+    carving:
+      s3:
+        bucketName: ""
+        prefix: ""
+        accessKeyID: ""
+        # checkov:skip=CKV_SECRET_6
+        secretKey: s3-bucket
+        region: ""
+        endpointURL: ""
+        forceS3PathStyle: false
+        gcsIAMAuth: false
+        stsAssumeRoleARN: ""
+    softwareInstallers:
+      s3:
+        bucketName: ""
+        prefix: ""
+        accessKeyID: ""
+        # checkov:skip=CKV_SECRET_6
+        secretKey: software-installers
+        region: ""
+        endpointURL: ""
+        forceS3PathStyle: false
+        gcsIAMAuth: false
+        stsAssumeRoleARN: ""
+    # license:
+    #   secretName: fleet-license
+    #   licenseKey: license-key
+    # Currently only passes readOnlyRootFilesystem, runAsNonRoot, runAsUser, runAsGroup
+    securityContext:
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 3333
+      runAsGroup: 3333
+
+  # Whether to make fleet vulnerability processing run in a dedicated container
+  # if you set dedicated=false, you need to increase the main resources section
+  # to 4Gi or the fleet container will be OOMKilled when vulnerability processing
+  # tries to run.
+  vulnProcessing:
+    dedicated: true
+    schedule: 0 * * * *
+    resources:
+      limits:
+        cpu: 1 # 1GHz
+        memory: 4Gi
+      requests:
+        cpu: 0.1 # 100Mhz
+        memory: 50Mi
+
+  ## Section: osquery
+  # All of the settings related to osquery's interactions with the Fleet server
+  osquery:
+    # Name of the secret resource containing optional secrets for AWS credentials
+    secretName: osquery
+    nodeKeySize: 24
+    labelUpdateInterval: 30m
+    detailUpdateInterval: 30m
+
+    # To change where Fleet store the logs sent from osquery, set the values below
+    logging:
+      statusPlugin: filesystem
+      resultPlugin: filesystem
+
+      # To congigure the filesystem logger, change the values below
+      filesystem:
+        statusLogFile: osquery_status # will be placed in the /logs volume
+        resultLogFile: osquery_result # will be placed in the /logs volume
+        enableRotation: false
+        enableCompression: false
+        volumeSize: 20Gi # the maximum size of the volume
+
+  ## Section: database
+  # All of the connection settings for MySQL
+  database:
+    # Name of the Secret resource containing MySQL password and TLS secrets
+    secretName: fleet-db-secret
+    address: fleet-db-mysql:3306
+    database: fleet
+    username: fleet
+    # checkov:skip=CKV_SECRET_6
+    passwordKey: fleet
+    maxOpenConns: 50
+    maxIdleConns: 50
+    connMaxLifetime: 0
+    tls:
+      enabled: false
+      ## Commented options below are optional.  Uncomment to use.
+      # caCertKey: ca.cert
+      ## Client certificates require both the certKey and keyKey
+      # certKey: client.cert
+      # keyKey: client.key
+      config: ""
+      serverName: ""
+
+    # Idempotently creates the application database/user before fleet-migration
+    # runs, since the ps-db operator only provisions its own system accounts.
+    bootstrap:
+      enabled: false
+      # checkov:skip=CKV_SECRET_6
+      rootPasswordKey: root
+      image:
+        repository: percona/percona-server
+        tag: 8.4.6-6.1
+
+  ## Section: cache
+  # All of the connection settings for Redis
+  cache:
+    address: fleet-cache-headless:6379
+    database: "0"
+    usePassword: true
+    secretName: fleet-cache-secret
+    # checkov:skip=CKV_SECRET_6
+    passwordKey: password
+
+  ## Section: Environment Variables
+  # All of the environment variables that can be set for Fleet
+  environments:
+    # MDM Settings
+    # The following environment variable is required if you are using
+    # Fleet's macOS MDM features.  In a production environment, it is recommended that
+    # you store this private key in a secret and use envsFrom to reference the secret below.
+    # For more information, check out the docs: https://fleetdm.com/docs/configuration/fleet-server-configuration#server-private-key
+    FLEET_SERVER_PRIVATE_KEY: ""
+
+  ## Section: Environment Variables from Secrets/CMs
+  # envsFrom:
+  # - name: MY_ENV_NAME_1
+  #   valueFrom:
+  #     configMapKeyRef:
+  #       name: cm-name
+  #       key: cm-key-name
+  # - name: MY_ENV_NAME_2
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: secret-name
+  #       key: secret-key-name
+
+# MARK: Cert Manager
+
+ca:
+  enabled: false
+  certificates:
+    - name: fleet
+      dns:
+        name: fleet-service
+        aliases:
+          - fleet-service
+          - fleet-service.fleetdm
+          - fleet-service.fleetdm.svc
+          - fleet-service.fleetdm.svc.cluster.local
+      issuerRef:
+        name: fleet-ca-issuer
+  issuers:
+    - name: fleet-ca-issuer
+      selfSigned: true
+      secret:
+        create: false
+
+# MARK: Gateway
+
+gateway:
+  enabled: false
+  routes:
+    - name: fleet-http-route
+      kind: HTTPRoute
+      hostnames:
+        - fleet.local
+      rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+          backendRefs:
+            - name: fleet-service
+              port: 8080
+        - filters:
+            - type: RequestRedirect
+              requestRedirect:
+                scheme: https
+                statusCode: 301
+      gateways:
+        - name: fleet-gateway
+  gateways: []
+    # - name: fleet-gateway
+    #   className: envoy
+    #   listeners:
+    #     - name: http
+    #       port: 80
+    #       protocol: HTTP
+    #       allowedRoutes:
+    #         namespaces:
+    #           from: Same
+    #     - name: https
+    #       port: 443
+    #       protocol: HTTPS
+    #       hostname: fleet.local
+    #       allowedRoutes:
+    #         namespaces:
+    #           from: Same
+    #       tls:
+    #         mode: Terminate
+    #         certificateRefs:
+    #           - name: fleet-gw-cert
+    #             issuer: fleet-ca-issuer
+    #             type: Issuer
