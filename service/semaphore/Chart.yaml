@@ -1,0 +1,18 @@
+---
+apiVersion: v2
+name: semaphore
+type: application
+description: A Helm chart that deploys various Semaphore UI and its dependencies.
+version: 14.0.6
+dependencies:
+  - name: semaphoreui
+    repository: https://semaphoreui.github.io/charts
+    version: 14.0.6
+  - name: ca
+    repository: oci://ghcr.io/labsonline/charts
+    version: 1.0.7
+    condition: ca.enabled
+  - name: gateway
+    repository: oci://ghcr.io/labsonline/charts
+    version: 1.0.4
+    condition: gateway.enabled
