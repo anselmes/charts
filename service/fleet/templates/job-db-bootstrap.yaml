@@ -1,0 +1,88 @@
+{{- if .Values.fleet.database.bootstrap.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fleet-db-bootstrap
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: fleet
+    chart: fleet
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  ttlSecondsAfterFinished: 100
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: fleet
+        chart: fleet
+        heritage: {{ .Release.Service }}
+        release: {{ .Release.Name }}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: fleet-db-bootstrap
+          image: "{{ .Values.fleet.database.bootstrap.image.repository }}:{{ .Values.fleet.database.bootstrap.image.tag }}"
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - |
+              set -e
+              export MYSQL_HISTFILE=/dev/null
+              export MYSQL_PWD="$ROOT_PASSWORD"
+              for i in {1..60}; do
+                if mysql -h "$DB_HOST" -P "$DB_PORT" -u root -e "SELECT 1" >/dev/null 2>&1; then
+                  echo "Database reachable, applying bootstrap SQL"
+                  mysql -h "$DB_HOST" -P "$DB_PORT" -u root <<-SQL
+                    CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`;
+                    CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASSWORD';
+                    GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'%';
+                    FLUSH PRIVILEGES;
+              SQL
+                  exit 0
+                fi
+                echo "Waiting for database at $DB_HOST:$DB_PORT... attempt $i/60"
+                sleep 5
+              done
+              echo "Timed out waiting for database"
+              exit 1
+          env:
+            - name: DB_HOST
+              value: {{ splitList ":" .Values.fleet.database.address | first | quote }}
+            - name: DB_PORT
+              value: {{ splitList ":" .Values.fleet.database.address | last | quote }}
+            - name: DB_NAME
+              value: {{ .Values.fleet.database.database | quote }}
+            - name: DB_USER
+              value: {{ .Values.fleet.database.username | quote }}
+            - name: ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.fleet.database.secretName }}
+                  key: {{ .Values.fleet.database.bootstrap.rootPasswordKey }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.fleet.database.secretName }}
+                  key: {{ .Values.fleet.database.passwordKey }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1001
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}
