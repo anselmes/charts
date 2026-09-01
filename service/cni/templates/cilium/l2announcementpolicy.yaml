@@ -1,4 +1,4 @@
-{{- if and .Values.cilium.l2.enabled }}
+{{- if and .Values.cilium.enabled .Values.cilium.l2.enabled }}
 ---
 apiVersion: batch/v1
 kind: Job
