@@ -1,0 +1,13 @@
+{{- if and .Values.adminJob.enabled .Values.adminJob.config.create .Values.adminJob.config.policy }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.adminJob.config.name }}
+  namespace: {{ .Release.Namespace }}
+data:
+  {{- with .Values.adminJob.config.policy }}
+  bucket-policy.json: |
+    {{- . | nindent 6 }}
+  {{- end }}
+{{- end }}
