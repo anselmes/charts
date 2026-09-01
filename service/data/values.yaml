@@ -585,7 +585,8 @@ redis:
     volumeClaimTemplate:
       spec:
         # storageClassName: standard
-        accessModes: ["ReadWriteOnce"]
+        accessModes:
+          - ReadWriteOnce
         resources:
           requests:
             storage: 1Gi
