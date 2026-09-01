@@ -1,0 +1,96 @@
+# AIStor Chart
+
+Thank you for installing the AIStor Helm chart!
+
+This chart deploys MinIO AIStor, an object storage cluster managed by the AIStor Operator, along with optional supporting resources (admin bootstrap jobs, external secrets, and gateway routing).
+
+## Installation Summary
+
+{{- if .Values.aistorop.enabled }}
+- **AIStor Operator**: Installed as dependency
+{{- else }}
+- **AIStor Operator**: Not installed (aistorop.enabled=false)
+{{- end }}
+{{- if .Values.aistor.enabled }}
+- **Object Store**: {{ .Values.aistor.objectStore.name }} ({{ len .Values.aistor.objectStore.pools }} pool(s))
+{{- else }}
+- **Object Store**: Not deployed (aistor.enabled=false)
+{{- end }}
+{{- if and .Values.adminJob.enabled .Values.adminJob.commands }}
+- **Admin Job**: {{ .Values.adminJob.name }} ({{ len .Values.adminJob.commands }} command(s))
+{{- else }}
+- **Admin Job**: Not created (no commands configured)
+{{- end }}
+{{- if .Values.secret.enabled }}
+- **External Secrets**: Installed as dependency
+{{- end }}
+{{- if .Values.gateway.enabled }}
+- **Gateway Routes**: Installed as dependency
+{{- end }}
+
+## Verification Steps
+
+1. **Check the AIStor Operator**:
+   ```bash
+   kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/name=aistor-operator
+   ```
+
+2. **Check the Object Store**:
+   ```bash
+   kubectl get tenants -n {{ .Release.Namespace }}
+   kubectl get pods -n {{ .Release.Namespace }} -l v1.min.io/tenant={{ .Values.aistor.objectStore.name }}
+   ```
+
+3. **Check the Admin Job** (if configured):
+   ```bash
+   kubectl get adminjobs -n {{ .Release.Namespace }} {{ .Values.adminJob.name }}
+   kubectl describe adminjobs -n {{ .Release.Namespace }} {{ .Values.adminJob.name }}
+   ```
+
+4. **Access the MinIO Console**:
+   ```bash
+   kubectl port-forward -n {{ .Release.Namespace }} svc/{{ .Values.aistor.objectStore.name }}-console 9443:9443
+   ```
+
+## Troubleshooting
+
+**If the Object Store is not ready:**
+```bash
+kubectl describe tenant -n {{ .Release.Namespace }} {{ .Values.aistor.objectStore.name }}
+kubectl logs -n {{ .Release.Namespace }} -l v1.min.io/tenant={{ .Values.aistor.objectStore.name }}
+```
+
+**If the Admin Job fails:**
+```bash
+kubectl describe adminjobs -n {{ .Release.Namespace }} {{ .Values.adminJob.name }}
+kubectl get events -n {{ .Release.Namespace }} --field-selector involvedObject.name={{ .Values.adminJob.name }}
+```
+
+**Check events:**
+```bash
+kubectl get events -n {{ .Release.Namespace }} --sort-by='.lastTimestamp'
+```
+
+## Configuration
+
+**Chart Dependencies:**
+{{- range .Chart.Dependencies }}
+{{- if eq .Name "aistorop" }}
+- aistor-operator v{{ .Version }} (as aistorop)
+{{- else if eq .Name "aistor" }}
+- aistor-objectstore v{{ .Version }} (as aistor)
+{{- else if eq .Name "secret" }}
+- eso v{{ .Version }} (as secret)
+{{- else }}
+- {{ .Name }} v{{ .Version }}
+{{- end }}
+{{- end }}
+
+## Cleanup
+
+To remove all resources:
+```bash
+helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
+```
+
+**Note**: Disable `aistor.objectStore.pvcProtection` before uninstalling if you want PVCs to be deleted automatically; otherwise persistent volumes will remain and must be removed manually.
