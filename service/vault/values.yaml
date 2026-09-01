@@ -486,28 +486,28 @@ vault:
 
 # MARK: Postgres
 
-data:
-  postgres:
-    enabled: false
-    postgresVersion: 17
-    finalizers:
-      - percona.com/delete-pvc
-      - percona.com/delete-ssl
-      - percona.com/delete-backups
-    instances:
-      - name: vault
-        replicas: 3
-        dataVolumeClaimSpec:
-          storageClassName: ""
-          resources:
-            requests:
-              storage: 1Gi
-    proxy:
-      pgBouncer:
-        replicas: 2
-    backups:
-      enabled: false
-      trackLatestRestorableTime: true
+# data:
+#   postgres:
+#     enabled: false
+#     postgresVersion: 17
+#     finalizers:
+#       - percona.com/delete-pvc
+#       - percona.com/delete-ssl
+#       - percona.com/delete-backups
+#     instances:
+#       - name: vault
+#         replicas: 3
+#         dataVolumeClaimSpec:
+#           storageClassName: ""
+#           resources:
+#             requests:
+#               storage: 1Gi
+#     proxy:
+#       pgBouncer:
+#         replicas: 2
+#     backups:
+#       enabled: false
+#       trackLatestRestorableTime: true
 
 ca:
   issuers: null
