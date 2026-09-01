@@ -4,8 +4,7 @@
 
 # Define the routes for the Gateway API.
 # Each route specifies the type of traffic (e.g., HTTP, TLS, gRPC) and the backend services to route to.
-routes:
-  []
+routes: []
   # - name: nginx
   #   kind: HTTPRoute
   #   hostnames:
