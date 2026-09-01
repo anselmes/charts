@@ -1,0 +1,28 @@
+{{- if and .Values.adminJob.enabled .Values.adminJob.commands }}
+---
+apiVersion: aistor.min.io/v1alpha1
+kind: AdminJob
+metadata:
+  name: {{ .Values.adminJob.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  execution: {{ .Values.adminJob.execution | default "parallel" }}
+  failureStrategy: {{ .Values.adminJob.failureStrategy | default "stopOnFailure" }}
+  serviceAccountName: {{ .Values.adminJob.serviceAccountName.name }}
+  ttlSecondsAfterFinished: {{ .Values.adminJob.ttlSecondsAfterFinished | default 3600 }}
+  objectStore:
+    name: {{ .Values.adminJob.objectStore.name | default .Values.aistor.objectStore.name }}
+    namespace: {{ .Values.adminJob.objectStore.namespace | default .Release.Namespace }}
+  {{- with .Values.adminJob.podAnnotations }}
+  podAnnotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.adminJob.podLabels }}
+  podLabels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.adminJob.commands }}
+  commands:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
