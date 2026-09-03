@@ -1,0 +1,79 @@
+{{- if .Values.clickhouse.enabled }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-keeper-cluster-{{ .Values.clickhouse.keeper.name }}
+  labels:
+    {{- include "monitoring.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  template:
+    spec:
+      serviceAccountName: clickhouse-resource-creator
+      restartPolicy: OnFailure
+      securityContext:
+        {{- toYaml .Values.jobs.securityContext | nindent 8 }}
+      containers:
+        - name: kubectl
+          image: "{{ .Values.jobs.kubectlImage.registry }}/{{ .Values.jobs.kubectlImage.repository }}:{{ .Values.jobs.kubectlImage.tag }}"
+          imagePullPolicy: {{ .Values.jobs.kubectlImage.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.jobs.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.jobs.resources | nindent 12 }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for keeper-cluster CRDs to be available..."
+              for i in {1..60}; do
+                if kubectl get crd keeperclusters.clickhouse.com >/dev/null 2>&1; then
+                  echo "CRD found, creating KeeperCluster"
+                  cat <<'EOF' | kubectl apply -f -
+              apiVersion: clickhouse.com/v1alpha1
+              kind: KeeperCluster
+              metadata:
+                name: {{ .Values.clickhouse.keeper.name }}
+                namespace: {{ .Release.Namespace }}
+                labels:
+                  {{- include "monitoring.labels" $ | nindent 18 }}
+              spec:
+                replicas: {{ .Values.clickhouse.keeper.replicas }}
+                dataVolumeClaimSpec:
+                  {{- if .Values.clickhouse.keeper.storage.class }}
+                  storageClassName: {{ .Values.clickhouse.keeper.storage.class }}
+                  {{- end }}
+                  resources:
+                    requests:
+                      storage: {{ .Values.clickhouse.keeper.storage.size }}
+                # Spread Keeper replicas across zones and hosts where possible
+                # -- standard well-known node labels, safe defaults for any
+                # cluster with more than one node/zone.
+                podTemplate:
+                  topologyZoneKey: topology.kubernetes.io/zone
+                  nodeHostnameKey: kubernetes.io/hostname
+                {{- with .Values.clickhouse.keeper.resources }}
+                containerTemplate:
+                  resources:
+                    {{- toYaml . | nindent 20 }}
+                {{- end }}
+                # settings:
+                #   tls:
+                #     enabled: true
+                #     required: true
+                #     serverCertSecret:
+                #       name: <keeper-certificate-secret>
+              EOF
+                  exit 0
+                fi
+                echo "Attempt $i: keeper-cluster CRD not ready, waiting 10s..."
+                sleep 10
+              done
+              echo "Timeout waiting for keeper-cluster CRD"
+              exit 1
+{{- end }}

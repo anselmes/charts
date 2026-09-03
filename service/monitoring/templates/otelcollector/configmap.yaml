@@ -1,0 +1,48 @@
+{{- if .Values.collector.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "monitoring.fullname" . }}-otel-collector
+  labels:
+    {{- include "monitoring.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      batch: {}
+
+    exporters:
+      clickhouse:
+        endpoint: "tcp://{{ .Values.collector.clickhouse.endpoint }}?dial_timeout=10s&compress=lz4"
+        database: {{ .Values.collector.clickhouse.database }}
+        username: {{ .Values.collector.clickhouse.username }}
+        password: ${env:CLICKHOUSE_PASSWORD}
+        ttl: {{ .Values.collector.clickhouse.ttl }}
+        create_schema: true
+        async_insert: true
+        compress: lz4
+        retry_on_failure:
+          enabled: true
+
+    service:
+      pipelines:
+        metrics:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [clickhouse]
+        logs:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [clickhouse]
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [clickhouse]
+{{- end }}

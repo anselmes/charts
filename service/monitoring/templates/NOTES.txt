@@ -1,0 +1,50 @@
+The monitoring chart has been installed.
+
+Enabled components in this release:
+{{- if .Values.monitoring.enabled }}
+  - Grafana Alloy (k8s-monitoring) collectors
+{{- end }}
+{{- if .Values.grafana.operator.enabled }}
+  - Grafana Operator
+{{- end }}
+{{- if .Values.grafana.enabled }}
+  - Grafana ({{ .Values.grafana.name }}){{ if .Values.gateway.enabled }}, reachable at https://{{ .Values.gateway.grafanaHostname }}{{ end }}
+{{- end }}
+{{- if .Values.clickhouse.operator.enabled }}
+  - ClickHouse Operator
+{{- end }}
+{{- if .Values.clickhouse.enabled }}
+  - ClickHouse cluster ({{ .Values.clickhouse.cluster.name }}) + Keeper ({{ .Values.clickhouse.keeper.name }})
+{{- end }}
+{{- if .Values.collector.enabled }}
+  - OTel Collector bridge (ClickHouse exporter)
+{{- end }}
+{{- if .Values.ca.enabled }}
+  - cert-manager Issuer (monitoring-ca-issuer, namespaced, self-signed)
+{{- end }}
+{{- if .Values.gateway.enabled }}
+  - Gateway API gateway + routes
+{{- end }}
+
+Next steps:
+  1. Run `helm dependency update` before installing/upgrading -- this release
+     adds the `ca` and `gateway` chart dependencies.
+  2. This chart never bundles external-secrets (eso) itself. Before
+     installing, deploy a separate out-of-band eso HelmRelease (same pattern
+     as fleet-secrets/semaphoreui-secrets) that creates:
+       - a Secret named {{ .Values.clickhouse.cluster.secret.name }} with key "password"
+       - a Secret named "<fullname>-grafana-admin" (or grafana.admin.secretName)
+         with key "password"
+     Only set clickhouse.cluster.secret.create / grafana.admin.create to true
+     instead if you want this chart to create a static Secret itself.
+  3. If dashboards are enabled, set grafana.dashboardSource.baseUrl to your
+     internal mirror of https://github.com/grafana/clickhouse-datasource
+     (these clusters are air-gapped, so a public GitHub URL will not resolve).
+  4. Verify the "grafana" entry in gateway.routes' backendRefs name matches
+     the Service the installed grafana-operator version actually creates for
+     the Grafana CR ("<name>-service" by convention) --
+     `kubectl get svc -l app.kubernetes.io/name={{ include "monitoring.name" . }}`.
+  5. Delete the now-unused dashboards/clickhouse/*.json files and the
+     templates/eso/ directory from this chart's source tree; both are
+     superseded (dashboards by the url: fetch mechanism, eso by the
+     out-of-band HelmRelease pattern in step 2).

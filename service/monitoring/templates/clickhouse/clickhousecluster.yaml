@@ -1,0 +1,107 @@
+{{- if .Values.clickhouse.enabled }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-clickhouse-cluster-{{ .Values.clickhouse.cluster.name }}
+  labels:
+    {{- include "monitoring.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  template:
+    spec:
+      serviceAccountName: clickhouse-resource-creator
+      restartPolicy: OnFailure
+      securityContext:
+        {{- toYaml .Values.jobs.securityContext | nindent 8 }}
+      containers:
+        - name: kubectl
+          image: "{{ .Values.jobs.kubectlImage.registry }}/{{ .Values.jobs.kubectlImage.repository }}:{{ .Values.jobs.kubectlImage.tag }}"
+          imagePullPolicy: {{ .Values.jobs.kubectlImage.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.jobs.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.jobs.resources | nindent 12 }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for clickhouse-cluster CRDs to be available..."
+              for i in {1..60}; do
+                if kubectl get crd clickhouseclusters.clickhouse.com >/dev/null 2>&1; then
+                  echo "CRD found, creating ClickHouseCluster"
+                  cat <<'EOF' | kubectl apply -f -
+              apiVersion: clickhouse.com/v1alpha1
+              kind: ClickHouseCluster
+              metadata:
+                name: {{ .Values.clickhouse.cluster.name }}
+                namespace: {{ .Release.Namespace }}
+                labels:
+                  {{- include "monitoring.labels" $ | nindent 18 }}
+              spec:
+                replicas: {{ .Values.clickhouse.cluster.replicas }}
+                shards: {{ .Values.clickhouse.cluster.shards }}
+                keeperClusterRef:
+                  name: {{ .Values.clickhouse.keeper.name }}
+                dataVolumeClaimSpec:
+                  {{- if .Values.clickhouse.cluster.storage.class }}
+                  storageClassName: {{ .Values.clickhouse.cluster.storage.class }}
+                  {{- end }}
+                  resources:
+                    requests:
+                      storage: {{ .Values.clickhouse.cluster.storage.size }}
+                {{- with .Values.clickhouse.cluster.resources }}
+                containerTemplate:
+                  resources:
+                    {{- toYaml . | nindent 20 }}
+                {{- end }}
+                # Spread replicas/shards across zones and hosts where possible
+                # -- standard well-known node labels, safe defaults for any
+                # cluster with more than one node/zone.
+                podTemplate:
+                  topologyZoneKey: topology.kubernetes.io/zone
+                  nodeHostnameKey: kubernetes.io/hostname
+                # externalSecret:
+                #   name: my-clickhouse-credentials
+                #   policy: Observe
+                settings:
+                  # tls:
+                  #   enabled: true
+                  #   required: true
+                  #   serverCertSecret:
+                  #     name: clickhouse-cert
+                  defaultUserPassword:
+                    passwordType: password
+                    secret:
+                      key: password
+                      name: {{ .Values.clickhouse.cluster.secret.name }}
+                  # extraUsersConfig:
+                  #   users:
+                  #     analyst:
+                  #       password:
+                  #         - '@from_env': ANALYST_PASSWORD
+                  #       profile: "readonly"
+                  #       quota: "default"
+                  #   profiles:
+                  #     readonly:
+                  #       readonly: 1
+                  #       max_memory_usage: 10000000000
+                  #   quotas:
+                  #     default:
+                  #       interval:
+                  #         duration: 3600
+                  #         queries: 1000
+                  #         errors: 100
+              EOF
+                  exit 0
+                fi
+                echo "Attempt $i: clickhouse-cluster CRD not ready, waiting 10s..."
+                sleep 10
+              done
+              echo "Timeout waiting for clickhouse-cluster CRD"
+              exit 1
+{{- end }}

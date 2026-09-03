@@ -1,0 +1,81 @@
+{{- if and .Values.grafana.enabled (not (empty .Values.grafana.datasources)) }}
+{{ range .Values.grafana.datasources }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-grafana-data-source-{{ $.Values.grafana.name }}-{{ .uid }}
+  labels:
+    {{- include "monitoring.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  template:
+    spec:
+      serviceAccountName: grafana-resource-creator
+      restartPolicy: OnFailure
+      securityContext:
+        {{- toYaml $.Values.jobs.securityContext | nindent 8 }}
+      containers:
+        - name: kubectl
+          image: "{{ $.Values.jobs.kubectlImage.registry }}/{{ $.Values.jobs.kubectlImage.repository }}:{{ $.Values.jobs.kubectlImage.tag }}"
+          imagePullPolicy: {{ $.Values.jobs.kubectlImage.pullPolicy }}
+          securityContext:
+            {{- toYaml $.Values.jobs.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml $.Values.jobs.resources | nindent 12 }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for grafana-data-source CRDs to be available..."
+              for i in {1..60}; do
+                if kubectl get crd grafanadatasources.grafana.integreatly.org >/dev/null 2>&1; then
+                  echo "CRD found, creating GrafanaDatasource"
+                  cat <<'EOF' | kubectl apply -f -
+              apiVersion: grafana.integreatly.org/v1beta1
+              kind: GrafanaDatasource
+              metadata:
+                name: {{ .uid }}
+                namespace: {{ $.Release.Namespace }}
+                labels:
+                  {{- include "monitoring.labels" $ | nindent 18 }}
+              spec:
+                instanceSelector:
+                  matchLabels:
+                    dashboards: {{ $.Values.grafana.name }}
+                {{- range .plugins }}
+                plugins:
+                  - name: {{ .name }}
+                    version: {{ .version }}
+                {{- end }}
+                datasource:
+                  name: {{ .name }}
+                  uid: {{ .uid }}
+                  type: {{ .type }}
+                  access: {{ .access | default "proxy" }}
+                  {{- with .jsonData }}
+                  jsonData:
+                    {{- tpl (toYaml .) $ | nindent 20 }}
+                  {{- end }}
+                  {{- with .secureJsonData }}
+                  secureJsonData:
+                    {{- tpl (toYaml .) $ | nindent 20 }}
+                  {{- end }}
+                {{- with .valuesFrom }}
+                valuesFrom:
+                  {{- toYaml . | nindent 18 }}
+                {{- end }}
+              EOF
+                  exit 0
+                fi
+                echo "Attempt $i: grafana-data-source CRD not ready, waiting 10s..."
+                sleep 10
+              done
+              echo "Timeout waiting for grafana-data-source CRD"
+              exit 1
+{{- end }}
+{{- end }}

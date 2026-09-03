@@ -2,10 +2,34 @@
 apiVersion: v2
 name: monitoring
 type: application
-description: A Helm chart that deploys Kubernetes monitoring stack using Grafana and Prometheus.
-version: 4.3.1
+description: >-
+  A Helm chart that deploys a ClickHouse + OpenTelemetry + Grafana observability
+  stack (Grafana Alloy for collection, an OTel Collector bridge, and ClickHouse
+  for storage), fronted by a Gateway API gateway and TLS issued by a dedicated,
+  namespaced Issuer. Secrets (ClickHouse, Grafana admin) are expected to be
+  provisioned out-of-band by a separate eso HelmRelease.
+version: 6.1.0
 dependencies:
   - alias: monitoring
     name: k8s-monitoring
     repository: https://grafana.github.io/helm-charts
-    version: 4.3.1
+    version: 4.4.0
+    condition: monitoring.enabled
+  - alias: grafana
+    name: grafana-operator
+    repository: oci://ghcr.io/grafana/helm-charts
+    version: 5.24.0
+    condition: grafana.operator.enabled
+  - alias: clickhouse
+    name: clickhouse-operator-helm
+    repository: oci://ghcr.io/clickhouse
+    version: 0.0.7
+    condition: clickhouse.operator.enabled
+  - name: ca
+    repository: oci://ghcr.io/labsonline/charts
+    version: 1.0.7
+    condition: ca.enabled
+  - name: gateway
+    repository: oci://ghcr.io/labsonline/charts
+    version: 1.0.4
+    condition: gateway.enabled

@@ -1,0 +1,60 @@
+{{- if and .Values.grafana.enabled (not (empty .Values.grafana.folders)) }}
+{{ range .Values.grafana.folders }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-grafana-folder-{{ $.Values.grafana.name }}-{{ . }}
+  labels:
+    {{- include "monitoring.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  template:
+    spec:
+      serviceAccountName: grafana-resource-creator
+      restartPolicy: OnFailure
+      securityContext:
+        {{- toYaml $.Values.jobs.securityContext | nindent 8 }}
+      containers:
+        - name: kubectl
+          image: "{{ $.Values.jobs.kubectlImage.registry }}/{{ $.Values.jobs.kubectlImage.repository }}:{{ $.Values.jobs.kubectlImage.tag }}"
+          imagePullPolicy: {{ $.Values.jobs.kubectlImage.pullPolicy }}
+          securityContext:
+            {{- toYaml $.Values.jobs.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml $.Values.jobs.resources | nindent 12 }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for grafana-folder CRDs to be available..."
+              for i in {1..60}; do
+                if kubectl get crd grafanafolders.grafana.integreatly.org >/dev/null 2>&1; then
+                  echo "CRD found, creating GrafanaFolder"
+                  cat <<'EOF' | kubectl apply -f -
+              apiVersion: grafana.integreatly.org/v1beta1
+              kind: GrafanaFolder
+              metadata:
+                name: {{ . }}
+                namespace: {{ $.Release.Namespace }}
+                labels:
+                  {{- include "monitoring.labels" $ | nindent 18 }}
+              spec:
+                title: {{ printf "%s%s" (upper (substr 0 1 .)) (substr 1 -1 .) }}
+                instanceSelector:
+                  matchLabels:
+                    dashboards: {{ $.Values.grafana.name }}
+              EOF
+                  exit 0
+                fi
+                echo "Attempt $i: grafana-folder CRD not ready, waiting 10s..."
+                sleep 10
+              done
+              echo "Timeout waiting for grafana-folder CRD"
+              exit 1
+{{- end }}
+{{- end }}

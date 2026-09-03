@@ -1,0 +1,101 @@
+{{- if .Values.grafana.enabled }}
+{{- $resourceCreatorName := "grafana-resource-creator" -}}
+{{- $existingServiceAccount := lookup "v1" "ServiceAccount" .Release.Namespace $resourceCreatorName -}}
+{{- $existingClusterRole := lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" $resourceCreatorName -}}
+{{- $existingClusterRoleBinding := lookup "rbac.authorization.k8s.io/v1" "ClusterRoleBinding" "" $resourceCreatorName -}}
+{{- if not $existingServiceAccount }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $resourceCreatorName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "monitoring.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+{{- end }}
+{{- if not $existingClusterRole }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $resourceCreatorName }}
+  labels:
+    {{- include "monitoring.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+rules:
+  - apiGroups:
+      - grafana.integreatly.org
+    resources:
+      - grafanaalertrulegroups
+      - grafanacontactpoints
+      - grafanadashboards
+      - grafanadatasources
+      - grafanafolders
+      - grafanalibrarypanels
+      - grafanamanifests
+      - grafanamutetimings
+      - grafananotificationpolicies
+      - grafananotificationpolicyroutes
+      - grafananotificationtemplates
+      - grafanas
+      - grafanaserviceaccounts
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+  - apiGroups:
+      - generators.external-secrets.io
+    resources:
+      - grafanas
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+      - list
+{{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $resourceCreatorName }}
+  labels:
+    {{- include "monitoring.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+subjects:
+  {{- $subjects := list (dict "kind" "ServiceAccount" "name" $resourceCreatorName "namespace" .Release.Namespace) -}}
+  {{- if $existingClusterRoleBinding }}
+  {{- range $existingClusterRoleBinding.subjects }}
+  {{- if not (and (eq .kind "ServiceAccount") (eq .name $resourceCreatorName) (eq .namespace $.Release.Namespace)) }}
+  {{- $subjects = append $subjects . }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+  {{- range $subjects }}
+  - kind: {{ .kind }}
+    name: {{ .name }}
+    namespace: {{ .namespace }}
+  {{- end }}
+roleRef:
+  kind: ClusterRole
+  name: {{ $resourceCreatorName }}
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

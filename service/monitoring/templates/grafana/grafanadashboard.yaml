@@ -1,0 +1,87 @@
+{{- if and .Values.grafana.enabled (not (empty .Values.grafana.dashboards)) }}
+{{ range .Values.grafana.dashboards }}
+{{- $url := .url }}
+{{- if .fromPlugin }}
+{{- $url = printf "%s/%s/%s.json" $.Values.grafana.dashboardSource.baseUrl $.Values.grafana.dashboardSource.pluginVersion .name }}
+{{- end }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-grafana-dashboards-{{ $.Values.grafana.name }}-{{ .name }}
+  labels:
+    {{- include "monitoring.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  template:
+    spec:
+      serviceAccountName: grafana-resource-creator
+      restartPolicy: OnFailure
+      securityContext:
+        {{- toYaml $.Values.jobs.securityContext | nindent 8 }}
+      containers:
+        - name: kubectl
+          image: "{{ $.Values.jobs.kubectlImage.registry }}/{{ $.Values.jobs.kubectlImage.repository }}:{{ $.Values.jobs.kubectlImage.tag }}"
+          imagePullPolicy: {{ $.Values.jobs.kubectlImage.pullPolicy }}
+          securityContext:
+            {{- toYaml $.Values.jobs.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml $.Values.jobs.resources | nindent 12 }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for grafana-dashboards CRDs to be available..."
+              for i in {1..60}; do
+                if kubectl get crd grafanadashboards.grafana.integreatly.org >/dev/null 2>&1; then
+                  echo "CRD found, creating GrafanaDashboard"
+                  cat <<'EOF' | kubectl apply -f -
+              apiVersion: grafana.integreatly.org/v1beta1
+              kind: GrafanaDashboard
+              metadata:
+                name: {{ .name }}
+                namespace: {{ $.Release.Namespace }}
+                labels:
+                  {{- include "monitoring.labels" $ | nindent 18 }}
+              spec:
+                folderRef: {{ .folderName }}
+                resyncPeriod: 30s
+                instanceSelector:
+                  matchLabels:
+                    dashboards: {{ $.Values.grafana.name }}
+                {{- range .plugins }}
+                plugins:
+                  - name: {{ .name }}
+                    version: {{ .version }}
+                {{- end }}
+                {{- if or $url .gzipJson .json }}
+                {{- with $url }}
+                url: {{ . }}
+                {{- end }}
+                {{- with .gzipJson }}
+                gzipJson: >
+                  {{- tpl (toYaml .) $ | nindent 18 }}
+                {{- end }}
+                {{- with .json }}
+                json: >
+                  {{- tpl (toYaml .) $ | nindent 18 }}
+                {{- end }}
+                {{- else }}
+                configMapRef:
+                  name: {{ .folderName }}-dashboards
+                  key: {{ .name }}.json
+                {{- end }}
+              EOF
+                  exit 0
+                fi
+                echo "Attempt $i: grafana-dashboards CRD not ready, waiting 10s..."
+                sleep 10
+              done
+              echo "Timeout waiting for grafana-dashboards CRD"
+              exit 1
+{{- end }}
+{{- end }}

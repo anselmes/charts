@@ -1,0 +1,114 @@
+{{- if .Values.grafana.enabled }}
+{{- $adminSecretName := .Values.grafana.admin.secretName | default (printf "%s-grafana-admin" (include "monitoring.fullname" .)) }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-grafana-cluster-{{ .Values.grafana.name }}
+  labels:
+    {{- include "monitoring.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  template:
+    spec:
+      serviceAccountName: grafana-resource-creator
+      restartPolicy: OnFailure
+      securityContext:
+        {{- toYaml .Values.jobs.securityContext | nindent 8 }}
+      containers:
+        - name: kubectl
+          image: "{{ .Values.jobs.kubectlImage.registry }}/{{ .Values.jobs.kubectlImage.repository }}:{{ .Values.jobs.kubectlImage.tag }}"
+          imagePullPolicy: {{ .Values.jobs.kubectlImage.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.jobs.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.jobs.resources | nindent 12 }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for grafana-cluster CRDs to be available..."
+              for i in {1..60}; do
+                if kubectl get crd grafanas.grafana.integreatly.org >/dev/null 2>&1; then
+                  echo "CRD found, creating Grafana"
+                  cat <<'EOF' | kubectl apply -f -
+              apiVersion: grafana.integreatly.org/v1beta1
+              kind: Grafana
+              metadata:
+                name: {{ .Values.grafana.name }}
+                namespace: {{ .Release.Namespace }}
+                labels:
+                  {{- include "monitoring.labels" $ | nindent 18 }}
+                  dashboards: {{ .Values.grafana.name }}
+              spec:
+                disableDefaultAdminSecret: true
+                persistentVolumeClaim:
+                  spec:
+                    {{- if .Values.grafana.storage.class }}
+                    storageClassName: {{ .Values.grafana.storage.class }}
+                    {{- end }}
+                    accessModes:
+                      - ReadWriteOnce
+                    resources:
+                      requests:
+                        storage: {{ .Values.grafana.storage.size }}
+                config:
+                  {{- if .Values.gateway.enabled }}
+                  server:
+                    root_url: https://{{ .Values.gateway.grafanaHostname }}
+                  {{- end }}
+                  log:
+                    mode: console
+                  # Deliberately left unconfigured: no IdP (client_id/secret,
+                  # realm URLs) has been specified yet. Uncomment and fill in
+                  # once you have Keycloak (or another OIDC provider) details.
+                  # auth:
+                  #   disable_login_form: "false"
+                  # auth.generic_oauth:
+                  #   # For variables see https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#env-provider
+                  #   enabled: "true"
+                  #   name: "Keycloak SSO"
+                  #   allow_sign_up: "true"
+                  #   client_id: ${AUTH_CLIENT_ID}
+                  #   client_secret: ${AUTH_CLIENT_SECRET}
+                  #   scopes: "openid email profile offline_access roles"
+                  #   email_attribute_path: email
+                  #   login_attribute_path: username
+                  #   name_attribute_path: full_name
+                  #   groups_attribute_path: groups
+                  #   auth_url: "https://<PROVIDER_DOMAIN>/realms/<REALM_NAME>/protocol/openid-connect/auth"
+                  #   token_url: "https://<PROVIDER_DOMAIN>/realms/<REALM_NAME>/protocol/openid-connect/token"
+                  #   api_url: "https://<PROVIDER_DOMAIN>/realms/<REALM_NAME>/protocol/openid-connect/userinfo"
+                  #   role_attribute_path: "contains(roles[*], 'admin') && 'Admin' || contains(roles[*], 'editor') && 'Editor' || 'Viewer'"
+                # Admin credentials come from a Secret rather than the plaintext
+                # config.security.admin_password field. By default that Secret
+                # is expected to already exist, created out-of-band by a
+                # separate eso HelmRelease (see grafana.admin.create for the
+                # in-chart legacy/offline fallback).
+                deployment:
+                  spec:
+                    template:
+                      spec:
+                        containers:
+                          - name: grafana
+                            env:
+                              - name: GF_SECURITY_ADMIN_USER
+                                value: {{ .Values.grafana.admin.username | quote }}
+                              - name: GF_SECURITY_ADMIN_PASSWORD
+                                valueFrom:
+                                  secretKeyRef:
+                                    key: password
+                                    name: {{ $adminSecretName }}
+              EOF
+                  exit 0
+                fi
+                echo "Attempt $i: grafana-cluster CRD not ready, waiting 10s..."
+                sleep 10
+              done
+              echo "Timeout waiting for grafana-cluster CRD"
+              exit 1
+{{- end }}

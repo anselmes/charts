@@ -1,0 +1,21 @@
+{{- if .Values.grafana.enabled }}
+{{- $folders := dict }}
+{{- range $path, $_ := .Files.Glob "dashboards/*/*.json" }}
+  {{- $folder := index (splitList "/" $path) 1 }}
+  {{- $_ := set $folders $folder true }}
+{{- end }}
+{{- range $folder, $_ := $folders }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $folder }}-dashboards
+  labels:
+    {{- include "monitoring.labels" $ | nindent 4 }}
+data:
+  {{- range $path, $bytes := $.Files.Glob (printf "dashboards/%s/*.json" $folder) }}
+  {{ base $path }}: |
+    {{- toString $bytes | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}
