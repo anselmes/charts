@@ -1,0 +1,433 @@
+---
+# MARK: Secrets
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: fleet-secrets
+  namespace: fleetdm
+spec:
+  interval: 10m0s
+  releaseName: fleet-secrets
+  timeout: 15m0s
+  dependsOn:
+    - name: external-secrets-operator
+      namespace: operators
+  chart:
+    spec:
+      interval: 5m
+      chart: eso
+      version: 2.8.0
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  values:
+    externalSecrets:
+      - name: fleet-minio-secret
+        namespace: minio
+        externalSecretSpec:
+          refreshPolicy: CreatedOnce
+          target:
+            creationPolicy: Orphan
+            immutable: true
+            template:
+              data:
+                PASSWORD: "{{ .password }}"
+          dataFrom:
+            - sourceRef:
+                generatorRef:
+                  apiVersion: generators.external-secrets.io/v1alpha1
+                  kind: ClusterGenerator
+                  name: password-generator
+      - name: fleet-cache-secret
+        externalSecretSpec:
+          refreshPolicy: CreatedOnce
+          target:
+            creationPolicy: Orphan
+            immutable: true
+            template:
+              data:
+                password: "{{ .password }}"
+          dataFrom:
+            - sourceRef:
+                generatorRef:
+                  apiVersion: generators.external-secrets.io/v1alpha1
+                  kind: Password
+                  name: fleet-password-generator
+      - name: fleet-db-secret
+        externalSecretSpec:
+          refreshPolicy: CreatedOnce
+          target:
+            creationPolicy: Orphan
+            immutable: true
+            template:
+              data:
+                fleet: "{{ .password }}"
+                heartbeat: "{{ .heartbeat }}"
+                monitor: "{{ .monitor }}"
+                operator: "{{ .operator }}"
+                orchestrator: "{{ .orchestrator }}"
+                pmmservertoken: "{{ .pmmservertoken }}"
+                replication: "{{ .replication }}"
+                root: "{{ .root }}"
+                xtrabackup: "{{ .xtrabackup }}"
+          dataFrom:
+            - sourceRef:
+                generatorRef:
+                  apiVersion: generators.external-secrets.io/v1alpha1
+                  kind: Password
+                  name: fleet-password-generator
+    pushSercrets:
+      - name: fleet-minio-secret
+        namespace: minio
+        secretName: fleet-minio-secret
+        secretStoreRefs:
+          - name: minio-adminjob-secret-store
+            kind: ClusterSecretStore
+        data:
+          - match:
+              secretKey: PASSWORD
+              remoteRef:
+                remoteKey: fleet-minio-secret
+                property: PASSWORD
+            metadata:
+              apiVersion: kubernetes.external-secrets.io/v1alpha1
+              kind: PushSecretMetadata
+              spec:
+                sourceMergePolicy: Replace
+                remoteNamespace: fleetdm
+    generators:
+      - kind: Password
+        name: fleet-password-generator
+        generator:
+          passwordSpec:
+            length: 42
+            digits: 5
+            symbols: 5
+            symbolCharacters: -_$@
+            noUpper: false
+            allowRepeat: true
+            secretKeys:
+              - heartbeat
+              - monitor
+              - operator
+              - orchestrator
+              - password
+              - pmmservertoken
+              - replication
+              - root
+              - xtrabackup
+    eso:
+      enabled: false
+---
+# MARK: Object Store
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: fleet-object-store
+  namespace: minio
+spec:
+  interval: 10m0s
+  releaseName: fleet-object-store
+  timeout: 15m0s
+  dependsOn:
+    - name: external-secrets-operator
+      namespace: operators
+  chart:
+    spec:
+      interval: 5m
+      chart: aistor
+      version: 1.0.1
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  values:
+    adminJob:
+      enabled: true
+      name: create-fleet-bucket-job
+      commands:
+        - name: create-versioned-bucket
+          command:
+            - mc
+            - mb
+            - --with-versioning
+            - myminio/fleet/carving
+        - name: create-versioned-bucket
+          command:
+            - mc
+            - mb
+            - --with-versioning
+            - myminio/fleet/software-installers
+        - name: add-fleet-user
+          op: admin/user/add
+          args:
+            user: fleet
+            password: $(PASSWORD)
+          env:
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fleet-minio-secret
+                  key: PASSWORD
+        - name: create-fleet-policy
+          op: admin/policy/create
+          args:
+            name: fleetBucketAccess
+            policy: /policies/bucket-policy.json
+          volumeMounts:
+            - name: policies
+              mountPath: /policies
+          volumes:
+            - name: policies
+              configMap:
+                name: fleet-minio-policies
+                items:
+                  - key: bucket-policy.json
+                    path: bucket-policy.json
+        - name: attach-fleet-policy
+          op: admin/policy/attach
+          dependsOn:
+            - add-fleet-user
+            - create-fleet-policy
+          args:
+            policy: fleetBucketAccess
+            user: fleet
+      serviceAccountName:
+        create: true
+        name: fleet-minio-job
+      config:
+        create: true
+        name: fleet-minio-policies
+        policy: |
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": ["s3:*"],
+                "Resource": [
+                  "arn:aws:s3:::fleet",
+                  "arn:aws:s3:::fleet/*"
+                ]
+              }
+            ]
+          }
+      objectStore:
+        name: minio
+        policy:
+          enabled: true
+          policies:
+            - consoleAdmin
+---
+# MARK: Cache
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: fleet-cache
+  namespace: fleetdm
+spec:
+  interval: 10m0s
+  releaseName: fleet-cache
+  timeout: 15m0s
+  dependsOn:
+    - name: fleet-secrets
+    - name: operator
+      namespace: operators
+  chart:
+    spec:
+      interval: 5m
+      chart: data
+      version: 1.0.1
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  values:
+    redis:
+      enabled: true
+      redisStandalone:
+        name: fleet-cache
+        maxMemoryPercentOfLimit: 90
+        redisSecret:
+          secretName: fleet-cache-secret
+          secretKey: password
+---
+# MARK: Database
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: fleet-db
+  namespace: fleetdm
+spec:
+  interval: 10m0s
+  releaseName: fleet-db
+  timeout: 15m0s
+  dependsOn:
+    - name: fleet-secrets
+    - name: operator
+      namespace: operators
+  chart:
+    spec:
+      interval: 5m
+      chart: data
+      version: 1.0.1
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  values:
+    mysql:
+      enabled: true
+      fullnameOverride: fleet-db
+      # checkov:skip=CKV_SECRET_6
+      secretsName: fleet-db-secret
+      updateStrategy: RollingUpdate
+      mysql:
+        clusterType: async
+        size: 1
+      proxy:
+        haproxy:
+          enabled: false
+      backup:
+        enabled: false
+      unsafeFlags:
+        mysqlSize: true
+        orchestrator: true
+        proxy: true
+---
+# MARK: Fleet
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: fleet
+  namespace: fleetdm
+spec:
+  interval: 10m0s
+  releaseName: fleet
+  timeout: 15m0s
+  dependsOn:
+    - name: fleet-secrets
+    - name: fleet-db
+    - name: cert-manager
+      namespace: cert-manager
+    - name: envoy
+      namespace: kube-system
+    - name: fleet-object-store
+      namespace: minio
+  chart:
+    spec:
+      interval: 5m
+      chart: fleet
+      version: 7.0.15
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  values:
+    fleet:
+      hostName: fleet.${DOMAIN_NAME}
+      replicas: 1
+      fleet:
+        secretName: fleet-minio-secret
+        tls:
+          enabled: true
+        carving:
+          s3:
+            accessKeyID: fleet
+            bucketName: fleet/carving
+            endpointURL: https://minio-hl.minio.svc.cluster.local:9000
+            forceS3PathStyle: false
+            region: ${MINIO_SITE_REGION}
+            secretKey: PASSWORD
+            stsAssumeRoleARN: ""
+        softwareInstallers:
+          s3:
+            accessKeyID: fleet
+            bucketName: fleet/software-installers
+            endpointURL: https://minio-hl.minio.svc.cluster.local:9000
+            forceS3PathStyle: false
+            region: ${MINIO_SITE_REGION}
+            secretKey: PASSWORD
+            stsAssumeRoleARN: ""
+        # license:
+        #   secretName: fleet-license
+        #   licenseKey: license-key
+      database:
+        secretName: fleet-db-secret
+        address: fleet-db-mysql:3306
+        # checkov:skip=CKV_SECRET_6
+        passwordKey: fleet
+        bootstrap:
+          enabled: true
+          # checkov:skip=CKV_SECRET_6
+          rootPasswordKey: root
+      cache:
+        address: fleet-cache-headless:6379
+        database: "0"
+        secretName: fleet-cache-secret
+        # checkov:skip=CKV_SECRET_6
+        passwordKey: password
+    # FIXME: cert-manager
+    ca:
+      enabled: true
+      issuers:
+        - name: fleet-ca-issuer
+          selfSigned: true
+          secret:
+            create: false
+    gateway:
+      enabled: true
+      routes:
+        - name: fleet-http-route
+          kind: HTTPRoute
+          hostnames:
+            - fleet.${DOMAIN_NAME}
+          rules:
+            - matches:
+                - path:
+                    type: PathPrefix
+                    value: /
+              backendRefs:
+                - name: fleet-service
+                  port: 8080
+            - filters:
+                - type: RequestRedirect
+                  requestRedirect:
+                    scheme: https
+                    statusCode: 301
+          gateways:
+            - name: http-gateway
+              namespace: kube-system
+      policies:
+        - name: fleet-backend-tls
+          validation:
+            hostname: fleet-service.fleetdm.svc.cluster.local
+            caCertificateRefs:
+              - group: ""
+                kind: Secret
+                name: fleet-tls
+          targetRefs:
+            - group: ""
+              kind: Service
+              name: fleet-service

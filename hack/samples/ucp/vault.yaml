@@ -1,0 +1,274 @@
+# FIXME: Update values as needed
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: vault
+  namespace: ucp
+spec:
+  interval: 10m0s
+  releaseName: vault
+  timeout: 15m0s
+  dependsOn:
+    - name: operator
+      namespace: operators
+    - name: envoy
+      namespace: kube-system
+    - name: cert-manager
+      namespace: cert-manager
+  chart:
+    spec:
+      interval: 5m
+      chart: vault
+      version: 0.23.5
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    global:
+      tlsDisable: false
+    vault:
+      injector:
+        metrics:
+          enabled: false
+      server:
+        # NOTE: orbstack have issues with gw using separate ip
+        # gateway:
+        #   tlsRoute:
+        #     enabled: true
+        #     hosts:
+        #       - vault.${DOMAIN_NAME}
+        #     parentRefs:
+        #       - name: tls-gateway
+        #         namespace: kube-system
+        extraEnvironmentVars:
+          PGSSLMODE: require
+          PGSSLROOTCERT: /etc/ssl/certs/pg-ca.crt
+        extraSecretEnvironmentVars:
+          - envName: INITIAL_ADMIN_PASSWORD
+            secretName: vault-initial-admin-password
+            secretKey: password
+          - envName: PGHOST
+            secretName: vault-postgres-pguser-vault-postgres
+            secretKey: host
+          - envName: PGPORT
+            secretName: vault-postgres-pguser-vault-postgres
+            secretKey: port
+          - envName: PGUSER
+            secretName: vault-postgres-pguser-vault-postgres
+            secretKey: user
+          - envName: PGPASSWORD
+            secretName: vault-postgres-pguser-vault-postgres
+            secretKey: password
+          - envName: PGDATABASE
+            secretName: vault-postgres-pguser-vault-postgres
+            secretKey: dbname
+        volumes:
+          - name: pg-ca-cert
+            secret:
+              secretName: vault-postgres-cluster-cert
+              items:
+                - key: ca.crt
+                  path: ca.crt
+          - name: vault-tls
+            secret:
+              secretName: vault-tls
+              items:
+                - key: tls.crt
+                  path: tls.crt
+                - key: tls.key
+                  path: tls.key
+          - name: unseal-20251231-1
+            secret:
+              secretName: unseal-20251231-1
+          - name: unseal-20260122-1
+            secret:
+              secretName: unseal-20260122-1
+        volumeMounts:
+          - name: pg-ca-cert
+            mountPath: /etc/ssl/certs/pg-ca.crt
+            subPath: ca.crt
+            readOnly: true
+          - name: vault-tls
+            mountPath: /etc/ssl/certs/vault-tls.crt
+            subPath: tls.crt
+            readOnly: true
+          - name: vault-tls
+            mountPath: /etc/ssl/private/vault-tls.key
+            subPath: tls.key
+            readOnly: true
+          - name: unseal-20251231-1
+            mountPath: /openbao/secrets/unseal-20251231-1.key
+            subPath: unseal-20251231-1.key
+            readOnly: true
+          - name: unseal-20260122-1
+            mountPath: /openbao/secrets/unseal-20260122-1.key
+            subPath: unseal-20260122-1.key
+            readOnly: true
+        standalone:
+          config: |
+            ui = true
+
+            api_addr = "https://vault.${DOMAIN_NAME}"
+
+            listener "tcp" {
+              tls_disable = 0
+              tls_cert_file = "/etc/ssl/certs/vault-tls.crt"
+              tls_key_file  = "/etc/ssl/private/vault-tls.key"
+              address = "[::]:8200"
+              cluster_address = "[::]:8201"
+              telemetry {
+               unauthenticated_metrics_access = "true"
+              }
+            }
+
+            storage "postgresql" {}
+
+            seal "static" {
+              current_key_id = "20260122-1"
+              current_key = "file:///openbao/secrets/unseal-20260122-1.key"
+              previous_key_id = "20251231-1"
+              previous_key = "file:///openbao/secrets/unseal-20251231-1.key"
+            }
+
+            # Example configuration for enabling Prometheus metrics in your config.
+            #telemetry {
+            #  prometheus_retention_time = "30s"
+            #  disable_hostname = true
+            #}
+
+            # Enable userpass auth
+            initialize "auth" {
+              request "enable-userpass" {
+                operation = "update"
+                path      = "sys/auth/userpass"
+                data = {
+                  type = "userpass"
+                }
+              }
+            }
+
+            # Create an admin policy
+            initialize "policy" {
+              request "superuser-policy" {
+                operation = "update"
+                path      = "sys/policies/acl/superuser"
+                data = {
+                  policy = "path \"*\" { capabilities = [\"create\",\"read\",\"update\",\"delete\",\"list\",\"sudo\"] }"
+                }
+              }
+            }
+
+            # Create admin user with password from env var (or swap to file source)
+            initialize "identity" {
+              request "admin-user" {
+                operation = "update"
+                path      = "auth/userpass/users/admin"
+                data = {
+                  password = {
+                    eval_type   = "string"
+                    eval_source = "env"
+                    env_var     = "INITIAL_ADMIN_PASSWORD"
+                    require_present = true
+                  }
+                  token_policies = ["superuser"]
+                }
+              }
+            }
+    data:
+      postgres:
+        enabled: true
+        postgresVersion: 17
+        instances:
+          - name: vaultdb
+            replicas: 1
+            dataVolumeClaimSpec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 5Gi
+        proxy:
+          pgBouncer:
+            replicas: 1
+    ca:
+      certificates:
+        - name: vault
+          dns:
+            name: vault.${DOMAIN_NAME}
+            aliases:
+              - vault.${DOMAIN_NAME}
+              - vault.ucp.svc.cluster.local
+              - vault.ucp.svc
+              - vault
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+---
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: vault-http-route
+  namespace: ucp
+spec:
+  interval: 10m0s
+  releaseName: vault-http-route
+  timeout: 15m0s
+  dependsOn:
+    - name: flux
+      namespace: sre
+    - name: envoy
+      namespace: kube-system
+  chart:
+    spec:
+      interval: 5m
+      chart: gateway
+      version: 1.0.3
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    gateways: null
+    routes:
+      - name: vault
+        kind: HTTPRoute
+        hostnames:
+          - vault.${DOMAIN_NAME}
+        rules:
+          - backendRefs:
+              - name: vault
+                port: 8200
+        gateways:
+          - name: http-gateway
+            namespace: kube-system
+    policies:
+      - name: tls-upstream-vault
+        validation:
+          hostname: vault.${DOMAIN_NAME}
+          caCertificateRefs:
+            - group: ""
+              kind: Secret
+              name: vault-tls
+              namespace: ucp
+        targetRefs:
+          - group: ""
+            kind: Service
+            name: vault
+            namespace: ucp

@@ -1,0 +1,209 @@
+---
+# MARK: Secrets
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: semaphoreui-secrets
+  namespace: cicd
+spec:
+  interval: 10m0s
+  releaseName: semaphoreui-secrets
+  timeout: 15m0s
+  dependsOn:
+    - name: external-secrets-operator
+      namespace: operators
+  chart:
+    spec:
+      interval: 5m
+      chart: eso
+      version: 2.8.0
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  values:
+    externalSecrets:
+      - kind: ExternalSecret
+        name: semaphore-secret
+        externalSecretSpec:
+          target:
+            creationPolicy: Orphan
+            immutable: true
+            template:
+              data:
+                fullname: Administrator
+                email: admin@${DOMAIN_NAME}
+                password: "{{ .password }}"
+                username: admin
+          dataFrom:
+            - sourceRef:
+                generatorRef:
+                  apiVersion: generators.external-secrets.io/v1alpha1
+                  kind: ClusterGenerator
+                  name: password-generator
+      - kind: ExternalSecret
+        name: semaphore-token-secret
+        externalSecretSpec:
+          target:
+            creationPolicy: Orphan
+            immutable: true
+            template:
+              data:
+                token: "{{ .password }}"
+          dataFrom:
+            - sourceRef:
+                generatorRef:
+                  apiVersion: generators.external-secrets.io/v1alpha1
+                  kind: ClusterGenerator
+                  name: password-generator
+      - kind: ExternalSecret
+        name: semaphore-db-secret
+        externalSecretSpec:
+          target:
+            creationPolicy: Orphan
+            immutable: true
+          dataFrom:
+            - sourceRef:
+                generatorRef:
+                  apiVersion: generators.external-secrets.io/v1alpha1
+                  kind: ClusterGenerator
+                  name: password-generator
+---
+# MARK: Database
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: semaphoreui-db
+  namespace: cicd
+spec:
+  interval: 10m0s
+  releaseName: semaphoreui-db
+  timeout: 15m0s
+  dependsOn:
+    - name: semaphoreui-secrets
+    - name: operator
+      namespace: operators
+  chart:
+    spec:
+      interval: 5m
+      chart: data
+      version: 1.0.1
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  values:
+    postgres:
+      enabled: true
+      fullnameOverride: semaphore-db
+      finalizers:
+          - percona.com/delete-pvc
+          - percona.com/delete-ssl
+          - percona.com/delete-backups
+      users:
+        - name: semaphore
+          secretName: semaphore-db-secret
+          databases:
+            - semaphore
+      standby:
+        enabled: false
+      instances:
+        - name: semaphore-db
+          replicas: 1
+          dataVolumeClaimSpec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 5Gi
+      proxy:
+        pgBouncer:
+          replicas: 0
+      secrets:
+        name: semaphore-db-secret
+---
+# MARK: Semaphore UI
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: semaphoreui
+  namespace: cicd
+spec:
+  interval: 10m0s
+  releaseName: semaphoreui
+  timeout: 15m0s
+  dependsOn:
+    - name: semaphoreui-secrets
+    - name: semaphoreui-db
+    - name: envoy
+      namespace: kube-system
+  chart:
+    spec:
+      interval: 5m
+      chart: semaphore
+      version: 14.0.6
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  values:
+    semaphoreui:
+      replicaCount: 1
+      general:
+        host: https://semaphore.${DOMAIN_NAME}
+        passwordLoginDisable: false
+        additionalPythonPackages: []
+      database:
+        type: postgres
+        usernameFromSecret: false
+        username: semaphore
+        passwordKey: password
+        existingSecret: semaphore-db-secret
+        host: semaphore-db-ha
+        port: 5432
+        name: semaphore
+        options:
+          sslmode: require
+      runner:
+        tokenKey: token
+        existingSecret: semaphore-token-secret
+      billing:
+        enabled: true
+      admin:
+        create: true
+        existingSecret: semaphore-secret
+    gateway:
+      enabled: true
+      routes:
+        - name: semaphore-http-route
+          kind: HTTPRoute
+          hostnames:
+            - semaphore.${DOMAIN_NAME}
+          rules:
+            - matches:
+                - path:
+                    type: PathPrefix
+                    value: /
+              backendRefs:
+                - name: semaphoreui
+                  port: 3000
+            - filters:
+                - type: RequestRedirect
+                  requestRedirect:
+                    scheme: https
+                    statusCode: 301
+          gateways:
+            - name: http-gateway
+              namespace: kube-system
