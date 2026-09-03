@@ -1,0 +1,70 @@
+{{- if and .Values.envoy.enabled (not (empty .Values.envoy.proxies)) }}
+{{- $resourceCreatorName := "envoy-resource-creator" -}}
+{{- $existingServiceAccount := lookup "v1" "ServiceAccount" .Release.Namespace $resourceCreatorName -}}
+{{- $existingClusterRole := lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" $resourceCreatorName -}}
+{{- $existingClusterRoleBinding := lookup "rbac.authorization.k8s.io/v1" "ClusterRoleBinding" "" $resourceCreatorName -}}
+{{- if not $existingServiceAccount }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $resourceCreatorName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "gwapi.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+{{- end }}
+{{- if not $existingClusterRole }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $resourceCreatorName }}
+  labels:
+    {{- include "gwapi.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+rules:
+  - apiGroups:
+      - gateway.envoyproxy.io
+    resources:
+      - envoyproxies
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+      - list
+{{- end }}
+{{- if not $existingClusterRoleBinding }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $resourceCreatorName }}
+  labels:
+    {{- include "gwapi.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+subjects:
+  - kind: ServiceAccount
+    name: {{ $resourceCreatorName }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ $resourceCreatorName }}
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}
+{{- end }}

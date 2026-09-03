@@ -1,0 +1,5 @@
+apiVersion: v2
+name: gwapi-crds-standard
+description: Gateway API CRDs (standard channel), installed via Helm's native crds/ directory.
+type: application
+version: 0.1.0

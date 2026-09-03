@@ -1,0 +1,5 @@
+apiVersion: v2
+name: gwapi-crds-experimental
+description: Gateway API CRDs (experimental channel), installed via Helm's native crds/ directory.
+type: application
+version: 0.1.0

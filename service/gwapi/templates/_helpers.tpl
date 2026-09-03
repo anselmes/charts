@@ -52,15 +52,13 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Validate crds.install value.
-Valid values: standard, experimental, none, or empty string.
-standard: uses Helm-native crds/ directory (not rendered as templates).
-experimental: rendered via templates/crds.yaml from files/crds/experimental/.
-none/empty: no CRDs installed by this chart; use --skip-crds for standard crds/.
+Validate crds.standard.enabled / crds.experimental.enabled.
+Mutually exclusive: enable at most one. Both disabled installs no CRDs via this chart.
+Each channel's CRDs are installed via its own embedded subchart (gwapi-crds-standard /
+gwapi-crds-experimental) using Helm's native crds/ directory (not rendered as templates).
 */}}
 {{- define "gwapi.validateCrdsInstall" -}}
-{{- $valid := list "standard" "experimental" "none" "" -}}
-{{- if not (has .Values.crds.install $valid) -}}
-{{- fail (printf "gwapi: crds.install must be one of: standard, experimental, none (got: %q)" .Values.crds.install) -}}
+{{- if and .Values.crds.standard.enabled .Values.crds.experimental.enabled -}}
+{{- fail "gwapi: crds.standard.enabled and crds.experimental.enabled are mutually exclusive; enable at most one" -}}
 {{- end -}}
 {{- end -}}

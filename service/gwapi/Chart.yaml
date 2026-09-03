@@ -2,8 +2,14 @@ apiVersion: v2
 name: gwapi
 type: application
 description: A Helm chart that deploys Envoy as the Gateway API for Kubernetes.
-version: 1.0.5
+version: 1.0.8
 dependencies:
+  - name: gwapi-crds-standard
+    version: 0.1.0
+    condition: crds.standard.enabled
+  - name: gwapi-crds-experimental
+    version: 0.1.0
+    condition: crds.experimental.enabled
   - alias: envoy
     name: gateway-helm
     repository: oci://docker.io/envoyproxy

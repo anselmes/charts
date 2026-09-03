@@ -12,7 +12,10 @@ crds:
   #   to let Envoy install them instead.
   # When set to standard or experimental, set envoy.crds.enabled: false (default)
   # to avoid conflicting with Envoy's bundled Gateway API CRDs.
-  install: standard
+  standard:
+    enabled: true
+  experimental:
+    enabled: false
 
 # MARK: Envoy
 
@@ -23,11 +26,32 @@ envoy:
   # experimental, since this chart manages them. Set to true when crds.install
   # is none/empty to let Envoy install them instead.
   crds:
-    enabled: false
+    envoyGateway:
+      enabled: true
+    gatewayAPI:
+      enabled: false
 
   proxies: []
     # - name: envoy-proxy
     #   mergeGateways: true
+    #   ipFamily: DualStack  # Supports: IPv4, IPv6, or DualStack
+    #   serviceType: NodePort # Supports: ClusterIP, NodePort, LoadBalancer
+    #   externalTrafficPolicy: Local # Supports: Cluster, Local
+    #   patch: # Raw patch applied to the generated Service, eg to pin NodePorts
+    #     type: JSONMerge
+    #     value:
+    #       spec:
+    #         ports:
+    #         - name: http
+    #           nodePort: 80
+    #           port: 80
+    #           protocol: TCP
+    #           targetPort: 10080
+    #         - name: https
+    #           nodePort: 443
+    #           port: 443
+    #           protocol: TCP
+    #           targetPort: 10443
     #   logging:
     #     level:
     #       default: info

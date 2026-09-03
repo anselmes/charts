@@ -1,11 +1,4 @@
 {{- include "gwapi.validateCrdsInstall" . -}}
-{{- /* Standard CRDs are managed via the crds/ directory (Helm-native), not rendered here. */ -}}
-{{- /* Non-CRD resources bundled with the standard channel (e.g. ValidatingAdmissionPolicy) */ -}}
-{{- if or (eq .Values.crds.install "standard") (eq .Values.crds.install "experimental") }}
-{{ .Files.Get "files/crds/vap_safeupgrades.yaml" }}
-{{- end }}
-{{- if eq .Values.crds.install "experimental" -}}
-{{- range $path, $bytes := .Files.Glob "files/crds/experimental/*" }}
-{{ $bytes | toString }}
-{{- end }}
-{{- end -}}
+{{- /* All CRDs and related resources (e.g. ValidatingAdmissionPolicy) are managed via the
+   gwapi-crds-standard / gwapi-crds-experimental embedded subcharts (Helm-native crds/
+   directories), not rendered here. This file only enforces mutual exclusivity above. */ -}}
