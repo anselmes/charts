@@ -1,0 +1,291 @@
+---
+# MARK: Secrets
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: minio-secrets
+  namespace: minio
+spec:
+  interval: 10m0s
+  releaseName: minio-secrets
+  timeout: 15m0s
+  dependsOn:
+    - name: external-secrets-operator
+      namespace: operators
+  chart:
+    spec:
+      interval: 5m
+      chart: eso
+      version: 2.8.0
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  values:
+    externalSecrets:
+      - name: minio-env-configuration
+        externalSecretSpec:
+          refreshPolicy: CreatedOnce
+          target:
+            creationPolicy: Orphan
+            immutable: true
+            template:
+              data:
+                config.env: |-
+                  export MINIO_ROOT_USER=admin
+                  export MINIO_ROOT_PASSWORD="{{ .password }}"
+          dataFrom:
+            - sourceRef:
+                generatorRef:
+                  apiVersion: generators.external-secrets.io/v1alpha1
+                  kind: ClusterGenerator
+                  name: password-generator
+      - kind: ExternalSecret
+        name: minio-license
+        externalSecretSpec:
+          secretStoreRef:
+            name: minio-secret-store
+            kind: SecretStore
+          data:
+            # checkov:skip=CKV_SECRET_6
+            - secretKey: minio.license
+              remoteRef:
+                key: /minio/license
+                version: v1
+    secretStores:
+      # trunk-ignore(gitleaks/kubernetes-secret-yaml)
+      - kind: SecretStore
+        name: minio-secret-store
+        provider:
+          fake:
+            data:
+            - key: /minio/license
+              value: ${MINIO_LICENSE}
+              version: v1
+      - kind: ClusterSecretStore
+        name: minio-adminjob-secret-store
+        provider:
+          kubernetes:
+            remoteNamespace: minio
+            auth:
+              serviceAccount:
+                name: adminjob
+---
+# MARK: Operator
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: minio-operator
+  namespace: minio
+spec:
+  interval: 10m0s
+  releaseName: minio-operator
+  timeout: 15m0s
+  chart:
+    spec:
+      interval: 5m
+      chart: aistor
+      version: 1.0.2
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    aistorop:
+      enabled: true
+      env:
+        - name: GODEBUG
+          value: fips140=on
+---
+# MARK: MinIO
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: minio
+  namespace: minio
+spec:
+  interval: 10m0s
+  releaseName: minio
+  timeout: 15m0s
+  dependsOn:
+    - name: minio-secrets
+    - name: minio-operator
+  chart:
+    spec:
+      interval: 5m
+      chart: aistor
+      version: 1.0.2
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  values:
+    aistor:
+      enabled: true
+      secrets:
+        name: minio-env-configuration
+        existingSecret: true
+      objectStore:
+        name: minio
+        existingSecret: true
+        configuration:
+          name: minio-env-configuration
+        env:
+          - name: GODEBUG
+            value: fips140=on
+          - name: MINIO_SITE_NAME
+            value: ${MINIO_SITE_NAME}
+          - name: MINIO_SITE_REGION
+            value: ${MINIO_SITE_REGION}
+          - name: MINIO_BROWSER_REDIRECT_URL
+            value: https://minioconsole.${DOMAIN_NAME}
+          - name: MINIO_COMPRESSION_ENABLE
+            value: "on"
+          - name: MINIO_COMPRESSION_EXTENSIONS
+            value: .txt,.log,.csv,.json,.tar,.xml,.bin,.pdf
+          - name: MINIO_COMPRESSION_MIME_TYPES
+            value: text/*,application/json,application/xml
+        pools:
+          - name: pool-0
+            servers: 1
+            size: 25Gi
+        kes:
+          replicas: 1
+          keyName: minio-key
+          keystore:
+            fs:
+              path: /tmp/kes/keys
+    secret:
+      enabled: true
+      externalSecrets:
+        - name: minio-env-configuration
+          externalSecretSpec:
+            refreshPolicy: CreatedOnce
+            target:
+              creationPolicy: Orphan
+              immutable: true
+              template:
+                data:
+                  config.env: |-
+                    export MINIO_ROOT_USER=admin
+                    export MINIO_ROOT_PASSWORD="{{ .password }}"
+            dataFrom:
+              - sourceRef:
+                  generatorRef:
+                    apiVersion: generators.external-secrets.io/v1alpha1
+                    kind: ClusterGenerator
+                    name: password-generator
+        - kind: ExternalSecret
+          name: minio-license
+          externalSecretSpec:
+            secretStoreRef:
+              name: minio-secret-store
+              kind: SecretStore
+            data:
+              # checkov:skip=CKV_SECRET_6
+              - secretKey: minio.license
+                remoteRef:
+                  key: /minio/license
+                  version: v1
+      secretStores:
+        # trunk-ignore(gitleaks/kubernetes-secret-yaml)
+        - kind: SecretStore
+          name: minio-secret-store
+          provider:
+            fake:
+              data:
+              - key: /minio/license
+                value: ${MINIO_LICENSE}
+                version: v1
+        - kind: ClusterSecretStore
+          name: minio-adminjob-secret-store
+          provider:
+            kubernetes:
+              remoteNamespace: minio
+              server:
+                caProvider:
+                  type: ConfigMap
+                  name: kube-root-ca.crt
+                  key: ca.crt
+    gateway:
+      enabled: true
+      routes:
+        - name: minio-http-route
+          kind: HTTPRoute
+          hostnames:
+            - minio.${DOMAIN_NAME}
+          rules:
+            - matches:
+                - path:
+                    type: PathPrefix
+                    value: /
+              backendRefs:
+                - name: minio
+                  port: 443
+            - filters:
+                - type: RequestRedirect
+                  requestRedirect:
+                    scheme: https
+                    statusCode: 301
+          gateways:
+            - name: http-gateway
+              namespace: kube-system
+        - name: minio-console-http-route
+          kind: HTTPRoute
+          hostnames:
+            - minioconsole.${DOMAIN_NAME}
+          rules:
+            - matches:
+                - path:
+                    type: PathPrefix
+                    value: /
+              backendRefs:
+                - name: minio-console
+                  port: 9443
+            - filters:
+                - type: RequestRedirect
+                  requestRedirect:
+                    scheme: https
+                    statusCode: 301
+          gateways:
+            - name: http-gateway
+              namespace: kube-system
+      policies:
+        - name: minio-api-backend-tls
+          validation:
+            hostname: minio.minio.svc.cluster.local
+            caCertificateRefs:
+              - group: ""
+                kind: ConfigMap
+                name: kube-root-ca.crt
+          targetRefs:
+            - group: ""
+              kind: Service
+              name: minio
+        - name: minio-console-backend-tls
+          validation:
+            hostname: minio-console.minio.svc.cluster.local
+            caCertificateRefs:
+              - group: ""
+                kind: ConfigMap
+                name: kube-root-ca.crt
+          targetRefs:
+            - group: ""
+              kind: Service
+              name: minio-console
+              namespace: minio
