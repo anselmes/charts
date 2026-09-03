@@ -8,7 +8,6 @@ spec:
   interval: 10m0s
   releaseName: flux
   timeout: 15m0s
-  dependsOn: []
   chart:
     spec:
       interval: 5m
@@ -25,10 +24,3 @@ spec:
       retries: 3
   upgrade:
     crds: CreateReplace
-  # TODO: images
-  # postRenderers:
-  #   - kustomize:
-  #       images:
-  #         - name: ""
-  #           newName: ""
-  #           newTag: ""
