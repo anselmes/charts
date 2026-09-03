@@ -10,7 +10,7 @@ dependencies:
     condition: pinniped.enabled
   - name: ca
     repository: oci://ghcr.io/labsonline/charts
-    version: 1.0.7
+    version: 1.0.8
   - name: gateway
     repository: oci://ghcr.io/labsonline/charts
     version: 1.0.4

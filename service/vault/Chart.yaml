@@ -11,4 +11,4 @@ dependencies:
     version: 0.28.6
   - name: ca
     repository: oci://ghcr.io/labsonline/charts
-    version: 1.0.7
+    version: 1.0.8
