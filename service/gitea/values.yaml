@@ -1,0 +1,593 @@
+---
+## @param global.imageRegistry global image registry override
+## @param global.imagePullSecrets global image pull secrets override; can be extended by `imagePullSecrets`
+## @param global.storageClass global storage class override
+## @param global.hostAliases global hostAliases which will be added to the pod's hosts files
+global:
+  imageRegistry: ""
+  ## E.g.
+  ## imagePullSecrets:
+  ##   - myRegistryKeySecretName
+  ##
+  imagePullSecrets: []
+  storageClass: ""
+  hostAliases: []
+  # - ip: 192.168.137.2
+  #   hostnames:
+  #   - example.com
+
+## @param replicaCount number of replicas for the deployment
+replicaCount: 1
+
+## @param image.registry image registry, e.g. gcr.io,docker.io
+## @param image.repository Image to start for this pod
+## @param image.tag Visit: [Image tag](https://hub.docker.com/r/gitea/gitea/tags?page=1&ordering=last_updated). Defaults to `appVersion` within Chart.yaml.
+## @param image.digest Image digest. Allows to pin the given image tag. Useful for having control over mutable tags like `latest`
+## @param image.pullPolicy Image pull policy
+## @param image.rootless Wether or not to pull the rootless version of Gitea, only works on Gitea 1.14.x or higher
+## @param image.fullOverride Completely overrides the image registry, path/image, tag and digest. **Adjust `image.rootless` accordingly and review [Rootless defaults](#rootless-defaults).**
+image:
+  registry: docker.gitea.com
+  repository: gitea
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+  rootless: true
+  fullOverride: ""
+
+## @param imagePullSecrets Secret to use for pulling the image
+imagePullSecrets: []
+
+## @param podSecurityContext Pod security context. On non-OpenShift clusters the chart defaults `fsGroup` to `1000` when this map is empty.
+podSecurityContext: {}
+
+## @param containerSecurityContext Security context
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  privileged: false
+  readOnlyRootFilesystem: true
+  runAsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+    # Add the SYS_CHROOT capability for root and rootless images if you intend to
+    # run pods on nodes that use the container runtime cri-o. Otherwise, you will
+    # get an error message from the SSH server that it is not possible to read from
+    # the repository.
+    # https://gitea.com/gitea/helm-gitea/issues/161
+    # add:
+    #   - SYS_CHROOT
+
+## @param podDisruptionBudget Pod disruption budget
+podDisruptionBudget: {}
+#  maxUnavailable: 1
+#  minAvailable: 1
+
+## See docs/gateway-api.md for full guidance.
+gatewayAPI:
+  ## @param gatewayAPI.enabled Enable deployment of Gateway API resources
+  enabled: false
+  core:
+    ## @param gatewayAPI.core.backendTLSPolicy.enabled Render a BackendTLSPolicy resource for encrypted backend traffic
+    ## @param gatewayAPI.core.backendTLSPolicy.annotations Annotations applied to the BackendTLSPolicy
+    ## @param gatewayAPI.core.backendTLSPolicy.labels Additional labels applied to the BackendTLSPolicy
+    ## @param gatewayAPI.core.backendTLSPolicy.targetRefs Target references for the BackendTLSPolicy. Defaults to the HTTP service.
+    ## @param gatewayAPI.core.backendTLSPolicy.validation Validation configuration (required when enabled). See `docs/gateway-api.md`.
+    ## @extra gatewayAPI.core.backendTLSPolicy.validation.caCertificateRefs CA certificate references for the BackendTLSPolicy validation. See `docs/gateway-api.md`.
+    ## @extra gatewayAPI.core.backendTLSPolicy.validation.hostname Hostname for the BackendTLSPolicy validation. Must be the Common Name (CN) or a Subject Alternative Name (SAN) of the gitea server certificate. See `docs/gateway-api.md`.
+    backendTLSPolicy:
+      enabled: false
+      annotations: {}
+      labels: {}
+      targetRefs: []
+      validation: {}
+      #  caCertificateRefs:
+      #    - name: gitea-ca
+      #      group: ""
+      #      kind: ConfigMap
+      #  hostname: gitea-http
+
+    ## @param gatewayAPI.core.httpRoute.enabled Render an HTTPRoute resource
+    ## @param gatewayAPI.core.httpRoute.annotations Annotations applied to the HTTPRoute
+    ## @param gatewayAPI.core.httpRoute.labels Additional labels applied to the HTTPRoute
+    ## @param gatewayAPI.core.httpRoute.tls When true, treat the upstream Gateway as terminating TLS so `ROOT_URL` uses `https`.
+    ## @param gatewayAPI.core.httpRoute.parentRefs Parent gateway references (required when enabled).
+    ## @param gatewayAPI.core.httpRoute.hostnames List of hostnames for the HTTPRoute.
+    ## @param gatewayAPI.core.httpRoute.rules Custom routing rules. Defaults to a PathPrefix `/` rule targeting the HTTP service.
+    httpRoute:
+      enabled: false
+      annotations: {}
+      labels: {}
+      tls: false
+      parentRefs: []
+      # - group: gateway.networking.k8s.io
+      #   kind: Gateway
+      #   name: shared-gateway
+      #   namespace: gateway-system
+      #   sectionName: http
+      hostnames: []
+      # - git.example.com
+      rules: []
+
+
+    ## @param gatewayAPI.core.tcpRoute.enabled Render a TCPRoute resource (typically for SSH)
+    ## @param gatewayAPI.core.tcpRoute.annotations Annotations applied to the TCPRoute
+    ## @param gatewayAPI.core.tcpRoute.labels Additional labels applied to the TCPRoute
+    ## @param gatewayAPI.core.tcpRoute.parentRefs Parent gateway references (required when enabled).
+    ## @param gatewayAPI.core.tcpRoute.rules Custom routing rules. Defaults to a rule targeting the SSH service.
+    tcpRoute:
+      enabled: false
+      annotations: {}
+      labels: {}
+      parentRefs: []
+      # - group: gateway.networking.k8s.io
+      #   kind: Gateway
+      #   name: shared-gateway
+      #   namespace: gateway-system
+      #   sectionName: ssh
+      rules: []
+
+
+## @param resources Kubernetes resources
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+## @param nodeSelector NodeSelector for the deployment
+nodeSelector: {}
+
+## @param tolerations Tolerations for the deployment
+tolerations: []
+
+## @param affinity Affinity for the deployment
+affinity: {}
+
+## @param topologySpreadConstraints TopologySpreadConstraints for the deployment
+topologySpreadConstraints: []
+
+## @param dnsConfig dnsConfig for the deployment
+dnsConfig: {}
+
+## @param deployment.env  Additional environment variables to pass to containers
+## @param deployment.terminationGracePeriodSeconds How long to wait until forcefully kill the pod
+## @param deployment.labels Labels for the deployment
+## @param deployment.annotations Annotations for the Gitea deployment to be created
+deployment:
+  env: []
+  # - name: VARIABLE
+  #   value: my-value
+  terminationGracePeriodSeconds: 60
+  labels: {}
+  annotations: {}
+
+## @param serviceAccount.create Enable the creation of a ServiceAccount
+## @param serviceAccount.name Name of the created ServiceAccount, defaults to release name. Can also link to an externally provided ServiceAccount that should be used.
+## @param serviceAccount.automountServiceAccountToken Enable/disable auto mounting of the service account token
+## @param serviceAccount.imagePullSecrets Image pull secrets, available to the ServiceAccount
+## @param serviceAccount.annotations Custom annotations for the ServiceAccount
+## @param serviceAccount.labels Custom labels for the ServiceAccount
+serviceAccount:
+  create: true
+  name: ""
+  automountServiceAccountToken: false
+  imagePullSecrets: []
+  # - name: private-registry-access
+  annotations: {}
+  labels: {}
+
+## @param persistence.enabled Enable persistent storage
+## @param persistence.create Whether to create the persistentVolumeClaim for shared storage
+## @param persistence.mount Whether the persistentVolumeClaim should be mounted (even if not created)
+## @param persistence.claimName Use an existing claim to store repository information
+## @param persistence.size Size for persistence to store repo information
+## @param persistence.accessModes AccessMode for persistence
+## @param persistence.labels Labels for the persistence volume claim to be created
+## @param persistence.annotations.helm.sh/resource-policy Resource policy for the persistence volume claim
+## @param persistence.storageClass Name of the storage class to use
+## @param persistence.subPath Subdirectory of the volume to mount at
+## @param persistence.volumeName Name of persistent volume in PVC
+persistence:
+  enabled: true
+  create: true
+  mount: true
+  claimName: gitea-shared-storage
+  size: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  labels: {}
+  storageClass: ""
+  subPath: ""
+  volumeName: ""
+  annotations:
+    helm.sh/resource-policy: keep
+
+## @param extraContainers Additional sidecar containers to run in the pod
+extraContainers: []
+#  - name: sidecar-bob
+#    image: busybox
+#    command: [/bin/sh, -c, 'echo "Hello world"']
+
+## @param preExtraInitContainers Additional init containers to run in the pod before gitea runs it owns init containers.
+preExtraInitContainers: []
+# - name: pre-init-container
+#   image: docker.io/library/busybox
+#   command: [ /bin/sh, -c, 'echo "Hello world! I am a pre init container."' ]
+
+## @param postExtraInitContainers Additional init containers to run in the pod after gitea runs it owns init containers.
+postExtraInitContainers: []
+# - name: post-init-container
+#   image: docker.io/library/busybox
+#   command: [ /bin/sh, -c, 'echo "Hello world! I am a post init container."' ]
+
+## @param extraVolumes Additional volumes to mount to the Gitea deployment
+extraVolumes: []
+# - name: postgres-ssl-vol
+#   secret:
+#     secretName: gitea-postgres-ssl
+
+## @param extraContainerVolumeMounts Mounts that are only mapped into the Gitea runtime/main container, to e.g. override custom templates.
+extraContainerVolumeMounts: []
+
+## @param extraInitVolumeMounts Mounts that are only mapped into the init-containers. Can be used for additional preconfiguration.
+extraInitVolumeMounts: []
+
+## @deprecated The extraVolumeMounts variable has been split two:
+## - extraContainerVolumeMounts
+## - extraInitVolumeMounts
+## As an example, can be used to mount a client cert when connecting to an external Postgres server.
+## @param extraVolumeMounts **DEPRECATED** Additional volume mounts for init containers and the Gitea main container
+extraVolumeMounts: []
+# - name: postgres-ssl-vol
+#   readOnly: true
+#   mountPath: "/pg-ssl"
+
+## @param initPreScript Bash shell script copied verbatim to the start of the init-container.
+initPreScript: ""
+# initPreScript: |
+#   mkdir -p /data/git/.postgresql
+#   cp /pg-ssl/* /data/git/.postgresql/
+#   chown -R git:git /data/git/.postgresql/
+#   chmod 400 /data/git/.postgresql/postgresql.key
+
+## @param initContainers.resources.limits initContainers.limits Kubernetes resource limits for init containers
+## @param initContainers.resources.requests.cpu initContainers.requests.cpu Kubernetes cpu resource limits for init containers
+## @param initContainers.resources.requests.memory initContainers.requests.memory Kubernetes memory resource limits for init containers
+initContainers:
+  resources: {}
+    # limits: {}
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+
+## @param signing.enabled Enable commit/action signing
+## @param signing.gpgHome GPG home directory
+## @param signing.privateKey Inline private gpg key for signed internal Git activity
+## @param signing.existingSecret Use an existing secret to store the value of `signing.privateKey`
+signing:
+  enabled: false
+  gpgHome: /data/git/.gnupg
+  privateKey: ""
+  existingSecret: ""
+
+gitea:
+  ## @param gitea.admin.username Username for the Gitea admin user
+  ## @param gitea.admin.existingSecret Use an existing secret to store admin user credentials
+  ## @param gitea.admin.password Password for the Gitea admin user
+  ## @param gitea.admin.email Email for the Gitea admin user
+  ## @param gitea.admin.passwordMode Mode for how to set/update the admin user password. Options are: initialOnlyNoReset, initialOnlyRequireReset, and keepUpdated
+  admin:
+    # existingSecret: gitea-admin-secret
+    existingSecret: ""
+    username: gitea_admin
+    password: ""
+    email: gitea@local.domain
+    passwordMode: keepUpdated
+
+  ## @param gitea.metrics.enabled Enable Gitea metrics
+  ## @param gitea.metrics.token used for `bearer` token authentication on metrics endpoint. If not specified or empty metrics endpoint is public.
+  ## @param gitea.metrics.serviceMonitor.enabled Enable Gitea metrics service monitor. Requires, that `gitea.metrics.enabled` is also set to true, to enable metrics generally.
+  ## @param gitea.metrics.serviceMonitor.interval Interval at which metrics should be scraped. If not specified Prometheus' global scrape interval is used.
+  ## @param gitea.metrics.serviceMonitor.relabelings RelabelConfigs to apply to samples before scraping.
+  ## @param gitea.metrics.serviceMonitor.scheme HTTP scheme to use for scraping. For example `http` or `https`. Default is http.
+  ## @param gitea.metrics.serviceMonitor.scrapeTimeout Timeout after which the scrape is ended. If not specified, global Prometheus scrape timeout is used.
+  ## @param gitea.metrics.serviceMonitor.tlsConfig TLS configuration to use when scraping the metric endpoint by Prometheus.
+  metrics:
+    enabled: false
+    token:  ""
+    serviceMonitor:
+      enabled: false
+      #  additionalLabels:
+      #    prometheus-release: prom1
+      interval: ""
+      relabelings: []
+      scheme: ""
+      scrapeTimeout: ""
+      tlsConfig: {}
+
+  # Either specify inline `key` and `secret` or refer to them via `existingSecret`
+  ## @param gitea.oauth OAuth configuration
+  oauth: []
+    # - name: 'OAuth 1'
+    #   provider:
+    #   key:
+    #   secret:
+    #   existingSecret:
+    #   autoDiscoverUrl:
+    #   useCustomUrls:
+    #   customAuthUrl:
+    #   customTokenUrl:
+    #   customProfileUrl:
+    #   customEmailUrl:
+
+  ## @param gitea.config.server.SSH_PORT SSH port for rootlful Gitea image
+  ## @param gitea.config.server.SSH_LISTEN_PORT SSH port for rootless Gitea image
+  config:
+    #  APP_NAME: "Gitea: Git with a cup of tea"
+    #  RUN_MODE: dev
+    server:
+      SSH_PORT: 22 # rootful image
+      SSH_LISTEN_PORT: 2222 # rootless image
+  #
+  #  security:
+  #    PASSWORD_COMPLEXITY: spec
+
+  ## @param gitea.additionalConfigSources Additional configuration from secret or configmap
+  additionalConfigSources: []
+  #   - secret:
+  #       secretName: gitea-app-ini-oauth
+  #   - configMap:
+  #       name: gitea-app-ini-plaintext
+
+  ## @param gitea.additionalConfigFromEnvs Additional configuration sources from environment variables
+  additionalConfigFromEnvs: []
+
+  # extraEnvSourceFile: /vault/secrets/gitea
+  extraEnvSourceFile: ""
+
+  ## @param gitea.podAnnotations Annotations for the Gitea pod
+  podAnnotations: {}
+
+  ## @param gitea.ssh.logLevel Configure OpenSSH's log level. Only available for root-based Gitea image.
+  ssh:
+    logLevel: INFO
+
+## @section valkey-cluster
+## @descriptionStart
+## Valkey cluster and [Valkey](#valkey) cannot be enabled at the same time.
+## @descriptionEnd
+valkey-cluster:
+  ## @param valkey-cluster.enabled Enable valkey cluster
+  # ⚠️ The valkey charts do not work well with special characters in the password (<https://gitea.com/gitea/helm-chart/issues/690>).
+  # Consider omitting such or open an issue in the Bitnami repo and let us know once this got fixed.
+  ## @param valkey-cluster.usePassword Whether to use password authentication.
+  ## @param valkey-cluster.usePasswordFiles Whether to mount passwords as files instead of environment variables.
+  enabled: false
+  usePassword: false
+  usePasswordFiles: false
+
+  ## @param valkey-cluster.image.repository Image repository, eg. `bitnamilegacy/valkey-cluster`.
+  image:
+    repository: bitnamilegacy/valkey-cluster
+
+  ## @param valkey-cluster.cluster.nodes Number of valkey cluster master nodes
+  ## @param valkey-cluster.cluster.replicas Number of valkey cluster master node replicas
+  cluster:
+    nodes: 3 # default: 6
+    replicas: 0 # default: 1
+
+  ## @param valkey-cluster.metrics.image.repository Image repository, eg. `bitnamilegacy/redis-exporter`.
+  metrics:
+    image:
+      repository: bitnamilegacy/redis-exporter
+
+  ## @param valkey-cluster.persistence.enabled Enable persistence on Valkey replicas nodes using Persistent Volume Claims.
+  ## @param valkey-cluster.persistence.storageClass Persistent Volume storage class.
+  ## @param valkey-cluster.persistence.size Persistent Volume size.
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 8Gi
+
+  ## @param valkey-cluster.service.ports.valkey Port of Valkey service
+  service:
+    ports:
+      valkey: 6379
+
+  ## @param valkey-cluster.sysctlImage.repository Image repository, eg. `bitnamilegacy/os-shell`.
+  sysctlImage:
+    repository: bitnamilegacy/os-shell
+
+  ## @param valkey-cluster.volumePermissions.image.repository Image repository, eg. `bitnamilegacy/os-shell`.
+  volumePermissions:
+    image:
+      repository: bitnamilegacy/os-shell
+
+
+## @descriptionStart
+## Valkey and [Valkey cluster](#valkey-cluster) cannot be enabled at the same time.
+## @descriptionEnd
+valkey:
+  ## @param valkey.enabled Enable valkey standalone or replicated
+  ## @param valkey.architecture Whether to use standalone or replication
+  enabled: false
+  architecture: standalone
+
+  ## @param valkey.kubectl.image.repository Image repository, eg. `bitnamilegacy/kubectl`.
+  kubectl:
+    image:
+      repository: bitnamilegacy/kubectl
+
+  ## @param valkey.image.repository Image repository, eg. `bitnamilegacy/valkey`.
+  image:
+    repository: bitnamilegacy/valkey
+
+  # ⚠️ The valkey charts do not work well with special characters in the password (<https://gitea.com/gitea/helm-chart/issues/690>).
+  # Consider omitting such or open an issue in the Bitnami repo and let us know once this got fixed.
+  ## @param valkey.global.valkey.password Required password
+  global:
+    valkey:
+      password: changeme
+
+  ## @param valkey.master.count Number of Valkey master instances to deploy
+  ## @param valkey.master.service.ports.valkey Port of Valkey service
+  master:
+    count: 1
+    service:
+      ports:
+        valkey: 6379
+
+  ## @param valkey.metrics.image.repository Image repository, eg. `bitnamilegacy/redis-exporter`.
+  metrics:
+    image:
+      repository: bitnamilegacy/redis-exporter
+
+  primary:
+    ## @param valkey.primary.persistence.enabled Enable persistence on Valkey replicas nodes using Persistent Volume Claims.
+    ## @param valkey.primary.persistence.storageClass Persistent Volume storage class.
+    ## @param valkey.primary.persistence.size Persistent Volume size.
+    persistence:
+      enabled: true
+      storageClass: ""
+      size: 8Gi
+
+  replica:
+    ## @param valkey.replica.persistence.enabled Enable persistence on Valkey replicas nodes using Persistent Volume Claims.
+    ## @param valkey.replica.persistence.storageClass Persistent Volume storage class.
+    ## @param valkey.replica.persistence.size Persistent Volume size.
+    persistence:
+      enabled: true
+      storageClass: ""
+      size: 8Gi
+
+  ## @param valkey.sentinel.image.repository Image repository, eg. `bitnamilegacy/sentinel`.
+  sentinel:
+    image:
+      repository: bitnamilegacy/valkey-sentinel
+
+  ## @param valkey.volumePermissions.image.repository Image repository, eg. `bitnamilegacy/os-shell`.
+  volumePermissions:
+    image:
+      repository: bitnamilegacy/os-shell
+
+## @section PostgreSQL HA
+postgresql-ha:
+  ## @param postgresql-ha.enabled Enable PostgreSQL HA
+  enabled: false
+
+  ## @param postgresql-ha.global.postgresql.database Name for a custom database to create (overrides `auth.database`)
+  ## @param postgresql-ha.global.postgresql.username Name for a custom user to create (overrides `auth.username`)
+  ## @param postgresql-ha.global.postgresql.password Name for a custom password to create (overrides `auth.password`)
+  global:
+    postgresql:
+      database: gitea
+      password: gitea
+      username: gitea
+
+  ## @param postgresql-ha.metrics.image.repository Image repository, eg. `bitnamilegacy/postgres-exporter`.
+  metrics:
+    image:
+      repository: bitnamilegacy/postgres-exporter
+
+  ## @param postgresql-ha.postgresql.image.repository Image repository, eg. `bitnamilegacy/postgresql-repmgr`.
+  ## @param postgresql-ha.postgresql.repmgrPassword Repmgr Password
+  ## @param postgresql-ha.postgresql.postgresPassword postgres Password
+  ## @param postgresql-ha.postgresql.password Password for the `gitea` user (overrides `auth.password`)
+  postgresql:
+    image:
+      repository: bitnamilegacy/postgresql-repmgr
+    repmgrPassword: changeme2
+    postgresPassword: changeme1
+    password: changeme4
+
+  ## @param postgresql-ha.pgpool.adminPassword pgpool adminPassword
+  ## @param postgresql-ha.pgpool.image.repository Image repository, eg. `bitnamilegacy/pgpool`.
+  ## @param postgresql-ha.pgpool.srCheckPassword pgpool srCheckPassword
+  pgpool:
+    adminPassword: changeme3
+    image:
+      repository: bitnamilegacy/pgpool
+    srCheckPassword: changeme4
+
+  ## @param postgresql-ha.service.ports.postgresql PostgreSQL service port (overrides `service.ports.postgresql`)
+  service:
+    ports:
+      postgresql: 5432
+
+  ## @param postgresql-ha.persistence.enabled Enable persistence.
+  ## @param postgresql-ha.persistence.storageClass Persistent Volume Storage Class.
+  ## @param postgresql-ha.persistence.size PVC Storage Request for PostgreSQL HA volume
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 10Gi
+
+  ## @param postgresql-ha.volumePermissions.image.repository Image repository, eg. `bitnamilegacy/os-shell`.
+  volumePermissions:
+    image:
+      repository: bitnamilegacy/os-shell
+
+## @section PostgreSQL
+postgresql:
+  ## @param postgresql.enabled Enable PostgreSQL
+  enabled: false
+
+  ## @param postgresql.global.postgresql.auth.password Password for the `gitea` user (overrides `auth.password`)
+  ## @param postgresql.global.postgresql.auth.database Name for a custom database to create (overrides `auth.database`)
+  ## @param postgresql.global.postgresql.auth.username Name for a custom user to create (overrides `auth.username`)
+  ## @param postgresql.global.postgresql.service.ports.postgresql PostgreSQL service port (overrides `service.ports.postgresql`)
+  global:
+    postgresql:
+      auth:
+        password: gitea
+        database: gitea
+        username: gitea
+      service:
+        ports:
+          postgresql: 5432
+
+  ## @param postgresql.image.repository Image repository, eg. `bitnamilegacy/postgresql`.
+  image:
+    repository: bitnamilegacy/postgresql
+
+  primary:
+    ## @param postgresql.primary.persistence.enabled Enable persistence.
+    ## @param postgresql.primary.persistence.storageClass Persistent Volume storage class.
+    ## @param postgresql.primary.persistence.size PVC Storage Request for PostgreSQL volume.
+    persistence:
+      enabled: true
+      storageClass: ""
+      size: 10Gi
+
+  readReplicas:
+    ## @param postgresql.readReplicas.persistence.enabled Enable PostgreSQL read only data persistence using PVC.
+    ## @param postgresql.readReplicas.persistence.storageClass Persistent Volume storage class.
+    ## @param postgresql.readReplicas.persistence.size PVC Storage Request for PostgreSQL volume.
+    persistence:
+      enabled: true
+      storageClass: ""
+      size: ""
+
+  ## @param postgresql.metrics.image.repository Image repository, eg. `bitnamilegacy/postgres-exporter`.
+  metrics:
+    image:
+      repository: bitnamilegacy/postgres-exporter
+
+  ## @param postgresql.volumePermissions.image.repository Image repository, eg. `bitnamilegacy/os-shell`.
+  volumePermissions:
+    image:
+      repository: bitnamilegacy/os-shell
+
+## @param extraDeploy Array of extra objects to deploy with the release
+##
+extraDeploy: []

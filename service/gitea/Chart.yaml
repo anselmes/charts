@@ -1,0 +1,20 @@
+---
+apiVersion: v2
+type: application
+name: gitea
+description: A Helm chart that deploys gitea and its dependencies.
+version: 12.7.0
+dependencies:
+  - name: gitea
+    repository: https://dl.gitea.com/charts
+    version: 12.7.0
+  # - alias: certmanager
+  #   name: cert-manager
+  #   repository: https://charts.jetstack.io
+  #   version: 1.21.0
+  #   condition: certmanager.enabled
+  # - alias: trustmanager
+  #   name: trust-manager
+  #   repository: https://charts.jetstack.io
+  #   version: 0.24.0
+  #   condition: trustmanager.enabled
