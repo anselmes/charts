@@ -1,0 +1,22 @@
+{{- if and .Values.constraints.enabled .Values.constraints.approvedRegistries.enabled }}
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: ApprovedRegistries
+metadata:
+  name: approved-registries
+  annotations:
+    description: "Only images from approved registries may run in the cluster"
+spec:
+  enforcementAction: deny
+  match:
+    kinds:
+      - apiGroups:
+          - ""
+        kinds:
+          - Pod
+    excludedNamespaces:
+      - kube-system
+      - gatekeeper-system
+  parameters:
+    {{- toYaml .Values.constraints.approvedRegistries.parameters | nindent 4 }}
+{{- end }}

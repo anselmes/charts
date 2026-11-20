@@ -1,0 +1,25 @@
+{{- if .Values.config.enabled }}
+---
+apiVersion: config.gatekeeper.sh/v1alpha1
+kind: Config
+metadata:
+  name: config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "gatekeeper.labels" $ | nindent 4 }}
+spec:
+  sync:
+    syncOnly:
+      - group: ""
+        version: v1
+        kind: Namespace
+      - group: cilium.io
+        version: v2
+        kind: CiliumNetworkPolicy
+  match:
+    - processes:
+        - "*"
+      excludedNamespaces:
+        - kube-system
+        - {{ .Release.Namespace }}
+{{- end }}

@@ -1,0 +1,25 @@
+{{-  if and .Values.constraints.enabled .Values.constraints.podSecurityContext.enabled }}
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sPodSecurityContext
+metadata:
+  name: pod-security-context
+  annotations:
+    description: "Enforce baseline pod security context on all workload pods"
+spec:
+  enforcementAction: deny
+  match:
+    kinds:
+      - apiGroups:
+          - ""
+        kinds:
+          - Pod
+    excludedNamespaces:
+      - kube-system
+      - gatekeeper-system
+  parameters:
+    {{- range $key, $value := .Values.constraints.podSecurityContext.parameters }}
+    {{ $key }}:
+      {{- toYaml $value | nindent 6 }}
+    {{- end }}
+{{- end }}

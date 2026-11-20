@@ -1,0 +1,56 @@
+{{-  if and .Values.templates.enabled .Values.templates.approvedRegistries }}
+---
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: approvedregistries
+  annotations:
+    metadata.gatekeeper.sh/title: "Approved Container Registries"
+    metadata.gatekeeper.sh/version: "1.0.0"
+    description: >-
+      Blocks containers whose image does not start with an approved registry
+      prefix. Uses strings.any_prefix_match for efficient matching.
+spec:
+  crd:
+    spec:
+      names:
+        kind: ApprovedRegistries
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            approvedRegistries:
+              type: array
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package approvedregistries
+
+        import future.keywords.in
+
+        # --- container iterators ---
+
+        _all_containers[c] {
+          c := input.review.object.spec.containers[_]
+        }
+        _all_containers[c] {
+          c := input.review.object.spec.initContainers[_]
+        }
+        _all_containers[c] {
+          c := input.review.object.spec.ephemeralContainers[_]
+        }
+
+        # --- violation: image not from approved registry ---
+
+        violation[{"msg": msg}] {
+          c := _all_containers[_]
+          registries := input.parameters.approvedRegistries
+          not strings.any_prefix_match(c.image, registries)
+          msg := sprintf(
+            "DENIED: container %q image %q is not from an approved registry; approved prefixes: %v",
+            [c.name, c.image, registries],
+          )
+        }
+{{- end }}

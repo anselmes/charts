@@ -1,0 +1,11 @@
+---
+apiVersion: v2
+name: gatekeeper
+type: application
+description: A Helm chart that deploys OPA Gatekeeper and its dependencies.
+version: 3.23.0
+dependencies:
+  - name: gatekeeper
+    repository: https://open-policy-agent.github.io/gatekeeper/charts
+    version: 3.23.0
+    condition: gatekeeper.enabled

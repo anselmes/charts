@@ -1,0 +1,148 @@
+{{-  if and .Values.templates.enabled .Values.templates.podSecurityContext }}
+---
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: podsecuritycontext
+  labels:
+    {{- include "gatekeeper.labels" $ | nindent 4 }}
+  annotations:
+    metadata.gatekeeper.sh/title: "Pod Security Context"
+    metadata.gatekeeper.sh/version: "1.0.0"
+    description: >-
+      Enforces pod security context requirements: no privileged containers,
+      runAsNonRoot, readOnlyRootFilesystem, drop ALL capabilities, no host
+      namespaces. Supports exemptImages glob and allowedCapabilities list.
+spec:
+  crd:
+    spec:
+      names:
+        kind: PodSecurityContext
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            exemptImages:
+              type: array
+              items:
+                type: string
+            allowedCapabilities:
+              type: array
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package podsecuritycontext
+
+        import future.keywords.in
+
+        # --- container iterators (covers all three container types) ---
+
+        _input_containers[c] {
+          c := input.review.object.spec.containers[_]
+        }
+        _input_containers[c] {
+          c := input.review.object.spec.initContainers[_]
+        }
+        _input_containers[c] {
+          c := input.review.object.spec.ephemeralContainers[_]
+        }
+
+        # --- image exemption via glob matching ---
+
+        _is_exempt(container) {
+          exempt := object.get(input.parameters, "exemptImages", [])
+          pattern := exempt[_]
+          glob.match(pattern, [], container.image)
+        }
+
+        # --- violation: privileged container ---
+
+        violation[{"msg": msg}] {
+          c := _input_containers[_]
+          not _is_exempt(c)
+          c.securityContext.privileged == true
+          msg := sprintf(
+            "DENIED: container %q is privileged; set securityContext.privileged=false",
+            [c.name],
+          )
+        }
+
+        # --- violation: runAsNonRoot not explicitly true ---
+
+        violation[{"msg": msg}] {
+          c := _input_containers[_]
+          not _is_exempt(c)
+          not c.securityContext.runAsNonRoot == true
+          msg := sprintf(
+            "DENIED: container %q must set securityContext.runAsNonRoot=true",
+            [c.name],
+          )
+        }
+
+        # --- violation: readOnlyRootFilesystem not explicitly true ---
+
+        violation[{"msg": msg}] {
+          c := _input_containers[_]
+          not _is_exempt(c)
+          not c.securityContext.readOnlyRootFilesystem == true
+          msg := sprintf(
+            "DENIED: container %q must set securityContext.readOnlyRootFilesystem=true",
+            [c.name],
+          )
+        }
+
+        # --- violation: capabilities.drop does not include ALL ---
+
+        violation[{"msg": msg}] {
+          c := _input_containers[_]
+          not _is_exempt(c)
+          sc := object.get(c, "securityContext", {})
+          caps := object.get(sc, "capabilities", {})
+          drop_list := object.get(caps, "drop", [])
+          not "ALL" in drop_list
+          msg := sprintf(
+            "DENIED: container %q must include 'ALL' in securityContext.capabilities.drop",
+            [c.name],
+          )
+        }
+
+        # --- violation: disallowed capability in add list ---
+
+        violation[{"msg": msg}] {
+          c := _input_containers[_]
+          not _is_exempt(c)
+          sc := object.get(c, "securityContext", {})
+          caps := object.get(sc, "capabilities", {})
+          add_list := object.get(caps, "add", [])
+          cap := add_list[_]
+          allowed := object.get(input.parameters, "allowedCapabilities", [])
+          not cap in allowed
+          msg := sprintf(
+            "DENIED: container %q capability %q is not in allowedCapabilities %v",
+            [c.name, cap, allowed],
+          )
+        }
+
+        # --- violation: hostPID ---
+
+        violation[{"msg": msg}] {
+          input.review.object.spec.hostPID == true
+          msg := "DENIED: pod must not set spec.hostPID=true"
+        }
+
+        # --- violation: hostIPC ---
+
+        violation[{"msg": msg}] {
+          input.review.object.spec.hostIPC == true
+          msg := "DENIED: pod must not set spec.hostIPC=true"
+        }
+
+        # --- violation: hostNetwork ---
+
+        violation[{"msg": msg}] {
+          input.review.object.spec.hostNetwork == true
+          msg := "DENIED: pod must not set spec.hostNetwork=true"
+        }
+{{- end }}

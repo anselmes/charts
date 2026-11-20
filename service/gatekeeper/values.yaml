@@ -1,0 +1,113 @@
+---
+config:
+  enabled: false
+
+constraints:
+  enabled: true
+  approvedRegistries:
+    enabled: false
+    parameters:
+      approvedRegistries:
+        - "registry.example.com/"               # trailing / prevents subdomain bypass
+        - "gcr.io/my-project/"                  # GCR project scope
+        - "us-docker.pkg.dev/my-project/"       # Artifact Registry
+        - "registry.k8s.io/"                    # upstream Kubernetes images
+        - "docker.io/library/"                  # Docker Hub official images
+  podSecurityContext:
+    enabled: false
+    parameters:
+      allowedCapabilities:
+        - NET_BIND_SERVICE
+      exemptImages:
+        - "registry.k8s.io/pause:*"
+
+templates:
+  enabled: true
+  approvedRegistries: false
+  podSecurityContext: false
+
+gatekeeper:
+  enabled: false
+  replicas: 3
+  enableDeleteOperations: false
+  enableConnectOperations: false
+  enableExternalData: true
+  enableGeneratorResourceExpansion: true
+  enableTLSHealthcheck: false
+  commonAnnotations: {}
+  extraVolumeMounts: []
+  extraVolumes: []
+  image:
+    repository: openpolicyagent/gatekeeper
+    crdRepository: openpolicyagent/gatekeeper-crds
+    release: v3.21.1
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+  postUpgrade:
+    labelNamespace:
+      serviceAccount:
+        name: gatekeeper-update-namespace-label-post-upgrade
+        create: true
+      enabled: false
+      image:
+        repository: openpolicyagent/gatekeeper-crds
+        tag: v3.21.1
+        pullPolicy: IfNotPresent
+        pullSecrets: []
+      extraNamespaces: []
+      podSecurity: ["pod-security.kubernetes.io/audit=restricted",
+        "pod-security.kubernetes.io/audit-version=latest",
+        "pod-security.kubernetes.io/warn=restricted",
+        "pod-security.kubernetes.io/warn-version=latest",
+        "pod-security.kubernetes.io/enforce=restricted",
+        "pod-security.kubernetes.io/enforce-version=v1.24"]
+      extraAnnotations: {}
+      priorityClassName: ""
+    affinity: {}
+    tolerations: []
+    nodeSelector:
+      kubernetes.io/os: linux
+    resources: {}
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: true
+      runAsGroup: 999
+      runAsNonRoot: true
+      runAsUser: 1000
+  preUninstall:
+    deleteWebhookConfigurations:
+      serviceAccount:
+        name: gatekeeper-delete-webhook-configs
+        create: true
+      extraRules: []
+      enabled: false
+      image:
+        repository: openpolicyagent/gatekeeper-crds
+        tag: v3.21.1
+        pullPolicy: IfNotPresent
+        pullSecrets: []
+      priorityClassName: ""
+    affinity: {}
+    tolerations: []
+    nodeSelector:
+      kubernetes.io/os: linux
+    resources: {}
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: true
+      runAsGroup: 999
+      runAsNonRoot: true
+      runAsUser: 1000
+  podAnnotations: {}
+  auditPodAnnotations: {}
+  podLabels: {}
+  podCountLimit: "100"
+  secretAnnotations: {}
+  enableRuntimeDefaultSeccompProfile: true
+  exportBackend: ""
