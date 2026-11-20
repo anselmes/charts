@@ -1,0 +1,10 @@
+---
+apiVersion: v2
+name: coder
+type: application
+description: A Helm chart that deploys Coder and its dependencies.
+version: 2.35.2
+dependencies:
+  - name: coder
+    repository: oci://ghcr.io/coder/chart
+    version: 2.35.2
