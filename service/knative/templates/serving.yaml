@@ -27,15 +27,17 @@ spec:
               for i in {1..60}; do
                 if kubectl get crd knativeservings.operator.knative.dev >/dev/null 2>&1; then
                   echo "CRD found, creating KnativeServing"
-                  cat <<EOF | kubectl apply -f -
+                  cat <<EOF | kubectl apply -f - || exit 1
               apiVersion: operator.knative.dev/v1beta1
               kind: KnativeServing
               metadata:
                 name: knative-serving
                 labels:
-                  {{- include "knative.labels" . | nindent 14 }}
+                  {{- include "knative.labels" . | nindent 18 }}
               spec:
+                {{- if .Values.version }}
                 version: {{ .Values.version | quote }}
+                {{- end }}
                 high-availability:
                   replicas: {{ .Values.server.replicas }}
                 {{- if .Values.server.security }}
@@ -50,6 +52,10 @@ spec:
                     service-type: {{ .Values.server.network.kourier.service.type }}
                   {{- end }}
                   {{- if eq .Values.server.ingress.type "gateway-api" }}
+                  gateway-api:
+                    enabled: true
+                  {{- end }}
+                  {{- if or (eq .Values.server.ingress.type "kourier") (eq .Values.server.ingress.type "gateway-api") }}
                   istio:
                     enabled: false
                   {{- end }}
@@ -97,26 +103,19 @@ spec:
                     {{- end }}
                   deployment:
                     registriesSkippingTagResolving: kind.local,ko.local,dev.local,knative.registry.svc.cluster.local
-                {{- if .Values.server.network.gatewayAPI.enabled }}
-                additionalManifests:
-                  - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/200-clusterrole.yaml
-                  - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/300-controller.yaml
-                  - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/400-webhook-deployment.yaml
-                  - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/400-webhook-secret.yaml
-                  - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/400-webhook-service.yaml
-                  - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/500-validating-webhook.yaml
-                  - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/config-gateway.yaml
+                {{- if .Values.server.workloads }}
+                workloads:
+                  {{- toYaml .Values.server.workloads | nindent 18 }}
                 {{- end }}
+                additionalManifests: []
               EOF
-
-              echo "Waiting for KnativeServing CRD to become available..."
-              until kubectl get crd knativeservings.operator.knative.dev >/dev/null 2>&1; do
+                  echo "KnativeServing resource created successfully"
+                  exit 0
+                fi
                 echo "Waiting for knativeservings.operator.knative.dev CRD..."
                 sleep 5
               done
 
-              echo "Applying KnativeServing configuration..."
-              kubectl apply -f /tmp/serving.yaml || exit 1
-
-              echo "KnativeServing resource created successfully"
+              echo "Timed out waiting for knativeservings.operator.knative.dev CRD" >&2
+              exit 1
 {{- end }}

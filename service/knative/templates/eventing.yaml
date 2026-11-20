@@ -32,7 +32,9 @@ spec:
                 labels:
                   {{- include "knative.labels" . | nindent 12 }}
               spec:
+                {{- if .Values.version }}
                 version: {{ .Values.version | quote }}
+                {{- end }}
                 defaultBrokerClass: {{ .Values.event.defaultBrokerClass }}
                 {{- if .Values.event.config.enabled }}
                 config:

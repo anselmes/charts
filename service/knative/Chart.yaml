@@ -3,10 +3,18 @@ apiVersion: v2
 name: knative
 type: application
 description: Knative Helm Chart
-version: 1.22.3
+version: 1.23.1
 dependencies:
   - alias: operator
     name: knative-operator
     repository: https://knative.github.io/operator
-    version: 1.22.3
+    version: 1.23.1
     condition: operator.enabled
+  - name: ca
+    repository: oci://ghcr.io/labsonline/charts
+    version: 1.0.8
+    condition: ca.enabled
+  - name: gateway
+    repository: oci://ghcr.io/labsonline/charts
+    version: 1.0.4
+    condition: gateway.enabled

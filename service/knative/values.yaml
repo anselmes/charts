@@ -1,5 +1,5 @@
 ---
-version: v1.20.0
+version: ""
 
 # MARK: Resources
 
@@ -92,7 +92,13 @@ server:
     gatewayAPI:
       enabled: false        # Set to true to install Gateway API support.
       external: {}
+        # class: envoy
+        # name: "{{ .Release.Namespace }}/knative-external-gateway"
+        # service: "{{ .Release.Namespace }}/envoy-knative-knative-external-gateway"
       internal: {}
+        # class: envoy
+        # name: "{{ .Release.Namespace }}/knative-internal-gateway"
+        # service: "{{ .Release.Namespace }}/envoy-knative-knative-internal-gateway"
     # Configuration for Kourier ingress.
     kourier:
       service:
@@ -104,12 +110,83 @@ server:
     enabled: false
     issuerRef:
       clusterIssuer:
-        name: ca-issuer-self-signed
-      localIssuer:
         name: ca-issuer
+      localIssuer:
+        name: knative-ca-issuer
+  # workloads: []
+  #   # - name: net-gateway-api-controller
+  #   #   replicas: 1
+  #   #   resources:
+  #   #     - container: net-gateway-api-controller
+  #   #       requests: {}
+  #   #         # cpu: 300m
+  #   #         # memory: 100Mi
+  #   #       limits: {}
+  #   #         # cpu: 1000m
+  #   #         # memory: 250Mi
 
 # MARK: Operator
 
 # Configuration for the Knative operator.
 operator:
   enabled: true
+
+# MARK: Cert Manager
+
+ca:
+  enabled: false
+  issuers: []
+    # - name: knative-ca-issuer
+    #   selfSigned: true
+    #   secret:
+    #     create: false
+
+# MARK: Gateway
+
+gateway:
+  enabled: false
+  gateways: []
+    # - name: knative-external-gateway
+    #   className: envoy
+    #   listeners:
+    #     - name: http
+    #       port: 80
+    #       protocol: HTTP
+    #       allowedRoutes:
+    #         namespaces:
+    #           from: Same
+    #     - name: https
+    #       port: 443
+    #       protocol: HTTPS
+    #       hostname: knative.local
+    #       allowedRoutes:
+    #         namespaces:
+    #           from: Same
+    #       tls:
+    #         mode: Terminate
+    #         certificateRefs:
+    #           - name: knative-egw-cert
+    #             issuer: knative-ca-issuer
+    #             type: Issuer
+    # - name: knative-internal-gateway
+    #   className: envoy
+    #   listeners:
+    #     - name: http
+    #       port: 80
+    #       protocol: HTTP
+    #       allowedRoutes:
+    #         namespaces:
+    #           from: Same
+    #     - name: https
+    #       port: 443
+    #       protocol: HTTPS
+    #       hostname: knative.svc.cluster.local
+    #       allowedRoutes:
+    #         namespaces:
+    #           from: Same
+    #       tls:
+    #         mode: Terminate
+    #         certificateRefs:
+    #           - name: knative-igw-cert
+    #             issuer: knative-ca-issuer
+    #             type: Issuer
