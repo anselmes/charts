@@ -7,6 +7,10 @@ certificates: []
   # - name: example-certificate  # Name of the certificate resource.
   #   duration: 2160h            # Validity duration of the certificate (90 days).
   #   renewal: 360h              # Time before expiration to renew the certificate (15 days).
+  #   isCA: false                # Optional: issue a CA certificate (to back a `type: ca` issuer).
+  #   wait: false                # Optional: block the hook Job until the Certificate is Ready.
+  #   hook: post-install,post-upgrade  # Optional: Helm hook phase (pre-install,pre-upgrade runs before the release's workloads).
+  #   hookWeight: 10             # Optional: hook weight; lower runs first (issuers default to 5).
   #   subject:                   # Optional: X.509 subject fields (cert-manager `subject`), e.g. organizations.
   #     organizations:
   #       - example-org
@@ -38,7 +42,8 @@ issuers:
     secret:
       create: false
 
-  # Example of a CA issuer.
+  # Example of a CA issuer. `wait`, `hook` and `hookWeight` work as for certificates;
+  # `name` and `secret.name` accept templates such as "{{ .Release.Name }}-ca".
   # - name: ca-issuer
   #   certManagerNamespace: cert-manager  # Namespace where cert-manager is deployed.
   #   type: ca                            # Specifies the type of issuer as CA.

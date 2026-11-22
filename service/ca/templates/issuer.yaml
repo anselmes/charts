@@ -1,14 +1,15 @@
 {{- range .Values.issuers }}
+{{- $name := tpl .name $ }}
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: create-issuer-{{ .name }}
+  name: create-issuer-{{ $name }}
   labels:
     {{- include "ca.labels" $ | nindent 4 }}
   annotations:
-    helm.sh/hook: post-install,post-upgrade
-    helm.sh/hook-weight: "5"
+    helm.sh/hook: {{ .hook | default "post-install,post-upgrade" }}
+    helm.sh/hook-weight: {{ .hookWeight | default 5 | quote }}
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
   template:
@@ -32,7 +33,7 @@ spec:
               apiVersion: cert-manager.io/v1
               kind: ClusterIssuer
               metadata:
-                name: {{ .name }}
+                name: {{ $name }}
                 labels:
                   {{- include "ca.labels" $ | nindent 18 }}
               {{- else }}
@@ -42,7 +43,7 @@ spec:
               apiVersion: cert-manager.io/v1
               kind: Issuer
               metadata:
-                name: {{ .name }}
+                name: {{ $name }}
                 namespace: {{ $.Release.Namespace }}
                 labels:
                   {{- include "ca.labels" $ | nindent 18 }}
@@ -52,7 +53,7 @@ spec:
                 selfSigned: {}
                 {{- else if eq .type "ca" }}
                 ca:
-                  secretName: {{ .secret.name }}
+                  secretName: {{ tpl .secret.name $ }}
                 {{- else if eq .type "vault" }}
                 vault:
                   path: {{ .vault.path }}
@@ -104,7 +105,20 @@ spec:
                     {{- end }}
                 {{- end }}
               EOF
+                  {{- if .wait }}
+                  echo "Waiting for {{ if .clustered }}ClusterIssuer{{ else }}Issuer{{ end }} {{ $name }} to be Ready..."
+                  for j in {1..60}; do
+                    if [[ "$(kubectl get {{ if .clustered }}clusterissuer{{ else }}issuer -n {{ $.Release.Namespace }}{{ end }} {{ $name }} -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')" == "True" ]]; then
+                      echo "Issuer Ready"
+                      exit 0
+                    fi
+                    sleep 5
+                  done
+                  echo "Timed out waiting for issuer {{ $name }}"
+                  exit 1
+                  {{- else }}
                   exit 0
+                  {{- end }}
                 fi
                 echo "Attempt $i: cert-manager CRD not ready, waiting 10s..."
                 sleep 10

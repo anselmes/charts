@@ -9,8 +9,8 @@ metadata:
   labels:
     {{- include "ca.labels" $ | nindent 4 }}
   annotations:
-    helm.sh/hook: post-install,post-upgrade
-    helm.sh/hook-weight: "10"
+    helm.sh/hook: {{ .hook | default "post-install,post-upgrade" }}
+    helm.sh/hook-weight: {{ .hookWeight | default 10 | quote }}
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
   template:
@@ -42,12 +42,15 @@ spec:
                 duration: {{ .duration }}
                 renewBefore: {{ .renewal }}
                 commonName: {{ $commonName }}
+                {{- if .isCA }}
+                isCA: true
+                {{- end }}
                 {{- with .subject }}
                 subject:
                   {{- toYaml . | nindent 18 }}
                 {{- end }}
                 issuerRef:
-                  name: {{ .issuerRef.name }}
+                  name: {{ tpl .issuerRef.name $ }}
                   kind: {{ .issuerRef.kind }}
                 dnsNames:
                 {{- range .dns.aliases }}
@@ -62,7 +65,20 @@ spec:
                   - {{ . }}
                 {{- end }}
               EOF
+                  {{- if .wait }}
+                  echo "Waiting for Certificate {{ $name }}-cert to be Ready..."
+                  for j in {1..60}; do
+                    if [[ "$(kubectl get certificate {{ $name }}-cert -n {{ $.Release.Namespace }} -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')" == "True" ]]; then
+                      echo "Certificate Ready"
+                      exit 0
+                    fi
+                    sleep 5
+                  done
+                  echo "Timed out waiting for Certificate {{ $name }}-cert"
+                  exit 1
+                  {{- else }}
                   exit 0
+                  {{- end }}
                 fi
                 echo "Attempt $i: cert-manager CRD not ready, waiting 10s..."
                 sleep 10
