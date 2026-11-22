@@ -1,4 +1,39 @@
 ---
+# MARK: Jobs
+
+# Hook Jobs that wait for the CRDs and `kubectl apply` the resources below.
+jobs:
+  kubectlImage:
+    registry: docker.io
+    repository: alpine/k8s
+    tag: "1.32.3"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+  # Pod-level context: only PodSecurityContext fields are valid here.
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  # Container-level context.
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false # kubectl needs $HOME writable for its cache
+    capabilities:
+      drop: [ALL]
+    seccompProfile:
+      type: RuntimeDefault
+
 # MARK: Generator
 
 generators: []
@@ -44,7 +79,12 @@ pushSercrets: []
 # MARK: External Secret
 
 externalSecrets: []
-  # - # kind: ClusterExternalSecret
+  # - # Helm hook phase of the Job that applies this resource (default: post-install,post-upgrade).
+  #   # Use pre-install,pre-upgrade for secrets that main-phase resources read at start-up
+  #   # (e.g. a database CR's users secret), so they exist before those resources are created.
+  #   # hook: pre-install,pre-upgrade
+  #   # hookWeight: 10
+  #   # kind: ClusterExternalSecret
   #   # The name to be used on the ExternalSecrets
   #   # name: my-external-secret
   #   # How often the ClusterExternalSecret should reconcile itself
