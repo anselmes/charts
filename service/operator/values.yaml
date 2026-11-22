@@ -74,7 +74,9 @@ mongo:
 
   image:
     repository: percona/percona-server-mongodb-operator
-    tag: 1.21.2
+    # Must match the psmdb-operator chart / psmdb-db CR version (1.23.0); an older operator
+    # ignores newer CR fields such as tls.certManagementPolicy and creates its own certificates.
+    tag: 1.23.0
     pullPolicy: IfNotPresent
 
   # disableTelemetry: according to
