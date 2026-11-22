@@ -7,6 +7,9 @@ certificates: []
   # - name: example-certificate  # Name of the certificate resource.
   #   duration: 2160h            # Validity duration of the certificate (90 days).
   #   renewal: 360h              # Time before expiration to renew the certificate (15 days).
+  #   subject:                   # Optional: X.509 subject fields (cert-manager `subject`), e.g. organizations.
+  #     organizations:
+  #       - example-org
   #   dns:
   #     name: example.com        # Common name (CN) for the certificate.
   #     aliases:

@@ -1,9 +1,11 @@
 {{- range .Values.certificates }}
+{{- $name := tpl .name $ }}
+{{- $commonName := tpl .dns.name $ }}
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: create-certificate-{{ .name }}
+  name: create-certificate-{{ $name }}
   labels:
     {{- include "ca.labels" $ | nindent 4 }}
   annotations:
@@ -31,21 +33,25 @@ spec:
               apiVersion: cert-manager.io/v1
               kind: Certificate
               metadata:
-                name: {{ .name }}-cert
+                name: {{ $name }}-cert
                 namespace: {{ $.Release.Namespace }}
                 labels:
                   {{- include "ca.labels" $ | nindent 18 }}
               spec:
-                secretName: {{ .name }}-tls
+                secretName: {{ $name }}-tls
                 duration: {{ .duration }}
                 renewBefore: {{ .renewal }}
-                commonName: {{ .dns.name }}
+                commonName: {{ $commonName }}
+                {{- with .subject }}
+                subject:
+                  {{- toYaml . | nindent 18 }}
+                {{- end }}
                 issuerRef:
                   name: {{ .issuerRef.name }}
                   kind: {{ .issuerRef.kind }}
                 dnsNames:
                 {{- range .dns.aliases }}
-                  - {{ . | quote }}
+                  - {{ tpl . $ | quote }}
                 {{- end }}
                 ipAddresses:
                 {{- range .dns.addresses }}
