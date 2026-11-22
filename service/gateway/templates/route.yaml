@@ -32,6 +32,12 @@ spec:
       {{- if .namespace }}
       namespace: {{ .namespace }}
       {{- end }}
+      {{- if .sectionName }}
+      sectionName: {{ .sectionName }}
+      {{- end }}
+      {{- if .port }}
+      port: {{ .port }}
+      {{- end }}
     {{- end }}
   {{- end }}
 {{- end }}
