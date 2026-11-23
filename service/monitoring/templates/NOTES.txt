@@ -10,8 +10,8 @@ Enabled components:
 {{- if .Values.clickstack.enabled }}
   - ClickStack: ClickHouse + Keeper (operator CRs) and the HyperDX app (Service "{{ .Release.Name }}-app" when the release is named after the chart; check `kubectl get svc -n {{ .Release.Namespace }}`)
 {{- end }}
-{{- if .Values.collector.enabled }}
-  - OTel Collector (Service "{{ .Values.collector.fullnameOverride | default "see kubectl get svc" }}", OTLP gRPC 4317 / HTTP 4318)
+{{- if and .Values.clickstack.enabled (index .Values.clickstack "otel-collector").enabled }}
+  - OTel Collector (bundled with ClickStack; Service "{{ .Release.Name }}-otel-collector", OTLP gRPC 4317 / HTTP 4318)
 {{- end }}
 {{- if .Values.grafana.operator.enabled }}
   - Grafana Operator
@@ -41,7 +41,7 @@ Next steps:
      `clickstack-secret` only holds empty placeholders (upstream rejects `secrets: null` while ClickHouse is enabled).
   3. ClickHouse, the HyperDX app, the OTel collector and the Mongo user read their passwords from
      `clickstack-credentials` through `clickstack.clickhouse.cluster.spec.containerTemplate.env`,
-     `clickstack.clickstack.deployment.env`, `collector.extraEnvs` and `data.mongo.users` (set per environment).
+     `clickstack.clickstack.deployment.env`, `clickstack.otel-collector.extraEnvs` and `data.mongo.users` (set per environment).
 {{- end }}
 {{- if and .Values.clickstack.enabled .Values.clickstack.additionalManifests }}
   3b. Ingestion key: CronJob "<fullname>-ingest-key-sync" (upstream additionalManifests) registers {{ .Values.clickstack.ingestKeySync.adminEmail }} (password in Secret

@@ -50,3 +50,12 @@ Selector labels
 app.kubernetes.io/name: {{ include "monitoring.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+HyperDX app Service name for places that cannot read the clickstack subchart's values (for example gateway routes,
+which the gateway subchart renders through tpl and where only `.Release` is available). Delegates to the upstream
+chart's own helper so it follows upstream's naming rules.
+*/}}
+{{- define "monitoring.clickstack.app" -}}
+{{- include "clickstack.hyperdx.fullname" (dict "Values" (dict) "Release" .Release "Chart" (dict "Name" "clickstack")) }}
+{{- end }}

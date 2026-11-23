@@ -8,23 +8,21 @@ description: >-
   for storage), fronted by a Gateway API gateway and TLS issued by a dedicated,
   namespaced Issuer. Secrets (ClickHouse, Grafana admin) are expected to be
   provisioned out-of-band by a separate eso HelmRelease.
-version: 7.0.0
+version: 7.0.1
 dependencies:
+  # node-agent / cluster-agent must stay on the same opentelemetry-collector version as the one bundled by the
+  # clickstack chart (see its Chart.yaml, ~0.146): Helm named templates are global per release, so two versions of
+  # the same chart in one release collide and fail to render.
   - alias: node-agent
     name: opentelemetry-collector
-    version: 0.182.0
+    version: 0.146.1
     repository: oci://ghcr.io/open-telemetry/opentelemetry-helm-charts
     condition: node-agent.enabled
   - alias: cluster-agent
     name: opentelemetry-collector
-    version: 0.182.0
+    version: 0.146.1
     repository: oci://ghcr.io/open-telemetry/opentelemetry-helm-charts
     condition: cluster-agent.enabled
-  - alias: collector
-    name: opentelemetry-collector
-    version: 0.182.0
-    repository: oci://ghcr.io/open-telemetry/opentelemetry-helm-charts
-    condition: collector.enabled
   - alias: clickhouse-operator
     name: clickhouse-operator-helm
     repository: oci://ghcr.io/clickhouse
@@ -59,5 +57,5 @@ dependencies:
     condition: ca.enabled
   - name: gateway
     repository: oci://ghcr.io/labsonline/charts
-    version: 1.1.0
+    version: 1.2.0
     condition: gateway.enabled

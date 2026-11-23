@@ -92,11 +92,11 @@ node-agent:
         # `ca_file` (and the node name as endpoint) if your kubelets use CA-signed serving certs.
         insecure_skip_verify: true
     exporters:
-      # OTLP/gRPC to the ClickStack collector (monitoring-otel-collector, see `collector` below), plaintext
+      # OTLP/gRPC to the ClickStack collector (the bundled `<release>-otel-collector` Service), plaintext
       # in-cluster. For a remote cluster use the central cluster's gateway endpoint (https, port 443) instead and
       # drop `tls.insecure`.
       otlp:
-        endpoint: monitoring-otel-collector:4317
+        endpoint: "{{ .Release.Name }}-otel-collector:4317"
         tls:
           insecure: true
         headers:
@@ -136,11 +136,11 @@ cluster-agent:
           optional: true
   config:
     exporters:
-      # OTLP/gRPC to the ClickStack collector (monitoring-otel-collector, see `collector` below), plaintext
+      # OTLP/gRPC to the ClickStack collector (the bundled `<release>-otel-collector` Service), plaintext
       # in-cluster. For a remote cluster use the central cluster's gateway endpoint (https, port 443) instead and
       # drop `tls.insecure`.
       otlp:
-        endpoint: monitoring-otel-collector:4317
+        endpoint: "{{ .Release.Name }}-otel-collector:4317"
         tls:
           insecure: true
         headers:
@@ -153,93 +153,6 @@ cluster-agent:
           exporters: [otlp]
         traces:
           exporters: [otlp]
-
-# MARK: OTel Collector
-
-# Grafana Alloy has no ClickHouse exporter, and ClickHouse has no OTLP-compatible
-# listener of its own -- this deploys a vanilla OpenTelemetry Collector Contrib
-# instance as a bridge, using its clickhouseexporter (which supports
-# create_schema). Point a monitoring.destinations.<name> "otlp" destination at
-# this collector's Service (port 4317 for gRPC, 4318 for HTTP) rather than at
-# ClickHouse directly.
-collector:
-  enabled: false
-  mode: deployment
-  # Fixed Service name: the Alloy `otlpCollector` destination and the Gateway routes target it.
-  fullnameOverride: monitoring-otel-collector
-  image:
-    repository: docker.clickhouse.com/clickhouse/clickstack-otel-collector
-    tag: "2.46.0"
-  extraEnvsFrom:
-    - configMapRef:
-        name: clickstack-config
-    - secretRef:
-        name: clickstack-secret
-  # Explicit env wins over envFrom: the ClickHouse password comes from the ESO-owned Secret, not the
-  # Helm-rendered placeholder `clickstack-secret`.
-  extraEnvs:
-    - name: CLICKHOUSE_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: clickstack-credentials
-          key: CLICKHOUSE_PASSWORD
-  # Roll collector pods when global.otelCollector.customConfig changes.
-  # Merges with any user-provided podAnnotations.
-  podAnnotations:
-    checksum/custom-config: '{{ .Values.global.otelCollector.customConfig | default "" | sha256sum }}'
-    # Subchart tpl can't see clickstack.config/secrets to hash them, so roll on every upgrade.
-    # helm template (Argo CD) always renders revision 1; restart the collector manually there.
-    rollout/release-revision: '{{ .Release.Revision }}'
-  # Mount for the optional custom config ConfigMap rendered from
-  # global.otelCollector.customConfig. The volume is marked optional so it is
-  # a no-op when no custom config is set.
-  # NOTE: if you override extraVolumes/extraVolumeMounts yourself, Helm
-  # replaces these lists entirely -- re-include the entries below to keep
-  # global.otelCollector.customConfig working.
-  extraVolumes:
-    - name: custom-config
-      configMap:
-        name: clickstack-otel-custom-config
-        optional: true
-  extraVolumeMounts:
-    - name: custom-config
-      mountPath: /etc/otelcol-contrib/custom
-      readOnly: true
-  ports:
-    otlp:
-      enabled: true
-      containerPort: 4317
-      servicePort: 4317
-      protocol: TCP
-      appProtocol: grpc
-    otlp-http:
-      enabled: true
-      containerPort: 4318
-      servicePort: 4318
-      protocol: TCP
-    health-check:
-      enabled: true
-      containerPort: 13133
-      servicePort: 13133
-      protocol: TCP
-    fluentd:
-      enabled: true
-      containerPort: 24225
-      servicePort: 24225
-      protocol: TCP
-    metrics:
-      enabled: true
-      containerPort: 8888
-      servicePort: 8888
-      protocol: TCP
-    jaeger-compact:
-      enabled: false
-    jaeger-thrift:
-      enabled: false
-    jaeger-grpc:
-      enabled: false
-    zipkin:
-      enabled: false
 
 # MARK: - ClickStack
 
@@ -580,6 +493,91 @@ clickstack:
       # otherwise upstream's default applies.
       # defaultConnections: ""
 
+# MARK: OTel Collector
+
+  # Grafana Alloy has no ClickHouse exporter, and ClickHouse has no OTLP-compatible
+  # listener of its own -- this deploys a vanilla OpenTelemetry Collector Contrib
+  # instance as a bridge, using its clickhouseexporter (which supports
+  # create_schema). Point a monitoring.destinations.<name> "otlp" destination at
+  # this collector's Service (port 4317 for gRPC, 4318 for HTTP) rather than at
+  # ClickHouse directly.
+  otel-collector:
+    enabled: true
+    mode: deployment
+    image:
+      repository: docker.clickhouse.com/clickhouse/clickstack-otel-collector
+      # tag: "2.46.0"
+    extraEnvsFrom:
+      - configMapRef:
+          name: clickstack-config
+      - secretRef:
+          name: clickstack-secret
+    # Explicit env wins over envFrom: the ClickHouse password comes from the ESO-owned Secret, not the
+    # Helm-rendered placeholder `clickstack-secret`.
+    extraEnvs:
+      - name: CLICKHOUSE_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: clickstack-credentials
+            key: CLICKHOUSE_PASSWORD
+    # Roll collector pods when global.otelCollector.customConfig changes.
+    # Merges with any user-provided podAnnotations.
+    podAnnotations:
+      checksum/custom-config: '{{ .Values.global.otelCollector.customConfig | default "" | sha256sum }}'
+      # Subchart tpl can't see clickstack.config/secrets to hash them, so roll on every upgrade.
+      # helm template (Argo CD) always renders revision 1; restart the collector manually there.
+      rollout/release-revision: '{{ .Release.Revision }}'
+    # Mount for the optional custom config ConfigMap rendered from
+    # global.otelCollector.customConfig. The volume is marked optional so it is
+    # a no-op when no custom config is set.
+    # NOTE: if you override extraVolumes/extraVolumeMounts yourself, Helm
+    # replaces these lists entirely -- re-include the entries below to keep
+    # global.otelCollector.customConfig working.
+    extraVolumes:
+      - name: custom-config
+        configMap:
+          name: clickstack-otel-custom-config
+          optional: true
+    extraVolumeMounts:
+      - name: custom-config
+        mountPath: /etc/otelcol-contrib/custom
+        readOnly: true
+    ports:
+      otlp:
+        enabled: true
+        containerPort: 4317
+        servicePort: 4317
+        protocol: TCP
+        appProtocol: grpc
+      otlp-http:
+        enabled: true
+        containerPort: 4318
+        servicePort: 4318
+        protocol: TCP
+      health-check:
+        enabled: true
+        containerPort: 13133
+        servicePort: 13133
+        protocol: TCP
+      fluentd:
+        enabled: true
+        containerPort: 24225
+        servicePort: 24225
+        protocol: TCP
+      metrics:
+        enabled: true
+        containerPort: 8888
+        servicePort: 8888
+        protocol: TCP
+      jaeger-compact:
+        enabled: false
+      jaeger-thrift:
+        enabled: false
+      jaeger-grpc:
+        enabled: false
+      zipkin:
+        enabled: false
+
 # MARK: - ClickHouse
 
   # -- In-cluster ClickHouse via ClickHouseCluster CR. Set enabled: false for external ClickHouse.
@@ -726,8 +724,6 @@ clickstack:
                   # and ClickHouse gates every table function behind CREATE TEMPORARY TABLE.
                   - query: GRANT SHOW ON *.*, SELECT ON system.*, SELECT ON default.*, CREATE TEMPORARY TABLE ON *.*
 
-  otel-collector:
-    enabled: false
   mongodb:
     enabled: false
 
@@ -877,7 +873,9 @@ monitoring:
       type: otlp
       # OTLP over gRPC (port 4317, exporter `otelcol.exporter.otlp`); `http` would use 4318.
       protocol: grpc
-      url: http://monitoring-otel-collector:4317
+      # k8s-monitoring does not render templates in its values: set this to `http://<release>-otel-collector:4317` for
+      # your release name (the node/cluster agents above do follow the release name).
+      url: http://clickstack-otel-collector:4317
       # In-cluster plaintext gRPC to the collector Service; drop this if the URL becomes https://.
       tls:
         insecure: true
@@ -1553,6 +1551,7 @@ gateway:
     #             issuer: monitoring-ca-issuer
     #             type: Issuer
 
+  # Route `rules` are rendered through tpl (gateway chart >= 1.2.0), so backend names can follow the release name.
   routes:
     - name: clickstack
       kind: HTTPRoute
@@ -1572,7 +1571,7 @@ gateway:
         #         scheme: https
         #         statusCode: 301
         - backendRefs:
-            - name: monitoring-clickstack-app
+            - name: '{{ include "monitoring.clickstack.app" . }}'
               port: 3000
       # Route-level (not inside a rule): the gateway chart turns this into parentRefs.
       gateways:
@@ -1583,7 +1582,7 @@ gateway:
     #     - otlp.monitoring.local
     #   rules:
     #     - backendRefs:
-    #         - name: monitoring-otel-collector
+    #         - name: "{{ .Release.Name }}-otel-collector"
     #           port: 4317
     #   gateways:
     #     - name: monitoring-gateway
@@ -1593,7 +1592,7 @@ gateway:
     #     - otlp.monitoring.local
     #   rules:
     #     - backendRefs:
-    #         - name: monitoring-otel-collector
+    #         - name: "{{ .Release.Name }}-otel-collector"
     #           port: 4318
     #   gateways:
     #     - name: monitoring-gateway
