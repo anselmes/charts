@@ -36,13 +36,14 @@ apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: external-secrets-generator
-  namespace: operators
+  namespace: sre
 spec:
   interval: 10m0s
   releaseName: external-secrets-generator
   timeout: 15m0s
   dependsOn:
     - name: external-secrets-operator
+      namespace: operators
   chart:
     spec:
       interval: 5m
