@@ -1354,12 +1354,17 @@ secret:
                 kind: ClusterGenerator  # Password | ClusterGenerator
                 name: pwdgen
     # Admin credentials for the HyperDX user that the ingest-key-sync CronJob (clickstack.additionalManifests) registers and logs in as.
+    # HyperDX rejects a password without a special character from !@#$%^&*(),.?":{}|<>;-+= (`_` does not count), but the
+    # shared pwdgen draws its symbols from "-_", so roughly 1 in 32 passwords has none. The trailing `+` guarantees one.
     - kind: ExternalSecret
       name: clickstack-admin
       externalSecretSpec:
         refreshInterval: "0"
         target:
           creationPolicy: Owner
+          template:
+            data:
+              password: "{{ .password }}+"
         dataFrom:
           - sourceRef:
               generatorRef:
