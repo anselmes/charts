@@ -16,6 +16,14 @@ jobs:
     limits:
       cpu: 250m
       memory: 128Mi
+  # Pod-level context: only PodSecurityContext fields are valid here.
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  # Container-level context.
   securityContext:
     runAsNonRoot: true
     runAsUser: 65532
@@ -27,11 +35,831 @@ jobs:
     seccompProfile:
       type: RuntimeDefault
 
+# MARK: Global
+
+# Read by the clickstack and collector subcharts (podAnnotations checksum, custom-config ConfigMap).
+global:
+  otelCollector:
+    # Custom OTel Collector config merged over the built-in one (multi-line YAML string).
+    # Rendered by the clickstack subchart into `clickstack-otel-custom-config`.
+    customConfig: ""
+
+# MARK: OTel Agents (Kubernetes telemetry)
+
+# OpenTelemetry Collector agents that gather Kubernetes telemetry and send it to the ClickStack collector over OTLP
+# (an alternative to k8s-monitoring/Alloy below, with OTel-native metric names and no CRD or operator).
+# Two instances of the chart already used for `collector`, because the presets have different shapes:
+# one pod per node for node-local data, one replica for cluster-wide data (more replicas would duplicate it).
+# Apps need no receiver here: they can send OTLP straight to the ClickStack collector with the ingestion key.
+# Not covered by presets: node journal logs (no journalctl in the k8s image) and Beyla auto-instrumentation.
+
+# Per node: container logs, host and kubelet metrics, Kubernetes metadata on everything.
+node-agent:
+  enabled: false
+  mode: daemonset
+  # The k8s distribution carries the receivers/processors the presets need (filelog, kubeletstats, k8s_cluster,
+  # k8sattributes, k8s_events, receiver_creator); the chart has no default image.
+  image:
+    repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s
+  presets:
+    logsCollection:
+      enabled: true
+    hostMetrics:
+      enabled: true
+    kubeletMetrics:
+      enabled: true
+    kubernetesAttributes:
+      enabled: true
+    # Scrape pods that opt in with the io.opentelemetry.discovery.metrics/* annotations.
+    annotationDiscovery:
+      metrics:
+        enabled: true
+  extraEnvs:
+    # Team ingestion key for the central collector (Secret created by the ingest-key-sync CronJob in
+    # clickstack.additionalManifests, or by hand). `optional` lets the pod start before the Secret exists;
+    # it then gets 401 until restarted, which the CronJob does (see clickstack.ingestKeySync.restartSelector).
+    - name: HYPERDX_INGEST_KEY
+      valueFrom:
+        secretKeyRef:
+          name: clickstack-ingest-key
+          key: key
+          optional: true
+  config:
+    receivers:
+      kubeletstats:
+        # kubeadm-style kubelets serve a self-signed cert without IP SANs, so the preset's default verification
+        # fails ("cannot validate certificate for <node ip> because it doesn't contain any IP SANs"). Replace with
+        # `ca_file` (and the node name as endpoint) if your kubelets use CA-signed serving certs.
+        insecure_skip_verify: true
+    exporters:
+      # OTLP/gRPC to the ClickStack collector (monitoring-otel-collector, see `collector` below), plaintext
+      # in-cluster. For a remote cluster use the central cluster's gateway endpoint (https, port 443) instead and
+      # drop `tls.insecure`.
+      otlp:
+        endpoint: monitoring-otel-collector:4317
+        tls:
+          insecure: true
+        headers:
+          authorization: ${env:HYPERDX_INGEST_KEY}
+    service:
+      pipelines:
+        logs:
+          exporters: [otlp]
+        metrics:
+          exporters: [otlp]
+        traces:
+          exporters: [otlp]
+
+# Cluster-wide, exactly one replica: cluster state metrics and Kubernetes events.
+cluster-agent:
+  enabled: false
+  mode: deployment
+  replicaCount: 1
+  # The k8s distribution carries the receivers/processors the presets need (filelog, kubeletstats, k8s_cluster,
+  # k8sattributes, k8s_events, receiver_creator); the chart has no default image.
+  image:
+    repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s
+  presets:
+    clusterMetrics:
+      enabled: true
+    kubernetesEvents:
+      enabled: true
+  extraEnvs:
+    # Team ingestion key for the central collector (Secret created by the ingest-key-sync CronJob in
+    # clickstack.additionalManifests, or by hand). `optional` lets the pod start before the Secret exists;
+    # it then gets 401 until restarted, which the CronJob does (see clickstack.ingestKeySync.restartSelector).
+    - name: HYPERDX_INGEST_KEY
+      valueFrom:
+        secretKeyRef:
+          name: clickstack-ingest-key
+          key: key
+          optional: true
+  config:
+    exporters:
+      # OTLP/gRPC to the ClickStack collector (monitoring-otel-collector, see `collector` below), plaintext
+      # in-cluster. For a remote cluster use the central cluster's gateway endpoint (https, port 443) instead and
+      # drop `tls.insecure`.
+      otlp:
+        endpoint: monitoring-otel-collector:4317
+        tls:
+          insecure: true
+        headers:
+          authorization: ${env:HYPERDX_INGEST_KEY}
+    service:
+      pipelines:
+        logs:
+          exporters: [otlp]
+        metrics:
+          exporters: [otlp]
+        traces:
+          exporters: [otlp]
+
+# MARK: OTel Collector
+
+# Grafana Alloy has no ClickHouse exporter, and ClickHouse has no OTLP-compatible
+# listener of its own -- this deploys a vanilla OpenTelemetry Collector Contrib
+# instance as a bridge, using its clickhouseexporter (which supports
+# create_schema). Point a monitoring.destinations.<name> "otlp" destination at
+# this collector's Service (port 4317 for gRPC, 4318 for HTTP) rather than at
+# ClickHouse directly.
+collector:
+  enabled: false
+  mode: deployment
+  # Fixed Service name: the Alloy `otlpCollector` destination and the Gateway routes target it.
+  fullnameOverride: monitoring-otel-collector
+  image:
+    repository: docker.clickhouse.com/clickhouse/clickstack-otel-collector
+    tag: "2.46.0"
+  extraEnvsFrom:
+    - configMapRef:
+        name: clickstack-config
+    - secretRef:
+        name: clickstack-secret
+  # Explicit env wins over envFrom: the ClickHouse password comes from the ESO-owned Secret, not the
+  # Helm-rendered placeholder `clickstack-secret`.
+  extraEnvs:
+    - name: CLICKHOUSE_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: clickstack-credentials
+          key: CLICKHOUSE_PASSWORD
+  # Roll collector pods when global.otelCollector.customConfig changes.
+  # Merges with any user-provided podAnnotations.
+  podAnnotations:
+    checksum/custom-config: '{{ .Values.global.otelCollector.customConfig | default "" | sha256sum }}'
+    # Subchart tpl can't see clickstack.config/secrets to hash them, so roll on every upgrade.
+    # helm template (Argo CD) always renders revision 1; restart the collector manually there.
+    rollout/release-revision: '{{ .Release.Revision }}'
+  # Mount for the optional custom config ConfigMap rendered from
+  # global.otelCollector.customConfig. The volume is marked optional so it is
+  # a no-op when no custom config is set.
+  # NOTE: if you override extraVolumes/extraVolumeMounts yourself, Helm
+  # replaces these lists entirely -- re-include the entries below to keep
+  # global.otelCollector.customConfig working.
+  extraVolumes:
+    - name: custom-config
+      configMap:
+        name: clickstack-otel-custom-config
+        optional: true
+  extraVolumeMounts:
+    - name: custom-config
+      mountPath: /etc/otelcol-contrib/custom
+      readOnly: true
+  ports:
+    otlp:
+      enabled: true
+      containerPort: 4317
+      servicePort: 4317
+      protocol: TCP
+      appProtocol: grpc
+    otlp-http:
+      enabled: true
+      containerPort: 4318
+      servicePort: 4318
+      protocol: TCP
+    health-check:
+      enabled: true
+      containerPort: 13133
+      servicePort: 13133
+      protocol: TCP
+    fluentd:
+      enabled: true
+      containerPort: 24225
+      servicePort: 24225
+      protocol: TCP
+    metrics:
+      enabled: true
+      containerPort: 8888
+      servicePort: 8888
+      protocol: TCP
+    jaeger-compact:
+      enabled: false
+    jaeger-thrift:
+      enabled: false
+    jaeger-grpc:
+      enabled: false
+    zipkin:
+      enabled: false
+
+# MARK: - ClickStack
+
+clickstack:
+  enabled: false
+
+  # HyperDX generates the team ingestion API key itself at the first sign-up and has no setting to preset it.
+  # The upstream `additionalManifests` below (rendered with `tpl` in this subchart's context) ship a CronJob that
+  # automates the manual steps: it registers the admin user when no team exists (password from the ESO-generated
+  # Secret `adminSecretName`, i.e. `secret.enabled` plus the `clickstack-admin` ExternalSecret), logs in through
+  # the HyperDX API, reads the team API key and keeps it in `ingestKeySecretName` (key `key`), which the Alloy
+  # collectors read as HYPERDX_INGEST_KEY. It also picks up key rotation. Without the admin Secret the Job does
+  # nothing, so this is safe on installs without ESO. Set `additionalManifests: []` to drop it entirely.
+  # Lists are replaced, not merged, so per-deployment settings live in this map instead.
+  ingestKeySync:
+    adminEmail: admin@example.com
+    adminSecretName: clickstack-admin
+    ingestKeySecretName: clickstack-ingest-key
+    schedule: "*/5 * * * *"
+    # Pods deleted (and recreated by their controller) when the key is created or changes, because the OTel agents
+    # and Alloy read it from their environment at start-up. Empty disables the restart.
+    restartSelector: app.kubernetes.io/name in (node-agent, cluster-agent, alloy)
+    image: alpine/k8s:1.32.3
+
+  additionalManifests:
+    - apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: '{{ include "clickstack.fullname" . }}-ingest-key-sync'
+        namespace: '{{ .Release.Namespace }}'
+    - apiVersion: rbac.authorization.k8s.io/v1
+      kind: Role
+      metadata:
+        name: '{{ include "clickstack.fullname" . }}-ingest-key-sync'
+        namespace: '{{ .Release.Namespace }}'
+      rules:
+        - apiGroups: [""]
+          resources: [secrets]
+          verbs: [create]
+        - apiGroups: [""]
+          resources: [secrets]
+          resourceNames: ['{{ .Values.ingestKeySync.ingestKeySecretName }}']
+          verbs: [get, patch, update]
+        # Restarting Alloy needs this; RBAC cannot scope pod deletion by label.
+        - apiGroups: [""]
+          resources: [pods]
+          verbs: [list, delete]
+    - apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: '{{ include "clickstack.fullname" . }}-ingest-key-sync'
+        namespace: '{{ .Release.Namespace }}'
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: Role
+        name: '{{ include "clickstack.fullname" . }}-ingest-key-sync'
+      subjects:
+        - kind: ServiceAccount
+          name: '{{ include "clickstack.fullname" . }}-ingest-key-sync'
+          namespace: '{{ .Release.Namespace }}'
+    - apiVersion: batch/v1
+      kind: CronJob
+      metadata:
+        name: '{{ include "clickstack.fullname" . }}-ingest-key-sync'
+        namespace: '{{ .Release.Namespace }}'
+      spec:
+        schedule: '{{ .Values.ingestKeySync.schedule }}'
+        concurrencyPolicy: Forbid
+        successfulJobsHistoryLimit: 1
+        failedJobsHistoryLimit: 1
+        jobTemplate:
+          spec:
+            backoffLimit: 0
+            activeDeadlineSeconds: 180
+            template:
+              spec:
+                serviceAccountName: '{{ include "clickstack.fullname" . }}-ingest-key-sync'
+                restartPolicy: Never
+                securityContext:
+                  runAsNonRoot: true
+                  runAsUser: 65532
+                  # Secret volume files are owned by root:fsGroup; without it the non-root user cannot read them.
+                  fsGroup: 65532
+                  seccompProfile:
+                    type: RuntimeDefault
+                containers:
+                  - name: sync
+                    image: '{{ .Values.ingestKeySync.image }}'
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                      capabilities:
+                        drop: [ALL]
+                    resources:
+                      requests: {cpu: 10m, memory: 32Mi}
+                      limits: {cpu: 200m, memory: 128Mi}
+                    env:
+                      - {name: HOME, value: /tmp}
+                      - name: APP_URL
+                        value: 'http://{{ include "clickstack.hyperdx.fullname" . }}:{{ .Values.clickstack.ports.app }}/api'
+                      - name: ADMIN_EMAIL
+                        value: '{{ .Values.ingestKeySync.adminEmail }}'
+                      - name: SECRET_NAME
+                        value: '{{ .Values.ingestKeySync.ingestKeySecretName }}'
+                      - name: RESTART_SELECTOR
+                        value: '{{ .Values.ingestKeySync.restartSelector }}'
+                    volumeMounts:
+                      - {name: admin, mountPath: /creds, readOnly: true}
+                      - {name: tmp, mountPath: /tmp}
+                    command:
+                      - /bin/bash
+                      - -c
+                      - |
+                        set -Eeuo pipefail
+                        if [[ ! -s /creds/password ]]; then
+                          echo "Admin Secret not provided (needs secret.enabled and the clickstack-admin ExternalSecret); nothing to do"; exit 0
+                        fi
+                        hdr="$(mktemp)"; trap 'rm -f "${hdr}"' EXIT
+                        # The session cookie is `Secure` (and scoped to the public hostname), so over plain http the
+                        # server sets none unless it believes the request was https, and curl's cookie jar would not
+                        # send it back to the in-cluster Service anyway: claim https and pass the cookie by hand.
+                        xfp=(-H 'X-Forwarded-Proto: https')
+                        if ! installed="$(curl -fsS --max-time 10 "${APP_URL}/installation")"; then
+                          echo "HyperDX is not ready yet; retrying on the next run"; exit 0
+                        fi
+                        creds() { jq -n --arg e "${ADMIN_EMAIL}" --rawfile p /creds/password "$@"; }
+                        if [[ "$(jq -r .isTeamExisting <<<"${installed}")" == "false" ]]; then
+                          echo "No team yet: registering ${ADMIN_EMAIL}"
+                          creds '{email:$e,password:$p,confirmPassword:$p}' \
+                            | curl -sS --max-time 20 -o /dev/null -w 'register: HTTP %{http_code}\n' \
+                                "${xfp[@]}" -H 'Content-Type: application/json' -X POST -d @- "${APP_URL}/register/password" || true
+                        fi
+                        creds '{email:$e,password:$p}' \
+                          | curl -sS --max-time 20 -o /dev/null -D "${hdr}" "${xfp[@]}" -H 'Content-Type: application/json' \
+                              -X POST -d @- "${APP_URL}/login/password"
+                        cookie="$(sed -nE 's/^[Ss]et-[Cc]ookie: *(connect\.sid=[^;]*).*/\1/p' "${hdr}" | head -1 | tr -d '\r')"
+                        key=""
+                        if [[ -n "${cookie}" ]]; then
+                          key="$(curl -fsS --max-time 15 "${xfp[@]}" -H "Cookie: ${cookie}" "${APP_URL}/team" | jq -r '.apiKey // empty')" || key=""
+                        fi
+                        if [[ -z "${key}" ]]; then
+                          echo "Cannot read the team API key: login as ${ADMIN_EMAIL} failed. A different user may own the team." >&2
+                          exit 1
+                        fi
+                        current="$(kubectl get secret "${SECRET_NAME}" -o jsonpath='{.data.key}' 2>/dev/null | base64 -d || true)"
+                        if [[ "${current}" == "${key}" ]]; then echo "Ingestion key unchanged"; exit 0; fi
+                        printf %s "${key}" | kubectl create secret generic "${SECRET_NAME}" --from-file=key=/dev/stdin \
+                          --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+                        if [[ -n "${current}" ]]; then verb=rotated; else verb=created; fi
+                        echo "Ingestion key ${verb} in Secret ${SECRET_NAME}"
+                        if [[ -n "${RESTART_SELECTOR}" ]]; then
+                          kubectl delete pod -l "${RESTART_SELECTOR}" --wait=false || echo "No pods matched ${RESTART_SELECTOR}" >&2
+                        fi
+                volumes:
+                  - name: admin
+                    secret:
+                      secretName: '{{ .Values.ingestKeySync.adminSecretName }}'
+                      optional: true
+                      defaultMode: 0440   # group-readable by fsGroup (0400 would be root-only)
+                  - name: tmp
+                    emptyDir: {}
+
+  # HyperDX app settings (the subchart's own top-level `clickstack:` key).
+  clickstack:
+    # -- PromQL support. Turns on the HyperDX PromQL UI and API, adds the PromQL default source,
+    # and configures ClickHouse with Prometheus remote write/read handlers, the `prometheus_api_v1`
+    # HTTP handler and `allow_experimental_time_series_table` (an experimental ClickHouse setting).
+    # The ClickHouse part needs ClickHouse 26.6 or newer and is skipped when
+    # `clickhouse.cluster.spec.containerTemplate.image.tag` is an older version.
+    promql:
+      enabled: true
+
+    # -- Dashboard provisioning: upserts dashboard JSON into MongoDB (matched by name, never deletes).
+    # Provide dashboards inline via configMaps, or label ConfigMaps hyperdx.io/dashboard: "true"
+    # for a k8s-sidecar watcher to discover.
+    dashboards:
+      enabled: false
+
+      # Sidecar is a lightweight ConfigMap watcher; bump (esp. memory) for very large
+      # dashboard sets or wide `namespaces: [ALL]` discovery to avoid OOMKill.
+      # Even idle it needs more than 64Mi: with a handful of small dashboards its working set
+      # is about 72Mi and peaks near 95Mi, so the limit leaves headroom above that peak and
+      # the request reserves about the working set.
+      resources:
+        limits:
+          cpu: 50m
+          memory: 128Mi
+        requests:
+          cpu: 10m
+          memory: 64Mi
+
+    # -- Shared non-sensitive environment variables (clickstack-config ConfigMap).
+    # Used by HyperDX and OTEL collector via envFrom. Values support tpl expressions.
+    # Override entries with plain strings to point at external services.
+    # Changes to the rendered ConfigMap roll the HyperDX Deployment; the otel-collector rolls on every helm upgrade.
+    config:
+      APP_PORT: "3000"
+      API_PORT: "8000"
+      HYPERDX_API_PORT: "8000"
+      HYPERDX_APP_PORT: "3000"
+      HYPERDX_LOG_LEVEL: "info"
+      OTEL_SERVICE_NAME: "hdx-oss-api"
+      USAGE_STATS_ENABLED: "true"
+      OPAMP_PORT: "4320"
+      HYPERDX_OTEL_EXPORTER_CLICKHOUSE_DATABASE: "default"
+      CLICKHOUSE_USER: "otelcollector"
+      RUN_SCHEDULED_TASKS_EXTERNALLY: "false"
+      # ClickHouse table retention (TTL). Go-duration string; "d" suffix allowed (e.g. "180d").
+      # This global default applies to every signal.
+      HYPERDX_OTEL_EXPORTER_TABLES_TTL: "720h"
+      # Per-signal overrides (each falls back to HYPERDX_OTEL_EXPORTER_TABLES_TTL when unset),
+      # e.g. keep logs & traces longer for compliance while metrics stay short:
+      #   HYPERDX_OTEL_EXPORTER_LOGS_TTL: "180d"
+      #   HYPERDX_OTEL_EXPORTER_TRACES_TTL: "180d"
+      #   HYPERDX_OTEL_EXPORTER_METRICS_TTL: "30d"
+      #   HYPERDX_OTEL_EXPORTER_SESSIONS_TTL: "30d"
+      # Apply TTL changes to tables that already exist, not just newly created ones (default false):
+      #   HYPERDX_OTEL_EXPORTER_RECONCILE_TABLE_TTL: "true"
+      # Per-signal TTLs and reconcile need collector image 2.36.0 or newer.
+      # Service endpoint defaults -- override to use external instances
+      FRONTEND_URL: "http://localhost:3000"
+      MONGO_URI: 'mongodb://hyperdx:{{ .Values.clickstack.secrets.MONGODB_PASSWORD }}@{{ include "clickstack.mongodb.svc" . }}:27017/hyperdx?authSource=hyperdx'
+      OTEL_EXPORTER_OTLP_ENDPOINT: 'http://{{ include "clickstack.otel.fullname" . }}:4318'
+      # HyperDX's own browser and Next.js server telemetry. Browsers can't reach the in-cluster
+      # endpoint above, so this is on only when a browser-reachable collector URL is set:
+      #   NEXT_PUBLIC_OTEL_EXPORTER_OTLP_ENDPOINT: "https://otel.example.com"
+      HDX_EXPORTER_ENABLED: '{{ if .Values.clickstack.config.NEXT_PUBLIC_OTEL_EXPORTER_OTLP_ENDPOINT }}true{{ else }}false{{ end }}'
+      CLICKHOUSE_ENDPOINT: 'tcp://{{ include "clickstack.clickhouse.svc" . }}:{{ .Values.clickhouse.nativePort }}?dial_timeout=10s'
+      CLICKHOUSE_SERVER_ENDPOINT: '{{ include "clickstack.clickhouse.svc" . }}:{{ .Values.clickhouse.nativePort }}'
+      CLICKHOUSE_PROMETHEUS_METRICS_ENDPOINT: '{{ include "clickstack.clickhouse.svc" . }}:{{ .Values.clickhouse.prometheus.port }}'
+      OPAMP_SERVER_URL: 'http://{{ include "clickstack.hyperdx.fullname" . }}:{{ .Values.clickstack.ports.opamp }}'
+      # PromQL feature flags, driven by clickstack.promql.enabled.
+      ENABLE_PROMQL: '{{ if .Values.clickstack.promql.enabled }}true{{ else }}false{{ end }}'
+      NEXT_PUBLIC_ENABLE_PROMQL: '{{ if .Values.clickstack.promql.enabled }}true{{ else }}false{{ end }}'
+
+    # -- Shared sensitive environment variables (clickstack-secret).
+    # Set to null to skip Secret creation (requires mongodb, clickhouse, and otel-collector disabled).
+    # Changes to this Secret roll the HyperDX Deployment; the otel-collector rolls on every helm upgrade.
+    # External Secrets need a manual rollout.
+    # Upstream rejects null while clickhouse is enabled, so the chart renders this Secret with empty
+    # placeholders. The real passwords live in the ESO-owned `clickstack-credentials` Secret (see
+    # `secret.externalSecrets`); never merge ESO data into this Helm-owned Secret: every `helm upgrade` resets it
+    # to these placeholders and ESO then refills it with newly generated passwords.
+    secrets:
+      HYPERDX_API_KEY: ""
+      CLICKHOUSE_PASSWORD: ""
+      CLICKHOUSE_APP_PASSWORD: ""
+      MONGODB_PASSWORD: ""
+
+    # -- HyperDX Deployment spec (image, probes, scheduling, init containers, volumes).
+    # defaultConnections/defaultSources JSON: set to "" to disable; use useExistingConfigSecret for external secrets.
+    deployment:
+      image:
+        # -- HyperDX container image repository.
+        repository: docker.hyperdx.io/hyperdx/hyperdx
+        # -- Image tag. Defaults to Chart appVersion when empty.
+        tag:
+        pullPolicy: IfNotPresent
+      # -- Pod replica count. Ignored when clickstack.autoscaling.enabled is true.
+      replicas: 1
+      resources: {}
+      nodeSelector: {}
+      tolerations: []
+      annotations: {}
+      labels: {}
+      # -- Extra environment variables for the HyperDX container, rendered verbatim (supports `valueFrom`, e.g. `secretKeyRef`).
+      # Empty by default so upstream's MONGO_URI (ConfigMap) and DEFAULT_CONNECTIONS apply. Both embed passwords
+      # from the `secrets` placeholders, so with the ESO-managed clickstack-credentials set this per environment,
+      # together with `defaultConnections: ""` below. `$(VAR)` expands only vars defined earlier in this list, so
+      # keep the two secretKeyRef entries first. The ESO clickstack-credentials Secret provides the URL-encoded / JSON-quoted
+      # passwords. Hostnames follow the release name "clickstack"; for a sharded Percona cluster use the mongos
+      # Service ("<release>-mongo-mongos"), for an unsharded one "<release>-mongo-<replset>" with
+      # `&replicaSet=<replset>`.
+      env: []
+        # - name: MONGODB_PASSWORD_URLENC
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: clickstack-credentials
+        #       key: MONGODB_PASSWORD_URLENC
+        # - name: CLICKHOUSE_APP_PASSWORD_JSON
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: clickstack-credentials
+        #       key: CLICKHOUSE_APP_PASSWORD_JSON
+        # - name: MONGO_URI
+        #   value: mongodb://clickstack:$(MONGODB_PASSWORD_URLENC)@clickstack-mongo-mongos:27017/clickstack?authSource=admin
+        # - name: DEFAULT_CONNECTIONS
+        #   value: '[{"name":"Local ClickHouse","host":"http://clickstack-clickhouse-clickhouse-headless:8123","port":8123,"username":"app","password":$(CLICKHOUSE_APP_PASSWORD_JSON)}]'
+      # -- Additional init containers to run before the HyperDX container starts.
+      # HyperDX opens its Mongo clients once at start-up and never retries a failed login. The Percona operator
+      # creates the `clickstack` user a little after the app starts on a fresh install, so the app is left broken
+      # until restarted (register/login return errors). Wait until the credentials work first. The app image
+      # already ships node and the driver; repeat the same MONGO_URI env here (env is not shared with the app).
+      initContainers: []
+        # - name: wait-for-mongo-auth
+        #   image: docker.hyperdx.io/hyperdx/hyperdx:2.46.0   # keep in step with the app image tag
+        #   command:
+        #     - node
+        #     - -e
+        #     - |
+        #       const {MongoClient}=require('/app/node_modules/mongodb');
+        #       const sleep=(ms)=>new Promise((r)=>setTimeout(r,ms));
+        #       (async()=>{
+        #         for(let i=1;i<=120;i++){
+        #           const c=new MongoClient(process.env.MONGO_URI,{serverSelectionTimeoutMS:5000});
+        #           try{await c.connect();await c.db().command({ping:1});console.log('mongo credentials accepted');await c.close();return;}
+        #           catch(e){console.log('waiting for the mongo user ('+(e.codeName||e.name)+')');try{await c.close();}catch(_){}}
+        #           await sleep(5000);
+        #         }
+        #         process.exit(1);
+        #       })();
+        #   env:
+        #     - name: MONGODB_PASSWORD_URLENC
+        #       valueFrom:
+        #         secretKeyRef:
+        #           name: clickstack-credentials
+        #           key: MONGODB_PASSWORD_URLENC
+        #     - name: MONGO_URI
+        #       value: mongodb://clickstack:$(MONGODB_PASSWORD_URLENC)@clickstack-mongo-mongos:27017/clickstack?authSource=admin
+      # -- Additional volumes to attach to the pod.
+      volumes: []
+      # -- Additional volume mounts for the HyperDX container.
+      volumeMounts: []
+      # Pod-level security context for HyperDX workloads.
+      podSecurityContext: {}
+      # Container-level security context for managed HyperDX containers.
+      containerSecurityContext: {}
+      waitForMongodb:
+        image: "busybox@sha256:1fcf5df59121b92d61e066df1788e8df0cc35623f5d62d9679a41e163b6a0cdb"
+        pullPolicy: IfNotPresent
+      # -- Load HyperDX connections JSON from an existing Secret instead of defaultConnections.
+      useExistingConfigSecret: false
+      # -- Secret containing connections and sources JSON when useExistingConfigSecret is true.
+      existingConfigSecret: ""
+      existingConfigConnectionsKey: "connections.json"
+      existingConfigSourcesKey: "sources.json"
+      # Set to "" when DEFAULT_CONNECTIONS is provided through `env` above (ESO-managed password);
+      # otherwise upstream's default applies.
+      # defaultConnections: ""
+
+# MARK: - ClickHouse
+
+  # -- In-cluster ClickHouse via ClickHouseCluster CR. Set enabled: false for external ClickHouse.
+  # -- In-cluster ClickHouse via the upstream ClickHouseCluster/KeeperCluster CRs.
+  # The settings below are merged over the subchart defaults (ours win). They carry
+  # over the config of the former hook-Job deployment.
+  clickhouse:
+    enabled: true
+    keeper:
+      spec:
+        containerTemplate:
+          image:
+            repository: clickhouse/clickhouse-keeper
+            # tag: "26.8.37.168-alpine"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+        replicas: 3
+        dataVolumeClaimSpec:
+          # storageClassName: fast-ssd
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 10Gi
+        # Spread across zones and hosts where possible.
+        # podTemplate:
+        #   topologyZoneKey: topology.kubernetes.io/zone
+        #   nodeHostnameKey: kubernetes.io/hostname
+    cluster:
+      spec:
+        containerTemplate:
+          image:
+            repository: clickhouse/clickhouse-server
+            # tag: "26.8.37.168-alpine"
+          # ClickHouse's own memory tracker budgets off the container memory limit,
+          # so the limit must comfortably exceed its idle/background footprint
+          # (system tables, merges, caches) or even trivial queries hit
+          # MEMORY_LIMIT_EXCEEDED.
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              memory: 2Gi
+          # Required by the `@from_env` user passwords below. Generated by ESO
+          # (see `secret.externalSecrets`).
+          env: []
+            # - name: CLICKHOUSE_PASSWORD
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: clickstack-credentials
+            #       key: CLICKHOUSE_PASSWORD
+            # - name: CLICKHOUSE_APP_PASSWORD
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: clickstack-credentials
+            #       key: CLICKHOUSE_APP_PASSWORD
+        replicas: 3
+        shards: 2
+        dataVolumeClaimSpec:
+          # storageClassName: fast-ssd
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 100Gi
+        # Spread across zones and hosts where possible.
+        # podTemplate:
+        #   topologyZoneKey: topology.kubernetes.io/zone
+        #   nodeHostnameKey: kubernetes.io/hostname
+        settings:
+          defaultUserPassword:
+            passwordType: password
+            secret:
+              name: clickhouse-default-password
+              key: password
+          extraConfig:
+            keep_alive_timeout: 64
+            max_concurrent_queries: 100
+            max_connections: 4096
+            asynchronous_metric_log:
+              ttl: event_date + INTERVAL 30 DAY DELETE
+            metric_log:
+              ttl: event_date + INTERVAL 30 DAY DELETE
+            part_log:
+              ttl: event_date + INTERVAL 30 DAY DELETE
+            query_log:
+              ttl: event_date + INTERVAL 30 DAY DELETE
+            text_log:
+              ttl: event_date + INTERVAL 30 DAY DELETE
+            # PromQL / Prometheus remote read-write on the metrics_ts table.
+            http_handlers:
+              defaults: ""
+              rule:
+                handler:
+                  type: prometheus_api_v1
+                url_prefix: /prometheus/api/v1
+            prometheus:
+              handlers:
+                metrics_handler:
+                  url: /metrics
+                  handler:
+                    type: expose_metrics
+                    asynchronous_metrics: true
+                    errors: true
+                    events: true
+                    metrics: true
+                remote_read_handler:
+                  url: /read
+                  handler:
+                    type: remote_read
+                    database: default
+                    table: metrics_ts
+                remote_write_handler:
+                  url: /write
+                  handler:
+                    type: remote_write
+                    database: default
+                    table: metrics_ts
+          extraUsersConfig:
+            profiles:
+              default:
+                allow_experimental_time_series_table: 1
+            users:
+              # Replaces the subchart's inline-password user (named `otelcollector`
+              # upstream, `collector` in the former deployment).
+              otelcollector:
+                profile: default
+                password:
+                  - "@from_env": CLICKHOUSE_PASSWORD
+                grants:
+                  - query: GRANT SELECT,INSERT,CREATE,SHOW ON default.*
+              app:
+                profile: default
+                password:
+                  - "@from_env": CLICKHOUSE_APP_PASSWORD
+                grants:
+                  # The prometheus_api_v1 handler reads via the timeSeriesSelector() table function,
+                  # and ClickHouse gates every table function behind CREATE TEMPORARY TABLE.
+                  - query: GRANT SHOW ON *.*, SELECT ON system.*, SELECT ON default.*, CREATE TEMPORARY TABLE ON *.*
+
+  otel-collector:
+    enabled: false
+  mongodb:
+    enabled: false
+
+# MARK: ClickHouse Operator
+
+clickhouse-operator:
+  enabled: false
+
+  ## Configure the controller manager deployment
+  ##
+  manager:
+    ## Set to false to skip manager installation
+    ##
+    enabled: true
+
+    replicas: 1
+
+    image:
+      ## Optional registry prefix for this image. Overridden by global.imageRegistry
+      ## when set. Empty uses repository as-is.
+      ##
+      registry: ""
+      repository: ghcr.io/clickhouse/clickhouse-operator
+      ## Digest of the image to use. Tag is used if unset.
+      ##
+      ## digest: sha256:abc123
+      ## Image tag (defaults to Chart.appVersion if not set)
+      ##
+      tag: ""
+      pullPolicy: IfNotPresent
+
+    ## Arguments
+    ##
+    args:
+      - --leader-elect
+
+    ## Env overrides (--set manager.envOverrides.VAR=value)
+    ## Same name in env above: this value takes precedence.
+    ##
+    envOverrides: {}
+
+    ## Image pull secrets
+    ##
+    # imagePullSecrets:
+    #   - name: myregistrykey
+
+    ## Resource limits and requests
+    ##
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 500m
+        memory: 128Mi
+
+    ## Container security context
+    ##
+    securityContext:
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop: [ALL]
+      seccompProfile:
+        type: RuntimeDefault
+
+    ## Manager pod's node selector
+    ##
+    nodeSelector: {}
+
+    ## Manager pod's tolerations
+    ##
+    tolerations: []
+
+    ## Extra volumes and volume mounts
+    ##
+    extraVolumes: [ ]
+
+    extraVolumeMounts: [ ]
+
+  ## Custom Resource Definitions
+  ##
+  crd:
+    # Install CRDs with the chart
+    enabled: true
+    # Keep CRDs when uninstalling
+    keep: true
+
+  ## Cert-manager integration for TLS certificates.
+  ## Required for webhook certificates and metrics endpoint certificates.
+  ##
+  certManager:
+    enabled: true
+    ## Custom issuer configuration for cert-manager issued certificates.
+    ## Defaults to this chart's own monitoring-ca-issuer (see ca: below).
+    ##
+    issuerRef:
+      name: monitoring-ca-issuer
+      kind: Issuer
+
+  ## Prometheus ServiceMonitor for metrics scraping.
+  ## Requires prometheus-operator to be installed in the cluster.
+  ##
+  prometheus:
+    # Add annotations to allow Prometheus service discovery scrape metrics.
+    scraping_annotations: false
+    # Enable Prometheus ServiceMonitor for metrics scraping.
+    # Requires prometheus-operator to be installed in the cluster.
+    enabled: false
+
+  ## Kubernetes NetworkPolicies restricting ingress to the metrics and webhook ports.
+  ##
+  networkPolicy:
+    enabled: false
+
+  # Extra manifests to deploy as an array
+  extraManifests: []
+    # - |
+    #   apiVersion: v1
+    #   kind: ConfigMap
+    #   metadata:
+    #   labels:
+    #     name: prometheus-extra
+    #   data:
+    #     extra-data: "value"
+
 # MARK: Kubernetes Monitoring
 
 # Grafana k8s-monitoring Stack Configuration (Grafana Alloy collectors).
 monitoring:
-  enabled: true
+  enabled: false
 
   cluster:
     # Cluster name identifier for multi-cluster observability
@@ -47,10 +875,24 @@ monitoring:
   destinations:
     otlpCollector:
       type: otlp
+      # OTLP over gRPC (port 4317, exporter `otelcol.exporter.otlp`); `http` would use 4318.
+      protocol: grpc
       url: http://monitoring-otel-collector:4317
+      # In-cluster plaintext gRPC to the collector Service; drop this if the URL becomes https://.
+      tls:
+        insecure: true
+      # For a remote cluster, send through the central cluster's gRPC route instead (GRPCRoute on the
+      # shared Gateway's TLS listener, port 443; the gateway cert must be trusted, see `tls.ca*`):
+      # url: https://otlp.example.com:443
+      # tls:
+      #   insecure: false
       metrics: { enabled: true }
       logs: { enabled: true }
       traces: { enabled: true }
+      # Sends the raw team ingestion key (HyperDX expects `Authorization: <key>`, no "Bearer " prefix).
+      # Needs the matching alloy-metrics `alloy.extraEnv` below.
+      # extraHeadersFrom:
+      #   authorization: 'sys.env("HYPERDX_INGEST_KEY")'
     # hostedMetrics:
     #   type: prometheus
     #   url: https://prometheus.example.com/api/prom/push
@@ -66,6 +908,14 @@ monitoring:
     #     username: username
     #     password: password
     #     tenantIdFrom: env("LOKI_TENANT_ID")
+
+  # Built-in exporters the clusterMetrics feature scrapes. The chart refuses to render without
+  # kube-state-metrics (or labelMatchers pointing at an existing one) and node-exporter.
+  telemetryServices:
+    kube-state-metrics:
+      deploy: true
+    node-exporter:
+      deploy: true
 
   # Cluster-level metrics collection configuration
   # Collects system-wide metrics including node resources, cluster state, and API server metrics
@@ -88,9 +938,12 @@ monitoring:
     # Provides low-level system insights and container runtime diagnostics
     enabled: false
 
-  # Pod log collection configuration
-  # Collects application and container logs from all pods in the cluster
-  podLogs:
+  # Pod log collection configuration (k8s-monitoring 4.x name; the old `podLogs` key is ignored)
+  # Collects application and container logs from all pods in the cluster, as OpenTelemetry logs
+  # (best fit for the OTLP destination). Needs the alloy-logs collector; set
+  # `podLogsViaOpenTelemetry.collector: alloy-logs` when more than one collector is enabled.
+  # `podLogsViaLoki` is the alternative that produces Loki-format logs.
+  podLogsViaOpenTelemetry:
     # Enable collection of pod logs via node-based log collection
     # More efficient for high-volume logging environments
     enabled: false
@@ -108,13 +961,27 @@ monitoring:
     # Enable application observability features
     # Provides distributed tracing, application metrics, and service mapping
     enabled: false
+    # Apps send OTLP to the alloy-receiver collector's Service (<release>-alloy-receiver:4317 gRPC / :4318 HTTP),
+    # which forwards to the destination. The chart requires at least one receiver, and (with several
+    # collectors enabled) an explicit collector:
+    # collector: alloy-receiver
+    # receivers:
+    #   otlp:
+    #     grpc:
+    #       enabled: true
+    #     http:
+    #       enabled: true
 
   # Automatic instrumentation for application tracing
   # Automatically instruments applications for distributed tracing without code changes
   autoInstrumentation:
     # Enable automatic instrumentation of applications
     # Supports automatic OpenTelemetry instrumentation for various languages
+    # Deploys Grafana Beyla: a privileged hostPID DaemonSet (plus a metadata cache Deployment) that needs
+    # a node kernel with eBPF/BTF and a namespace that allows privileged pods.
     enabled: false
+    # Required when several collectors are enabled; this collector scrapes Beyla's metrics.
+    # collector: alloy-metrics
 
   # Annotation-based service discovery configuration
   # Automatically discovers and monitors services based on annotations
@@ -122,6 +989,10 @@ monitoring:
     # Enable automatic discovery of services via annotations
     # Allows services to opt-in to monitoring through Kubernetes annotations
     enabled: false
+    # Needs a metrics collector (clustered alloy-metrics). Opt a Service or Pod in with:
+    #   k8s.grafana.com/scrape: "true"
+    # and optionally k8s.grafana.com/metrics.path, .portNumber, .portName, .scheme, .container, k8s.grafana.com/job.
+    # collector: alloy-metrics
 
   # Prometheus Operator objects integration
   # Enables integration with existing Prometheus Operator CRDs (ServiceMonitor, PodMonitor, etc.)
@@ -153,21 +1024,63 @@ monitoring:
     # Lightweight agents for collecting and forwarding Prometheus metrics
     alloy-metrics:
       enabled: true
+      # `clustered` is required by the clusterMetrics feature (chart validation fails without it);
+      # `statefulset` is the chart's recommended shape for a clustered metrics collector.
+      presets: [clustered, statefulset]
+      # The ClickStack collector enforces the team's ingestion API key. With clickstack.additionalManifests (the
+      # ingest-key-sync CronJob) the Secret below is created and rotated automatically; otherwise create it by hand after the first HyperDX
+      # sign-up (Team settings -> API Keys), then enable this and the destination header:
+      #   kubectl -n <ns> create secret generic clickstack-ingest-key --from-literal=key=<ingestion key>
+      # alloy:
+      #   extraEnv:
+      #     - name: HYPERDX_INGEST_KEY
+      #       valueFrom:
+      #         secretKeyRef:
+      #           name: clickstack-ingest-key
+      #           key: key
+      #           optional: true   # unset until the Secret exists; the destination then gets 401, not a crash
 
     # Single instance Alloy deployment for centralized collection tasks
     # Used for cluster-wide collection tasks that should run once per cluster
     alloy-singleton:
       enabled: false
+      # Runs once per cluster; carries the clusterEvents feature (set `clusterEvents.collector: alloy-singleton`).
+      presets: [singleton]
+      # Needs the ingestion key like alloy-metrics (see the clickstack-ingest-key Secret above):
+      # alloy:
+      #   extraEnv:
+      #     - name: HYPERDX_INGEST_KEY
+      #       valueFrom:
+      #         secretKeyRef: { name: clickstack-ingest-key, key: key, optional: true }
 
     # Deploys Alloy agents for log collection and forwarding
     # Collects and forwards logs to centralized logging systems
     alloy-logs:
       enabled: false
+      # One pod per node reading container/node logs from the filesystem; carries podLogs and nodeLogs
+      # (set `podLogs.collector` / `nodeLogs.collector: alloy-logs`).
+      presets: [filesystem-log-reader, daemonset]
+      # podLogsViaOpenTelemetry uses otelcol.receiver.filelog, which Alloy marks public-preview.
+      alloy:
+        stabilityLevel: public-preview
+      # Needs the ingestion key like alloy-metrics (see the clickstack-ingest-key Secret above):
+      # alloy:
+      #   extraEnv:
+      #     - name: HYPERDX_INGEST_KEY
+      #       valueFrom:
+      #         secretKeyRef: { name: clickstack-ingest-key, key: key, optional: true }
 
     # Deploys Alloy as a receiver for telemetry data
     # Receives and processes metrics, logs, and traces from various sources
     alloy-receiver:
       enabled: false
+      # Receives OTLP from applications (applicationObservability) and forwards it to the destination.
+      # Needs the ingestion key like the other collectors:
+      # alloy:
+      #   extraEnv:
+      #     - name: HYPERDX_INGEST_KEY
+      #       valueFrom:
+      #         secretKeyRef: { name: clickstack-ingest-key, key: key, optional: true }
 
     # Deploys Alloy agents for performance profiling data collection
     # Collects and forwards continuous profiling data
@@ -347,219 +1260,164 @@ grafana:
     # -- extra container volume mounts
     extraVolumeMounts: []
 
-# MARK: ClickHouse
+# MARK: Mongo DB
 
-clickhouse:
-  enabled: false
-
-  keeper:
-    name: clickhouse-keeper
-    replicas: 3
-    storage:
-      # class: fast-ssd
-      size: 10Gi
-    resources:
-      requests:
-        cpu: 250m
-        memory: 512Mi
-      limits:
-        cpu: "1"
-        memory: 1Gi
-
-  cluster:
-    name: clickhouse-cluster
-    replicas: 3
-    shards: 2
-    secret:
-      name: clickhouse-default-password
-      create: false
-      password: ""
-    storage:
-      # class: fast-ssd
-      size: 100Gi
-    # ClickHouse's own memory tracker budgets off the container memory limit,
-    # so the limit must comfortably exceed its idle/background footprint
-    # (system tables, merges, caches) or even trivial queries hit
-    # MEMORY_LIMIT_EXCEEDED.
-    resources:
-      requests:
-        cpu: 250m
-        memory: 512Mi
-      limits:
-        cpu: "1"
-        memory: 1Gi
-
-# MARK: ClickHouse Operator
-
-  operator:
+data:
+  mongo:
     enabled: false
+    image:
+      repository: percona/percona-server-mongodb
+      # tag: 8.0.17-6
 
-    ## Configure the controller manager deployment
-    ##
-    manager:
-      ## Set to false to skip manager installation
-      ##
+    # tls:
+    #   certManagementPolicy: userProvidedTLS
+    # secrets:
+    #   ssl: "{{ .Release.Name }}-mongodb-ssl-tls"
+    #   sslInternal: "{{ .Release.Name }}-mongodb-ssl-internal-tls"
+    # unsafeFlags:
+    #   tls: true
+
+    multiCluster:
+      enabled: false
+    pmm:
+      enabled: false
+    replsets:
+      rs0:
+        name: clickstack
+        size: 3
+    sharding:
       enabled: true
+      balancer:
+        enabled: true
+      configrs:
+        size: 3
+      mongos:
+        size: 3
 
-      replicas: 1
+    users:
+      - name: clickstack
+        db: admin
+        passwordSecretRef:
+          name: clickstack-credentials
+          key: MONGODB_PASSWORD
+        roles:
+          - name: dbOwner
+            db: clickstack
 
+    backup:
+      enabled: true
       image:
-        ## Optional registry prefix for this image. Overridden by global.imageRegistry
-        ## when set. Empty uses repository as-is.
-        ##
-        registry: ""
-        repository: ghcr.io/clickhouse/clickhouse-operator
-        ## Digest of the image to use. Tag is used if unset.
-        ##
-        ## digest: sha256:abc123
-        ## Image tag (defaults to Chart.appVersion if not set)
-        ##
-        tag: ""
-        pullPolicy: IfNotPresent
+        repository: percona/percona-backup-mongodb
+        # tag: 2.11.0
 
-      ## Arguments
-      ##
-      args:
-        - --leader-elect
-
-      ## Env overrides (--set manager.envOverrides.VAR=value)
-      ## Same name in env above: this value takes precedence.
-      ##
-      envOverrides: {}
-
-      ## Image pull secrets
-      ##
-      # imagePullSecrets:
-      #   - name: myregistrykey
-
-      ## Resource limits and requests
-      ##
-      resources:
-        requests:
-          cpu: 50m
-          memory: 64Mi
-        limits:
-          cpu: 500m
-          memory: 128Mi
-
-      ## Container security context
-      ##
-      securityContext:
-        runAsNonRoot: true
-        allowPrivilegeEscalation: false
-        readOnlyRootFilesystem: true
-        capabilities:
-          drop: [ALL]
-        seccompProfile:
-          type: RuntimeDefault
-
-      ## Manager pod's node selector
-      ##
-      nodeSelector: {}
-
-      ## Manager pod's tolerations
-      ##
-      tolerations: []
-
-      ## Extra volumes and volume mounts
-      ##
-      extraVolumes: [ ]
-
-      extraVolumeMounts: [ ]
-
-    ## Custom Resource Definitions
-    ##
-    crd:
-      # Install CRDs with the chart
+    logcollector:
       enabled: true
-      # Keep CRDs when uninstalling
-      keep: true
+      image:
+        repository: percona/fluentbit
+        # tag: 4.0.1
 
-    ## Cert-manager integration for TLS certificates.
-    ## Required for webhook certificates and metrics endpoint certificates.
-    ##
-    certManager:
-      enabled: true
-      ## Custom issuer configuration for cert-manager issued certificates.
-      ## Defaults to this chart's own monitoring-ca-issuer (see ca: below).
-      ##
-      issuerRef:
-        name: monitoring-ca-issuer
-        kind: Issuer
+# MARK: External Secret
 
-    ## Prometheus ServiceMonitor for metrics scraping.
-    ## Requires prometheus-operator to be installed in the cluster.
-    ##
-    prometheus:
-      # Add annotations to allow Prometheus service discovery scrape metrics.
-      scraping_annotations: false
-      # Enable Prometheus ServiceMonitor for metrics scraping.
-      # Requires prometheus-operator to be installed in the cluster.
-      enabled: false
-
-    ## Kubernetes NetworkPolicies restricting ingress to the metrics and webhook ports.
-    ##
-    networkPolicy:
-      enabled: false
-
-    # Extra manifests to deploy as an array
-    extraManifests: []
-      # - |
-      #   apiVersion: v1
-      #   kind: ConfigMap
-      #   metadata:
-      #   labels:
-      #     name: prometheus-extra
-      #   data:
-      #     extra-data: "value"
-
-# MARK: OTel Collector
-
-# Grafana Alloy has no ClickHouse exporter, and ClickHouse has no OTLP-compatible
-# listener of its own -- this deploys a vanilla OpenTelemetry Collector Contrib
-# instance as a bridge, using its clickhouseexporter (which supports
-# create_schema). Point a monitoring.destinations.<name> "otlp" destination at
-# this collector's Service (port 4317 for gRPC, 4318 for HTTP) rather than at
-# ClickHouse directly.
-collector:
+secret:
   enabled: false
 
-  replicas: 1
+  generators: []
+    # - kind: Password
+    #   name: pwdgen
+    #   generator:
+    #     passwordSpec:
+    #       length: 42
+    #       digits: 5
+    #       symbols: 5
+    #       symbolCharacters: -_$@
+    #       noUpper: false
+    #       allowRepeat: true
+    # - kind: ClusterGenerator
+    #   name: uuidgen
+    #   type: UUID
+    #   generator:
+    #     uuidSpec: {}
 
-  image:
-    registry: docker.io
-    repository: otel/opentelemetry-collector-contrib
-    tag: 0.128.0
-    pullPolicy: IfNotPresent
-
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      cpu: "1"
-      memory: 512Mi
-
-  securityContext:
-    runAsNonRoot: true
-    allowPrivilegeEscalation: false
-    readOnlyRootFilesystem: true
-    capabilities:
-      drop: [ALL]
-    seccompProfile:
-      type: RuntimeDefault
-
-  clickhouse:
-    # ClickHouse native TCP endpoint as host:port (no scheme or query string --
-    # the template builds the full tcp:// DSN).
-    endpoint: clickhouse-cluster-clickhouse-headless:9000
-    database: otel
-    username: default
-    # Secret holding the ClickHouse user's password (see clickhouse.cluster.secret).
-    secret:
+  externalSecrets:
+    - kind: ExternalSecret
       name: clickhouse-default-password
-      key: password
-    ttl: 72h
+      # Pre-install: read at start-up by the ClickHouse CR, so it must exist before the CR is applied.
+      hook: pre-install,pre-upgrade
+      externalSecretSpec:
+        refreshInterval: "0"
+        target:
+          creationPolicy: Owner
+        dataFrom:
+          - sourceRef:
+              generatorRef:
+                apiVersion: generators.external-secrets.io/v1alpha1
+                kind: ClusterGenerator  # Password | ClusterGenerator
+                name: pwdgen
+    # Admin credentials for the HyperDX user that the ingest-key-sync CronJob (clickstack.additionalManifests) registers and logs in as.
+    - kind: ExternalSecret
+      name: clickstack-admin
+      externalSecretSpec:
+        refreshInterval: "0"
+        target:
+          creationPolicy: Owner
+        dataFrom:
+          - sourceRef:
+              generatorRef:
+                apiVersion: generators.external-secrets.io/v1alpha1
+                kind: ClusterGenerator  # Password | ClusterGenerator
+                name: pwdgen
+    # Real ClickStack credentials, owned by ESO alone. Helm never renders this Secret, so an upgrade cannot reset it
+    # (the upstream-rendered `clickstack-secret` is Helm-owned: an ESO `Merge` into it was reset to the empty
+    # placeholders on every `helm upgrade` and then refilled with NEWLY generated passwords, breaking ClickHouse,
+    # Mongo and the app). Pre-install so every consumer finds it at start-up.
+    - kind: ExternalSecret
+      name: clickstack-credentials
+      hook: pre-install,pre-upgrade
+      externalSecretSpec:
+        refreshInterval: "0"
+        target:
+          creationPolicy: Owner
+          template:
+            data:
+              CLICKHOUSE_PASSWORD: "{{ .clickhouse_otel_password }}"
+              CLICKHOUSE_APP_PASSWORD: "{{ .clickhouse_app_password }}"
+              CLICKHOUSE_APP_PASSWORD_JSON: "{{ .clickhouse_app_password | toJson }}"
+              MONGODB_PASSWORD: "{{ .mongodb_password }}"
+              MONGODB_PASSWORD_URLENC: "{{ .mongodb_password | urlquery }}"
+              HYPERDX_API_KEY: "{{ .uuid }}"
+        dataFrom:
+          - sourceRef:
+              generatorRef:
+                apiVersion: generators.external-secrets.io/v1alpha1
+                kind: ClusterGenerator  # Password | ClusterGenerator
+                name: pwdgen
+            rewrite:
+              - regexp:
+                  source: "^password$"
+                  target: clickhouse_app_password
+          - sourceRef:
+              generatorRef:
+                apiVersion: generators.external-secrets.io/v1alpha1
+                kind: ClusterGenerator  # Password | ClusterGenerator
+                name: pwdgen
+            rewrite:
+              - regexp:
+                  source: "^password$"
+                  target: clickhouse_otel_password
+          - sourceRef:
+              generatorRef:
+                apiVersion: generators.external-secrets.io/v1alpha1
+                kind: ClusterGenerator  # Password | ClusterGenerator
+                name: pwdgen
+            rewrite:
+              - regexp:
+                  source: "^password$"
+                  target: mongodb_password
+          - sourceRef:
+              generatorRef:
+                apiVersion: generators.external-secrets.io/v1alpha1
+                kind: ClusterGenerator  # Password | ClusterGenerator
+                name: uuidgen
 
 # MARK: Certificate Authority (cert-manager)
 
@@ -570,13 +1428,59 @@ collector:
 # add-ons; the `ca` dependency here only creates the Issuer object against
 # the cert-manager CRDs already in the cluster.
 ca:
-  enabled: true
+  enabled: false
 
-  issuers:
-    - name: monitoring-ca-issuer
-      selfSigned: true
-      secret:
-        create: false
+  certificates: []
+    # - name: "{{ .Release.Name }}-mongodb-ssl"
+    #   subject:
+    #     organizations:
+    #       - PSMDB
+    #   dns:
+    #     name: "{{ .Release.Name }}-mongodb-ssl"
+    #     aliases:
+    #       - localhost
+    #       - "{{ .Release.Name }}-mongo-clickstack"
+    #       - "{{ .Release.Name }}-mongo-clickstack.{{ .Release.Namespace }}"
+    #       - "{{ .Release.Name }}-mongo-clickstack.{{ .Release.Namespace }}.svc.cluster.local"
+    #       - "*.{{ .Release.Name }}-mongo-clickstack"
+    #       - "*.{{ .Release.Name }}-mongo-clickstack.{{ .Release.Namespace }}"
+    #       - "*.{{ .Release.Name }}-mongo-clickstack.{{ .Release.Namespace }}.svc.cluster.local"
+    #     usages:
+    #       - digital signature
+    #       - key encipherment
+    #       - server auth
+    #       - client auth
+    #   issuerRef:
+    #     kind: Issuer
+    #     name: monitoring-ca-issuer
+    # - name: "{{ .Release.Name }}-mongodb-ssl-internal"
+    #   subject:
+    #     organizations:
+    #       - PSMDB
+    #   dns:
+    #     name: "{{ .Release.Name }}-mongodb-ssl-internal"
+    #     aliases:
+    #       - localhost
+    #       - "{{ .Release.Name }}-mongo-clickstack"
+    #       - "{{ .Release.Name }}-mongo-clickstack.{{ .Release.Namespace }}"
+    #       - "{{ .Release.Name }}-mongo-clickstack.{{ .Release.Namespace }}.svc.cluster.local"
+    #       - "*.{{ .Release.Name }}-mongo-clickstack"
+    #       - "*.{{ .Release.Name }}-mongo-clickstack.{{ .Release.Namespace }}"
+    #       - "*.{{ .Release.Name }}-mongo-clickstack.{{ .Release.Namespace }}.svc.cluster.local"
+    #     usages:
+    #       - digital signature
+    #       - key encipherment
+    #       - server auth
+    #       - client auth
+    #   issuerRef:
+    #     kind: Issuer
+    #     name: monitoring-ca-issuer
+
+  issuers: []
+    # - name: monitoring-ca-issuer
+    #   selfSigned: true
+    #   secret:
+    #     create: false
 
 # MARK: Gateway (Gateway API)
 
@@ -588,87 +1492,123 @@ ca:
 # Same), and TLS certificateRefs reference the namespaced Issuer above
 # (type: Issuer, never ClusterIssuer).
 gateway:
-  enabled: true
+  enabled: false
 
   grafanaHostname: grafana.local
   otlpHostname: otlp.monitoring.local
 
-  gateways:
-    - name: monitoring-gateway
-      className: envoy # verify this matches the installed GatewayClass (gwapi chart's envoy class by convention)
-      listeners:
-        - name: https
-          port: 443
-          protocol: HTTPS
-          hostname: grafana.local
-          allowedRoutes:
-            namespaces:
-              from: Same
-          tls:
-            mode: Terminate
-            certificateRefs:
-              - name: monitoring-grafana-tls
-                issuer: monitoring-ca-issuer
-                type: Issuer
-        - name: otlp-grpc
-          port: 4317
-          protocol: HTTPS
-          hostname: otlp.monitoring.local
-          allowedRoutes:
-            namespaces:
-              from: Same
-            kinds:
-              - kind: GRPCRoute
-          tls:
-            mode: Terminate
-            certificateRefs:
-              - name: monitoring-otlp-tls
-                issuer: monitoring-ca-issuer
-                type: Issuer
-        - name: otlp-http
-          port: 4318
-          protocol: HTTPS
-          hostname: otlp.monitoring.local
-          allowedRoutes:
-            namespaces:
-              from: Same
-            kinds:
-              - kind: HTTPRoute
-          tls:
-            mode: Terminate
-            certificateRefs:
-              - name: monitoring-otlp-tls
-                issuer: monitoring-ca-issuer
-                type: Issuer
+  gateways: []
+    # - name: monitoring-gateway
+    #   className: envoy # verify this matches the installed GatewayClass (gwapi chart's envoy class by convention)
+    #   listeners:
+    #     # Shared UI listener: serves ClickStack (HyperDX) and Grafana. Routes pick their host
+    #     # via `hostnames`; the wildcard must cover every UI hostname (adjust the domain if
+    #     # grafanaHostname / the clickstack route use something other than *.local).
+    #     - name: https
+    #       port: 443
+    #       protocol: HTTPS
+    #       hostname: "*.local"
+    #       allowedRoutes:
+    #         namespaces:
+    #           from: Same
+    #       tls:
+    #         mode: Terminate
+    #         certificateRefs:
+    #           - name: monitoring-ui-tls
+    #             issuer: monitoring-ca-issuer
+    #             type: Issuer
+    #     - name: otlp-grpc
+    #       port: 4317
+    #       protocol: HTTPS
+    #       hostname: otlp.monitoring.local
+    #       allowedRoutes:
+    #         namespaces:
+    #           from: Same
+    #         kinds:
+    #           - kind: GRPCRoute
+    #       tls:
+    #         mode: Terminate
+    #         certificateRefs:
+    #           - name: monitoring-otlp-tls
+    #             issuer: monitoring-ca-issuer
+    #             type: Issuer
+    #     - name: otlp-http
+    #       port: 4318
+    #       protocol: HTTPS
+    #       hostname: otlp.monitoring.local
+    #       allowedRoutes:
+    #         namespaces:
+    #           from: Same
+    #         kinds:
+    #           - kind: HTTPRoute
+    #       tls:
+    #         mode: Terminate
+    #         certificateRefs:
+    #           - name: monitoring-otlp-tls
+    #             issuer: monitoring-ca-issuer
+    #             type: Issuer
 
   routes:
-    - name: grafana
+    - name: clickstack
       kind: HTTPRoute
       hostnames:
-        - grafana.local
+        - clickstack.local
       rules:
+        # HTTP -> HTTPS redirect in the same route: the header match is more specific than the
+        # catch-all rule below, so it wins only for plain-HTTP requests (Envoy sets X-Forwarded-Proto).
+        # Remove this rule if the gateway has no HTTP listener.
+        # - matches:
+        #     - headers:
+        #         - name: X-Forwarded-Proto
+        #           value: http
+        #   filters:
+        #     - type: RequestRedirect
+        #       requestRedirect:
+        #         scheme: https
+        #         statusCode: 301
         - backendRefs:
-            - name: grafana-service
+            - name: monitoring-clickstack-app
               port: 3000
+      # Route-level (not inside a rule): the gateway chart turns this into parentRefs.
       gateways:
         - name: monitoring-gateway
-    - name: otel-collector-grpc
-      kind: GRPCRoute
-      hostnames:
-        - otlp.monitoring.local
-      rules:
-        - backendRefs:
-            - name: monitoring-otel-collector
-              port: 4317
-      gateways:
-        - name: monitoring-gateway
-    - name: otel-collector-http
-      kind: HTTPRoute
-      hostnames:
-        - otlp.monitoring.local
-      rules:
-        - backendRefs:
-            - name: monitoring-otel-collector
-              port: 4318
-      gateways:
-        - name: monitoring-gateway
+    # - name: clickstack-otlp
+    #   kind: GRPCRoute
+    #   hostnames:
+    #     - otlp.monitoring.local
+    #   rules:
+    #     - backendRefs:
+    #         - name: monitoring-otel-collector
+    #           port: 4317
+    #   gateways:
+    #     - name: monitoring-gateway
+    # - name: otel-collector-http
+    #   kind: HTTPRoute
+    #   hostnames:
+    #     - otlp.monitoring.local
+    #   rules:
+    #     - backendRefs:
+    #         - name: monitoring-otel-collector
+    #           port: 4318
+    #   gateways:
+    #     - name: monitoring-gateway
+    # - name: grafana
+    #   kind: HTTPRoute
+    #   hostnames:
+    #     - grafana.local
+    #   rules:
+    #     # HTTP -> HTTPS redirect (same header-match approach as the clickstack route):
+    #     # - matches:
+    #     #     - headers:
+    #     #         - name: X-Forwarded-Proto
+    #     #           value: http
+    #     #   filters:
+    #     #     - type: RequestRedirect
+    #     #       requestRedirect:
+    #     #         scheme: https
+    #     #         statusCode: 301
+    #     - backendRefs:
+    #         - name: grafana-service
+    #           port: 3000
+    #   gateways:
+    #     - name: monitoring-gateway

@@ -1,50 +1,59 @@
-The monitoring chart has been installed.
+The monitoring chart has been installed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
 
-Enabled components in this release:
+Enabled components:
 {{- if .Values.monitoring.enabled }}
-  - Grafana Alloy (k8s-monitoring) collectors
+  - Grafana Alloy collectors (k8s-monitoring)
+{{- end }}
+{{- if index .Values "clickhouse-operator" "enabled" }}
+  - ClickHouse Operator
+{{- end }}
+{{- if .Values.clickstack.enabled }}
+  - ClickStack: ClickHouse + Keeper (operator CRs) and the HyperDX app (Service "{{ .Release.Name }}-app" when the release is named after the chart; check `kubectl get svc -n {{ .Release.Namespace }}`)
+{{- end }}
+{{- if .Values.collector.enabled }}
+  - OTel Collector (Service "{{ .Values.collector.fullnameOverride | default "see kubectl get svc" }}", OTLP gRPC 4317 / HTTP 4318)
 {{- end }}
 {{- if .Values.grafana.operator.enabled }}
   - Grafana Operator
 {{- end }}
 {{- if .Values.grafana.enabled }}
-  - Grafana ({{ .Values.grafana.name }}){{ if .Values.gateway.enabled }}, reachable at https://{{ .Values.gateway.grafanaHostname }}{{ end }}
+  - Grafana ({{ .Values.grafana.name }})
 {{- end }}
-{{- if .Values.clickhouse.operator.enabled }}
-  - ClickHouse Operator
+{{- if .Values.data.mongo.enabled }}
+  - MongoDB (HyperDX metadata)
 {{- end }}
-{{- if .Values.clickhouse.enabled }}
-  - ClickHouse cluster ({{ .Values.clickhouse.cluster.name }}) + Keeper ({{ .Values.clickhouse.keeper.name }})
-{{- end }}
-{{- if .Values.collector.enabled }}
-  - OTel Collector bridge (ClickHouse exporter)
+{{- if .Values.secret.enabled }}
+  - ESO generators and ExternalSecrets (clickstack-credentials, clickhouse-default-password, clickstack-admin, ...)
 {{- end }}
 {{- if .Values.ca.enabled }}
-  - cert-manager Issuer (monitoring-ca-issuer, namespaced, self-signed)
+  - cert-manager certificates and issuers
 {{- end }}
 {{- if .Values.gateway.enabled }}
-  - Gateway API gateway + routes
+  - Gateway API: {{ len .Values.gateway.routes }} route(s), {{ len .Values.gateway.gateways }} gateway(s)
 {{- end }}
 
 Next steps:
-  1. Run `helm dependency update` before installing/upgrading -- this release
-     adds the `ca` and `gateway` chart dependencies.
-  2. This chart never bundles external-secrets (eso) itself. Before
-     installing, deploy a separate out-of-band eso HelmRelease (same pattern
-     as fleet-secrets/semaphoreui-secrets) that creates:
-       - a Secret named {{ .Values.clickhouse.cluster.secret.name }} with key "password"
-       - a Secret named "<fullname>-grafana-admin" (or grafana.admin.secretName)
-         with key "password"
-     Only set clickhouse.cluster.secret.create / grafana.admin.create to true
-     instead if you want this chart to create a static Secret itself.
-  3. If dashboards are enabled, set grafana.dashboardSource.baseUrl to your
-     internal mirror of https://github.com/grafana/clickhouse-datasource
-     (these clusters are air-gapped, so a public GitHub URL will not resolve).
-  4. Verify the "grafana" entry in gateway.routes' backendRefs name matches
-     the Service the installed grafana-operator version actually creates for
-     the Grafana CR ("<name>-service" by convention) --
-     `kubectl get svc -l app.kubernetes.io/name={{ include "monitoring.name" . }}`.
-  5. Delete the now-unused dashboards/clickhouse/*.json files and the
-     templates/eso/ directory from this chart's source tree; both are
-     superseded (dashboards by the url: fetch mechanism, eso by the
-     out-of-band HelmRelease pattern in step 2).
+  1. Run `helm dependency update` before installing or upgrading.
+{{- if .Values.clickstack.enabled }}
+  2. ClickStack credentials: ESO generates them once into the Secret `clickstack-credentials` (pre-install, owned by
+     ESO, never rendered by Helm, so upgrades keep them stable): CLICKHOUSE_PASSWORD, CLICKHOUSE_APP_PASSWORD,
+     MONGODB_PASSWORD, HYPERDX_API_KEY and the URL-encoded / JSON-quoted variants. The upstream-rendered
+     `clickstack-secret` only holds empty placeholders (upstream rejects `secrets: null` while ClickHouse is enabled).
+  3. ClickHouse, the HyperDX app, the OTel collector and the Mongo user read their passwords from
+     `clickstack-credentials` through `clickstack.clickhouse.cluster.spec.containerTemplate.env`,
+     `clickstack.clickstack.deployment.env`, `collector.extraEnvs` and `data.mongo.users` (set per environment).
+{{- end }}
+{{- if and .Values.clickstack.enabled .Values.clickstack.additionalManifests }}
+  3b. Ingestion key: CronJob "<fullname>-ingest-key-sync" (upstream additionalManifests) registers {{ .Values.clickstack.ingestKeySync.adminEmail }} (password in Secret
+     "{{ .Values.clickstack.ingestKeySync.adminSecretName }}") and writes the team API key to Secret "{{ .Values.clickstack.ingestKeySync.ingestKeySecretName }}" within one
+     schedule period ({{ .Values.clickstack.ingestKeySync.schedule }}). Check: `kubectl -n {{ .Release.Namespace }} get job,secret`.
+{{- end }}
+{{- if .Values.gateway.enabled }}
+  4. Gateway routes: backendRefs must name real Services (`kubectl get svc -n {{ .Release.Namespace }}`)
+     and `gateways:` goes at route level. The gateway chart cannot pin a listener (no
+     sectionName), so on a shared Gateway a route attaches to every listener whose hostname matches.
+{{- end }}
+{{- if .Values.grafana.enabled }}
+  5. Verify the grafana route backend matches the Service grafana-operator created
+     ("{{ .Values.grafana.name }}-service" by convention).
+{{- end }}

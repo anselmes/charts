@@ -17,7 +17,7 @@ spec:
       serviceAccountName: grafana-resource-creator
       restartPolicy: OnFailure
       securityContext:
-        {{- toYaml $.Values.jobs.securityContext | nindent 8 }}
+        {{- toYaml $.Values.jobs.podSecurityContext | nindent 8 }}
       containers:
         - name: kubectl
           image: "{{ $.Values.jobs.kubectlImage.registry }}/{{ $.Values.jobs.kubectlImage.repository }}:{{ $.Values.jobs.kubectlImage.tag }}"
