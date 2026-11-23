@@ -12,7 +12,7 @@ spec:
     spec:
       interval: 5m
       chart: flux
-      version: 2.17.2
+      version: 2.20.0
       sourceRef:
         kind: HelmRepository
         name: labsonline-catalog

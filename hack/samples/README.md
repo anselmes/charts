@@ -28,6 +28,8 @@ kubectl create namespace knative
 ## Core Services
 
 ```shell
+kubectl apply -f hack/samples/core/gwapi/envoy.yaml
+
 kubectl apply -f hack/samples/core/eso.yaml
 
 kubectl apply -f hack/samples/core/certmanager.yaml
@@ -86,8 +88,6 @@ envsubst < hack/samples/optional/minio.yaml | kubectl apply -f -
 
 kubectl apply -f hack/samples/optional/openebs.yaml
 kubectl apply -f hack/samples/optional/gatekeeper.yaml
-
-kubectl apply -f hack/samples/optional/gwapi/envoy.yaml
 
 kubectl apply -f hack/samples/optional/cloudflare.yaml
 kubectl apply -f hack/samples/optional/netbird.yaml
