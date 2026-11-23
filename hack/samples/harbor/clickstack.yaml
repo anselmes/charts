@@ -1,0 +1,223 @@
+---
+# MARK: ClickHouse Operator
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: clickhouse-operator
+  namespace: sre
+spec:
+  interval: 10m0s
+  releaseName: clickhouse-operator
+  timeout: 15m0s
+  chart:
+    spec:
+      interval: 5m
+      chart: monitoring
+      version: 7.0.1
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  values:
+    clickhouse-operator:
+      enabled: true
+      manager:
+        resources: {}
+      certManager:
+        enabled: true
+        issuerRef:
+          name: ca-issuer
+          kind: ClusterIssuer
+---
+# MARK: ClickStack
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: clickstack
+  namespace: sre
+spec:
+  interval: 10m0s
+  releaseName: clickstack
+  timeout: 15m0s
+  dependsOn:
+    - name: external-secrets-operator
+      namespace: operators
+    - name: operators
+      namespace: operators
+  chart:
+    spec:
+      interval: 5m
+      chart: monitoring
+      version: 7.0.1
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+      values:
+        # OTel agents: node-local (DaemonSet) and cluster-wide (single replica) Kubernetes telemetry -> ClickStack collector.
+        # node-agent:
+        #   enabled: true
+        # cluster-agent:
+        #   enabled: true
+        secret:
+          enabled: true
+          # pushSecrets:
+          #   - name: clickstack-ingest-key
+          #     refreshInterval: 1h
+          #     secretName: clickstack-ingest-key
+          #     secretStoreRefs:
+          #       - name: central-store
+          #         kind: ClusterSecretStore
+          #     data:
+          #       - match:
+          #           secretKey: key
+          #           remoteRef:
+          #             remoteKey: clickstack/ingest-key
+          #             property: key
+        clickstack:
+          enabled: true
+          # The upstream additionalManifests CronJob registers the HyperDX admin (password from ESO Secret
+          # clickstack-admin) and keeps the team ingestion key in Secret clickstack-ingest-key for the Alloy collectors.
+          ingestKeySync:
+            adminEmail: admin@testplay.io
+          clickstack:
+            config:
+              FRONTEND_URL: https://clickstack.testplay.io
+            resources: {}
+            deployment:
+              defaultConnections: ""
+              initContainers:
+                - name: wait-for-mongo-auth
+                  image: docker.hyperdx.io/hyperdx/hyperdx:2.46.0   # keep in step with the app image tag
+                  command:
+                    - node
+                    - -e
+                    - |
+                      const {MongoClient}=require('/app/node_modules/mongodb');
+                      const sleep=(ms)=>new Promise((r)=>setTimeout(r,ms));
+                      (async()=>{
+                        for(let i=1;i<=120;i++){
+                          const c=new MongoClient(process.env.MONGO_URI,{serverSelectionTimeoutMS:5000});
+                          try{await c.connect();await c.db().command({ping:1});console.log('mongo credentials accepted');await c.close();return;}
+                          catch(e){console.log('waiting for the mongo user ('+(e.codeName||e.name)+')');try{await c.close();}catch(_){}}
+                          await sleep(5000);
+                        }
+                        process.exit(1);
+                      })();
+                  env:
+                    - name: MONGODB_PASSWORD_URLENC
+                      valueFrom:
+                        secretKeyRef:
+                          name: clickstack-credentials
+                          key: MONGODB_PASSWORD_URLENC
+                    - name: MONGO_URI
+                      value: mongodb://clickstack:$(MONGODB_PASSWORD_URLENC)@clickstack-mongo-clickstack:27017/clickstack?replicaSet=clickstack&authSource=admin
+              env:
+                - name: HYPERDX_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: clickstack-credentials
+                      key: HYPERDX_API_KEY
+                - name: MONGODB_PASSWORD_URLENC
+                  valueFrom:
+                    secretKeyRef:
+                      name: clickstack-credentials
+                      key: MONGODB_PASSWORD_URLENC
+                - name: CLICKHOUSE_APP_PASSWORD_JSON
+                  valueFrom:
+                    secretKeyRef:
+                      name: clickstack-credentials
+                      key: CLICKHOUSE_APP_PASSWORD_JSON
+                # Unsharded Percona cluster: replset Service, not mongos.
+                - name: MONGO_URI
+                  value: mongodb://clickstack:$(MONGODB_PASSWORD_URLENC)@clickstack-mongo-clickstack:27017/clickstack?replicaSet=clickstack&authSource=admin
+                - name: DEFAULT_CONNECTIONS
+                  value: '[{"name":"Local ClickHouse","host":"http://clickstack-clickhouse-clickhouse-headless:8123","port":8123,"username":"app","password":$(CLICKHOUSE_APP_PASSWORD_JSON)}]'
+          clickhouse:
+            keeper:
+              spec:
+                replicas: 1
+                containerTemplate:
+                  resources: null
+            cluster:
+              spec:
+                replicas: 1
+                shards: 1
+                containerTemplate:
+                  resources: null
+                  env:
+                    - name: CLICKHOUSE_PASSWORD
+                      valueFrom:
+                        secretKeyRef:
+                          name: clickstack-credentials
+                          key: CLICKHOUSE_PASSWORD
+                    - name: CLICKHOUSE_APP_PASSWORD
+                      valueFrom:
+                        secretKeyRef:
+                          name: clickstack-credentials
+                          key: CLICKHOUSE_APP_PASSWORD
+        data:
+          mongo:
+            enabled: true
+            unsafeFlags:
+              mongosSize: true
+              replsetSize: true
+            replsets:
+              rs0:
+                size: 1
+            sharding:
+              enabled: false
+              balancer:
+                enabled: false
+              configrs:
+                size: 1
+              mongos:
+                size: 1
+            backup:
+              enabled: false
+            logcollector:
+              enabled: false
+        gateway:
+          enabled: true
+          routes:
+            - name: clickstack
+              kind: HTTPRoute
+              hostnames:
+                - clickstack.testplay.io
+              rules:
+                - matches:
+                    - headers:
+                        - name: X-Forwarded-Proto
+                          value: http
+                  filters:
+                    - type: RequestRedirect
+                      requestRedirect:
+                        scheme: https
+                        statusCode: 301
+                - backendRefs:
+                    - name: '{{ include "monitoring.clickstack.app" . }}'
+                      port: 3000
+              gateways:
+                - name: default-gateway
+                  namespace: kube-system
+            # OTLP/gRPC (4317). GRPCRoute needs a gRPC backend port: 4318 is OTLP/HTTP.
+            - name: clickstack-otlp
+              kind: GRPCRoute
+              hostnames:
+                - otlp.testplay.io
+              rules:
+                - backendRefs:
+                    - name: "{{ .Release.Name }}-otel-collector"
+                      port: 4317
+              gateways:
+                - name: default-gateway
+                  namespace: kube-system
+                  sectionName: secure   # listener names on default-gateway are insecure (:80) / secure (:443)

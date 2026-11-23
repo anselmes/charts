@@ -1,0 +1,82 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: knative-serving
+  namespace: knative
+spec:
+  interval: 10m0s
+  releaseName: knative-serving
+  timeout: 15m0s
+  dependsOn:
+    - name: cert-manager
+      namespace: cert-manager
+    - name: gateway
+      namespace: kube-system
+    - name: knative-operator
+      namespace: operators
+  chart:
+    spec:
+      interval: 5m
+      chart: knative
+      version: 1.23.1
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    operator:
+      enabled: false
+    server:
+      enabled: true
+      domain: "${DOMAIN_NAME}"
+      replicas: 1
+      network:
+        gatewayAPI:
+          enabled: true
+          external:
+            name: kube-system/default-gateway
+            service: "kube-system/${GATEWAY_SERVICE}"
+          internal:
+            name: kube-system/default-gateway
+            service: "kube-system/${GATEWAY_SERVICE}"
+      ingress:
+        type: gateway-api
+      workloads:
+        - name: controller
+          resources:
+            - container: controller
+              requests: {}
+              limits: {}
+        - name: webhook
+          resources:
+            - container: webhook
+              requests: {}
+              limits: {}
+        - name: net-gateway-api-controller
+          replicas: 1
+          resources:
+            - container: net-gateway-api-controller
+              requests: {}
+              limits: {}
+        - name: net-gateway-api-webhook
+          resources:
+            - container: net-gateway-api-webhook
+              requests: {}
+              limits: {}
+      certmanager:
+        enabled: true
+    ca:
+      enabled: true
+      issuers:
+        - name: knative-ca-issuer
+          selfSigned: true
+          secret:
+            create: false

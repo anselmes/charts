@@ -12,7 +12,7 @@ spec:
     spec:
       interval: 5m
       chart: gwapi
-      version: 1.0.7
+      version: 1.0.8
       sourceRef:
         kind: HelmRepository
         name: labsonline-catalog

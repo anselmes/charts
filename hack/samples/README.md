@@ -21,6 +21,8 @@ kubectl create namespace cicd
 
 kubectl create namespace fleetdm
 kubectl create namespace minio
+
+kubectl create namespace knative
 ```
 
 ## Core Services
@@ -59,6 +61,16 @@ envsubst < hack/samples/cicd/semaphore.yaml | kubectl apply -f -
 kubectl apply -f hack/samples/cicd/coder.yaml
 kubectl apply -f hack/samples/cicd/gitea.yaml
 kubectl apply -f hack/samples/cicd/sonarqube.yaml
+```
+
+## Knative
+
+```shell
+export GATEWAY_SERVICE="$(kubectl -n kube-system get service --selector gateway.envoyproxy.io/owning-gateway-name=default-gateway -o custom-columns=NAME:.metadata.name --no-headers)"
+
+kubectl apply -f hack/samples/knative/operator.yaml
+
+envsubst < hack/samples/knative/serving.yaml | kubectl apply -f -
 ```
 
 ## Workload

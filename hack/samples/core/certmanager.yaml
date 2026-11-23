@@ -15,7 +15,7 @@ spec:
     spec:
       interval: 5m
       chart: ca
-      version: 1.0.8
+      version: 1.2.0
       sourceRef:
         kind: HelmRepository
         name: labsonline-catalog

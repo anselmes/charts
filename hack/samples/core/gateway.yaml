@@ -17,7 +17,7 @@ spec:
     spec:
       interval: 5m
       chart: gateway
-      version: 1.0.3
+      version: 1.2.0
       sourceRef:
         kind: HelmRepository
         name: labsonline-catalog
@@ -31,7 +31,7 @@ spec:
     crds: CreateReplace
   values:
     gateways:
-      - name: http-gateway
+      - name: default-gateway
         className: envoy
         listeners:
           - name: http
@@ -51,34 +51,9 @@ spec:
                 from: All
               kinds:
                 - kind: HTTPRoute
+                - kind: GRPCRoute
             tls:
               mode: Terminate
               certificateRefs:
                 - name: http-gw-cert
                   issuer: ca-issuer
-      # - name: tls-gateway
-      #   className: envoy
-      #   listeners:
-      #     - name: tls
-      #       port: 8443
-      #       protocol: TLS
-      #       hostname: "*.${DOMAIN_NAME}"
-      #       allowedRoutes:
-      #         namespaces:
-      #           from: All
-      #         kinds:
-      #           - kind: TLSRoute
-      #       tls:
-      #         mode: Passthrough
-      # - name: grpc-gateway
-      #   className: envoy
-      #   listeners:
-      #     - name: grpc
-      #       port: 8080
-      #       protocol: HTTPS
-      #       hostname: "*.${DOMAIN_NAME}"
-      #       allowedRoutes:
-      #         namespaces:
-      #           from: All
-      #         kinds:
-      #           - kind: GRPCRoute

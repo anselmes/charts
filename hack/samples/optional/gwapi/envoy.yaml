@@ -36,26 +36,26 @@ spec:
             value:
               spec:
                 ports:
-                - name: http
-                  nodePort: 80
-                  port: 80
-                  protocol: TCP
-                  targetPort: 10080
-                - name: https
-                  nodePort: 443
-                  port: 443
-                  protocol: TCP
-                  targetPort: 10443
-                # - name: https
-                #   nodePort: 8080
-                #   port: 8080
-                #   protocol: TCP
-                #   targetPort: 18080
-                # - name: https
-                #   nodePort: 8443
-                #   port: 8443
-                #   protocol: TCP
-                #   targetPort: 18443
+                  - name: http
+                    nodePort: 80
+                    port: 80
+                    protocol: TCP
+                    targetPort: 10080
+                  - name: https
+                    nodePort: 443
+                    port: 443
+                    protocol: TCP
+                    targetPort: 10443
+                  - name: grpc
+                    nodePort: 8080
+                    port: 8080
+                    protocol: TCP
+                    targetPort: 18080
+                  - name: tls
+                    nodePort: 8443
+                    port: 8443
+                    protocol: TCP
+                    targetPort: 18443
           logging:
             level:
               default: info
