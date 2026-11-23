@@ -23,7 +23,8 @@ spec:
   {{- end }}
   {{- if .rules }}
   rules:
-    {{- toYaml .rules | nindent 4 }}
+    {{- /* tpl: backend names can use release data, e.g. "{{ .Release.Name }}-endpoint" */}}
+    {{- tpl (toYaml .rules) $ | nindent 4 }}
   {{- end }}
   {{- if .gateways }}
   parentRefs:

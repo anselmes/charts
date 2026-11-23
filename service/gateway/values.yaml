@@ -4,6 +4,8 @@
 
 # Define the routes for the Gateway API.
 # Each route specifies the type of traffic (e.g., HTTP, TLS, gRPC) and the backend services to route to.
+# `rules` is rendered through `tpl`, so backend names can follow the release, e.g.
+# `name: "{{ .Release.Name }}-endpoint"` (plain names are unaffected).
 routes: []
   # - name: nginx
   #   kind: HTTPRoute
