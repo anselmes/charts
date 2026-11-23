@@ -59,7 +59,7 @@ Return true when hook jobs require the resource creator RBAC.
 {{- if .Values.generators -}}
 {{- $_ := set $required "value" true -}}
 {{- end -}}
-{{- range .Values.pushSercrets -}}
+{{- range (include "eso.pushSecrets" . | fromYamlArray) -}}
 {{- if not (empty .data) -}}
 {{- $_ := set $required "value" true -}}
 {{- end -}}
@@ -75,4 +75,12 @@ Return true when hook jobs require the resource creator RBAC.
 {{- end -}}
 {{- end -}}
 {{- if $required.value -}}true{{- end -}}
+{{- end -}}
+
+{{/*
+All PushSecret definitions as a YAML list: `pushSecrets` plus the deprecated, misspelled `pushSercrets` that earlier
+releases used, so existing values keep working.
+*/}}
+{{- define "eso.pushSecrets" -}}
+{{- concat (default (list) .Values.pushSecrets) (default (list) .Values.pushSercrets) | toYaml -}}
 {{- end -}}

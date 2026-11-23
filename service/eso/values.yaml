@@ -58,7 +58,7 @@ generators: []
 
 # MARK: Push Secret
 
-pushSercrets: []
+pushSecrets: []
   # - # name: my-push-secret
   #   # refreshInterval: 1h0m0s
   #   secretName: my-secret
@@ -75,6 +75,9 @@ pushSercrets: []
   #     #     remoteRef:
   #     #       remoteKey: vault/secret2
   #     #       property: foo
+
+# -- Deprecated misspelling of `pushSecrets`, still accepted (entries of both lists are applied). Use `pushSecrets`.
+pushSercrets: []
 
 # MARK: External Secret
 

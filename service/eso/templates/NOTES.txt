@@ -32,10 +32,14 @@ External Secrets:
 {{- end }}
 {{- end }}
 
-{{- if .Values.pushSercrets }}
+{{- if or .Values.pushSecrets .Values.pushSercrets }}
 
 Push Secrets:
-{{- range $i, $secret := .Values.pushSercrets }}
+{{- range $i, $secret := (include "eso.pushSecrets" . | fromYamlArray) }}
   - {{ $secret.name | default (printf "%s-push-secret-%d" $.Release.Name $i) }} -> {{ $secret.secretName }}
 {{- end }}
+{{- end }}
+{{- if .Values.pushSercrets }}
+
+WARNING: `pushSercrets` is a deprecated misspelling; rename it to `pushSecrets` (both are accepted for now).
 {{- end }}
