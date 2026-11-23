@@ -41,6 +41,12 @@ envsubst < hack/samples/core/gateway.yaml | kubectl apply -f -
 ## Infra Services
 
 ```shell
+docker compose -f hack/samples/compose.yaml up -d
+kubectl -n ucp create configmap p11nethsm \
+  -o=yaml \
+  --dry-run=client \
+  --from-literal=p11nethsm.conf="$(envsubst < hack/samples/p11nethsm.conf)" | kubectl apply -f -
+
 kubectl apply -f hack/samples/ucp/ldap.yaml
 
 envsubst < hack/samples/ucp/vault.yaml | kubectl apply -f -

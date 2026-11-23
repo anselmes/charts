@@ -1,4 +1,47 @@
-# FIXME: Update values as needed
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: vault-credential
+  namespace: ucp
+spec:
+  interval: 10m0s
+  releaseName: vault-credential
+  timeout: 15m0s
+  dependsOn:
+    - name: external-secrets-generator
+      namespace: sre
+  chart:
+    spec:
+      interval: 5m
+      chart: eso
+      version: 2.15.0
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    externalSecrets:
+      - kind: ExternalSecret
+        name: vault-initial-admin-password
+        hook: pre-install,pre-upgrade
+        externalSecretSpec:
+          refreshInterval: "0"
+          target:
+            creationPolicy: Owner
+          dataFrom:
+            - sourceRef:
+                generatorRef:
+                  apiVersion: generators.external-secrets.io/v1alpha1
+                  kind: ClusterGenerator
+                  name: password-generator
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -10,17 +53,17 @@ spec:
   releaseName: vault
   timeout: 15m0s
   dependsOn:
-    - name: operator
-      namespace: operators
-    - name: envoy
-      namespace: kube-system
     - name: cert-manager
       namespace: cert-manager
+    - name: gateway
+      namespace: kube-system
+    - name: operator
+      namespace: operators
   chart:
     spec:
       interval: 5m
       chart: vault
-      version: 0.23.5
+      version: 0.30.8
       sourceRef:
         kind: HelmRepository
         name: labsonline-catalog
@@ -40,15 +83,10 @@ spec:
         metrics:
           enabled: false
       server:
-        # NOTE: orbstack have issues with gw using separate ip
-        # gateway:
-        #   tlsRoute:
-        #     enabled: true
-        #     hosts:
-        #       - vault.${DOMAIN_NAME}
-        #     parentRefs:
-        #       - name: tls-gateway
-        #         namespace: kube-system
+        image:
+          registry: ghcr.io
+          repository: labsonline/openbao-hsm-ubi-nethsm
+          pullPolicy: Always
         extraEnvironmentVars:
           PGSSLMODE: require
           PGSSLROOTCERT: /etc/ssl/certs/pg-ca.crt
@@ -71,6 +109,19 @@ spec:
           - envName: PGDATABASE
             secretName: vault-postgres-pguser-vault-postgres
             secretKey: dbname
+        extraContainers: []
+          # - name: init
+          #   image: '{{ .Values.server.image.registry }}/{{ .Values.server.image.repository }}:{{ .Values.server.image.tag | default (trimPrefix "v" .Chart.AppVersion) }}'
+          #   imagePullPolicy: Always
+          #   command: [sh, -c]
+          #   args:
+          #     - >-
+          #       until bao operator init; do sleep 5; done; exec sleep infinity
+          #   env:
+          #     - name: BAO_ADDR
+          #       value: https://127.0.0.1:8200
+          #     - name: BAO_SKIP_VERIFY
+          #       value: "true"
         volumes:
           - name: pg-ca-cert
             secret:
@@ -86,12 +137,9 @@ spec:
                   path: tls.crt
                 - key: tls.key
                   path: tls.key
-          - name: unseal-20251231-1
-            secret:
-              secretName: unseal-20251231-1
-          - name: unseal-20260122-1
-            secret:
-              secretName: unseal-20260122-1
+          - name: p11nethsm
+            configMap:
+              name: p11nethsm
         volumeMounts:
           - name: pg-ca-cert
             mountPath: /etc/ssl/certs/pg-ca.crt
@@ -105,19 +153,18 @@ spec:
             mountPath: /etc/ssl/private/vault-tls.key
             subPath: tls.key
             readOnly: true
-          - name: unseal-20251231-1
-            mountPath: /openbao/secrets/unseal-20251231-1.key
-            subPath: unseal-20251231-1.key
-            readOnly: true
-          - name: unseal-20260122-1
-            mountPath: /openbao/secrets/unseal-20260122-1.key
-            subPath: unseal-20260122-1.key
+          - name: p11nethsm
+            mountPath: /etc/nitrokey/p11nethsm.conf
+            subPath: p11nethsm.conf
             readOnly: true
         standalone:
           config: |
             ui = true
 
             api_addr = "https://vault.${DOMAIN_NAME}"
+            plugin_directory = "/usr/local/lib/openbao/plugins"
+
+            storage "postgresql" {}
 
             listener "tcp" {
               tls_disable = 0
@@ -129,21 +176,6 @@ spec:
                unauthenticated_metrics_access = "true"
               }
             }
-
-            storage "postgresql" {}
-
-            seal "static" {
-              current_key_id = "20260122-1"
-              current_key = "file:///openbao/secrets/unseal-20260122-1.key"
-              previous_key_id = "20251231-1"
-              previous_key = "file:///openbao/secrets/unseal-20251231-1.key"
-            }
-
-            # Example configuration for enabling Prometheus metrics in your config.
-            #telemetry {
-            #  prometheus_retention_time = "30s"
-            #  disable_hostname = true
-            #}
 
             # Enable userpass auth
             initialize "auth" {
@@ -183,6 +215,19 @@ spec:
                 }
               }
             }
+
+            seal "pkcs11" {
+              lib       = "/usr/lib/nitrokey/libnethsm_pkcs11.so"
+              slot      = "0"
+              key_label = "bao-root-rsa"
+              pin       = "OperatorOperator"
+            }
+
+            # Example configuration for enabling Prometheus metrics in your config.
+            #telemetry {
+            #  prometheus_retention_time = "30s"
+            #  disable_hostname = true
+            #}
     data:
       postgres:
         enabled: true
@@ -200,75 +245,51 @@ spec:
           pgBouncer:
             replicas: 1
     ca:
+      enabled: true
       certificates:
         - name: vault
           dns:
-            name: vault.${DOMAIN_NAME}
+            name: vault
             aliases:
-              - vault.${DOMAIN_NAME}
               - vault.ucp.svc.cluster.local
               - vault.ucp.svc
+              - vault.ucp
               - vault
           issuerRef:
             name: ca-issuer
             kind: ClusterIssuer
----
----
-apiVersion: helm.toolkit.fluxcd.io/v2
-kind: HelmRelease
-metadata:
-  name: vault-http-route
-  namespace: ucp
-spec:
-  interval: 10m0s
-  releaseName: vault-http-route
-  timeout: 15m0s
-  dependsOn:
-    - name: flux
-      namespace: sre
-    - name: envoy
-      namespace: kube-system
-  chart:
-    spec:
-      interval: 5m
-      chart: gateway
-      version: 1.0.4
-      sourceRef:
-        kind: HelmRepository
-        name: labsonline-catalog
-        namespace: sre
-  install:
-    crds: CreateReplace
-    remediation:
-      remediateLastFailure: true
-      retries: 3
-  upgrade:
-    crds: CreateReplace
-  values:
-    gateways: null
-    routes:
-      - name: vault
-        kind: HTTPRoute
-        hostnames:
-          - vault.${DOMAIN_NAME}
-        rules:
-          - backendRefs:
-              - name: vault
-                port: 8200
-        gateways:
-          - name: http-gateway
-            namespace: kube-system
-    policies:
-      - name: tls-upstream-vault
-        validation:
-          hostname: vault.${DOMAIN_NAME}
-          caCertificateRefs:
+    gateway:
+      enabled: true
+      routes:
+        - name: vault
+          kind: HTTPRoute
+          hostnames:
+            - vault.${DOMAIN_NAME}
+          rules:
+            - matches:
+                - headers:
+                    - name: X-Forwarded-Proto
+                      value: http
+              filters:
+                - type: RequestRedirect
+                  requestRedirect:
+                    scheme: https
+                    statusCode: 301
+            - backendRefs:
+                - name: vault
+                  port: 8200
+          gateways:
+            - name: http-gateway
+              namespace: kube-system
+      policies:
+        - name: tls-upstream-vault
+          validation:
+            hostname: vault.ucp.svc.cluster.local
+            caCertificateRefs:
+              - group: ""
+                kind: Secret
+                name: vault-tls
+          targetRefs:
             - group: ""
-              kind: Secret
-              name: vault-tls
-              namespace: ucp
-        targetRefs:
-          - group: ""
-            kind: Service
-            name: vault
-            namespace: ucp
+              kind: Service
+              name: vault
