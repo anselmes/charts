@@ -1520,7 +1520,7 @@ secret:
                 kind: ClusterGenerator  # Password | ClusterGenerator
                 name: uuidgen
 
-# MARK: Certificate Authority (cert-manager)
+# MARK: Certificate Authority
 
 # A namespaced Issuer (never ClusterIssuer) for this release's Gateway TLS
 # listeners, vendored the same way vault/Chart.yaml and fleet's "ca:" block
@@ -1583,7 +1583,7 @@ ca:
     #   secret:
     #     create: false
 
-# MARK: Gateway (Gateway API)
+# MARK: Gateway
 
 # Fronts Grafana's UI and the OTel Collector's ingestion ports. `enabled`
 # here gates whether this release installs its own `gateway` chart instance;
