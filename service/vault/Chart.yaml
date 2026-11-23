@@ -3,12 +3,21 @@ apiVersion: v2
 name: vault
 type: application
 description: A Helm chart that deploys Vault and it's dependencies.
-version: 0.28.6
+version: 0.30.8
 dependencies:
   - alias: vault
     name: openbao
     repository: oci://ghcr.io/openbao/charts
-    version: 0.28.6
+    version: 0.30.8
+  - name: data
+    repository: oci://ghcr.io/labsonline/charts
+    version: 1.0.1
+    condition: data.postgres.enabled
   - name: ca
     repository: oci://ghcr.io/labsonline/charts
-    version: 1.0.8
+    version: 1.2.0
+    condition: ca.enabled
+  - name: gateway
+    repository: oci://ghcr.io/labsonline/charts
+    version: 1.2.0
+    condition: gateway.enabled

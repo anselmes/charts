@@ -5,55 +5,6 @@ vault:
     # will enable or disable all the components within this chart by default.
     enabled: true
 
-  injector:
-    # -- True if you want to enable openbao agent injection. @default: global.enabled
-    enabled: "-"
-
-    replicas: 1
-
-    # -- If true, will enable a node exporter metrics endpoint at /metrics.
-    metrics:
-      enabled: false
-
-    # -- agentImage sets the repo and tag of the OpenBao image to use for the OpenBao Agent
-    # containers.  This should be set to the official OpenBao image.  OpenBao 1.3.1+ is
-    # required.
-    agentImage:
-      # -- image registry to use for agent image
-      registry: quay.io
-      # -- image repo to use for agent image
-      repository: openbao/openbao
-      # -- image tag to use for agent image - defaults to chart appVersion
-      tag: ""
-      # -- image pull policy to use for agent image. if tag is "latest", set to "Always"
-      pullPolicy: IfNotPresent
-
-    # Affinity Settings for injector pods
-    # This can either be a multi-line string or YAML matching the PodSpec's affinity field.
-    # Commenting out or setting as empty the affinity variable, will allow
-    # deployment of multiple replicas to single node services such as Minikube.
-    affinity: |
-      podAntiAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                app.kubernetes.io/name: {{ template "openbao.name" . }}-agent-injector
-                app.kubernetes.io/instance: "{{ .Release.Name }}"
-                component: webhook
-            topologyKey: kubernetes.io/hostname
-
-    # Toleration Settings for injector pods
-    # This should be either a multi-line string or YAML matching the Toleration array
-    # in a PodSpec.
-    tolerations: []
-
-    # nodeSelector labels for server pod assignment, formatted as a multi-line string or YAML map.
-    # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
-    # Example:
-    # nodeSelector:
-    #   beta.kubernetes.io/arch: amd64
-    nodeSelector: {}
-
   server:
     # If true, or "-" with global.enabled true, OpenBao server will be installed.
     # See openbao.mode in _helpers.tpl for implementation details.
@@ -77,36 +28,6 @@ vault:
     #   limits:
     #     memory: 256Mi
     #     cpu: 250m
-
-    # Gateway consolidates configuration related to the Kubernetes Gateway API
-    # Currently, only creating a TLSRoute is supported
-    # See: https://gateway-api.sigs.k8s.io/
-    gateway:
-      # Configures a TLSRoute for the OpenBao server. This can be enabled independently of the ingress configuration to allow for side-by-side scenarios for migration.
-      tlsRoute:
-        enabled: false
-        labels: {}
-        # traffic: external
-        annotations: {}
-        # external-dns.alpha.kubernetes.io/hostname: chart-example.local
-
-        hosts: []
-          # - chart-example.local
-
-        # Allows overriding the TLSRoutes apiVersion in case a different version of Gateway API is installed on the cluster.
-        apiVersion: gateway.networking.k8s.io/v1alpha3
-
-        # When HA mode is enabled and K8s service registration is being used,
-        # configure the ingress to point to the OpenBao active service.
-        activeService: true
-
-        # List of ParentRefs. As the helm chart configures no gateways itself,
-        # this should be set to at least one gateway with one or more TLS listeners
-        parentRefs: []
-          # - name: my-gw
-          #   namespace: gateway-namespace
-          #   # sectionName is optional to fix to a specific listener
-          #   sectionName: listener-name
 
     # -- extraInitContainers is a list of init containers. Specified as a YAML list.
     # This is useful if you need to run a script to provision TLS certificates or
@@ -509,13 +430,12 @@ vault:
 #       enabled: false
 #       trackLatestRestorableTime: true
 
+# MARK: - Certificate Authority
+
 ca:
-  issuers: null
+  enabled: false
 
-  # MARK: - Certificate
-
-  certificates:
-    []
+  certificates: []
     # - name: vault
     #   dns:
     #     name: vault.local
@@ -527,3 +447,70 @@ ca:
     #   issuerRef:
     #     name: vault-ca-issuer
     #     kind: Issuer
+
+  issuers: []
+    # - name: vault-ca-issuer
+    #   selfSigned: true
+    #   secret:
+    #     create: false
+
+# MARK: Gateway
+
+gateway:
+  enabled: false
+
+  gateways: []
+    # - name: vault-gateway
+    #   className: envoy # verify this matches the installed GatewayClass (gwapi chart's envoy class by convention)
+    #   listeners:
+    #     - name: https
+    #       port: 443
+    #       protocol: HTTPS
+    #       hostname: "*.local"
+    #       allowedRoutes:
+    #         namespaces:
+    #           from: Same
+    #       tls:
+    #         mode: Terminate
+    #         certificateRefs:
+    #           - name: vault-ui-tls
+    #             issuer: vault-ca-issuer
+    #             type: Issuer
+
+  routes:
+    - name: vault
+      kind: HTTPRoute
+      hostnames:
+        - vault.local
+      rules:
+        # HTTP -> HTTPS redirect in the same route: the header match is more specific than the
+        # catch-all rule below, so it wins only for plain-HTTP requests (Envoy sets X-Forwarded-Proto).
+        # Remove this rule if the gateway has no HTTP listener.
+        # - matches:
+        #     - headers:
+        #         - name: X-Forwarded-Proto
+        #           value: http
+        #   filters:
+        #     - type: RequestRedirect
+        #       requestRedirect:
+        #         scheme: https
+        #         statusCode: 301
+        rules:
+          - backendRefs:
+              - name: vault
+                port: 8200
+      gateways:
+        - name: vault-gateway
+
+  policies: []
+    # - name: tls-upstream-vault
+    #   validation:
+    #     hostname: vault.local
+    #     caCertificateRefs:
+    #       - group: cert-manager.io
+    #         kind: Certificate
+    #         name: vault
+    #   targetRefs:
+    #     - group: ""
+    #       kind: Service
+    #       name: vault
