@@ -44,6 +44,104 @@ global:
     # Rendered by the clickstack subchart into `clickstack-otel-custom-config`.
     customConfig: ""
 
+# MARK: Remote cluster (agents only)
+
+# A remote cluster runs only the agents: install this chart with `clickstack.enabled=false`, `node-agent.enabled=true`
+# and `cluster-agent.enabled=true`. The defaults above assume the ClickStack collector sits next to the agents, so a
+# remote cluster has to change three things. Everything below is meant to go in that cluster's deployment values.
+#
+# 1. Export to the central cluster's gRPC route (a GRPCRoute on the gateway's TLS listener, port 443) over TLS, on BOTH
+#    agents. A certificate that is not publicly trusted (for example one from a self-signed ca-issuer) needs its CA
+#    mounted and referenced with `ca_file`; drop `ca_file` and the volume when the gateway certificate is trusted.
+#    The `headers.authorization` default (the ingestion key from the environment) is kept.
+#
+# node-agent:
+#   enabled: true
+#   config:
+#     exporters:
+#       otlp:
+#         endpoint: otlp.example.com:443
+#         tls:
+#           insecure: false
+#           ca_file: /etc/otel-central-ca/ca.crt
+#   extraVolumes:
+#     - name: central-ca
+#       configMap:
+#         name: central-ca              # holds ca.crt; create it per cluster (for example with trust-manager)
+#   extraVolumeMounts:
+#     - name: central-ca
+#       mountPath: /etc/otel-central-ca
+#       readOnly: true
+# cluster-agent:
+#   enabled: true
+#   config:
+#     exporters:
+#       otlp:
+#         endpoint: otlp.example.com:443
+#         tls:
+#           insecure: false
+#           ca_file: /etc/otel-central-ca/ca.crt
+#   extraVolumes:
+#     - name: central-ca
+#       configMap:
+#         name: central-ca
+#   extraVolumeMounts:
+#     - name: central-ca
+#       mountPath: /etc/otel-central-ca
+#       readOnly: true
+#
+# 2. The ingestion key must exist as Secret `clickstack-ingest-key` (key `key`) in that cluster. With clickstack disabled the
+#    ingest-key-sync CronJob is not deployed, so pull the key from a shared secret store. `externalSecrets` replaces the
+#    chart's default list, which is fine here because the default entries only serve the ClickStack components.
+#
+# secret:
+#   enabled: true
+#   externalSecrets:
+#     - kind: ExternalSecret
+#       name: clickstack-ingest-key
+#       hook: pre-install,pre-upgrade
+#       externalSecretSpec:
+#         refreshInterval: 1h             # picks up a rotated key within the hour
+#         secretStoreRef:
+#           name: central-store
+#           kind: ClusterSecretStore
+#         target:
+#           name: clickstack-ingest-key
+#           creationPolicy: Owner
+#         data:
+#           - secretKey: key
+#             remoteRef:
+#               key: clickstack/ingest-key
+#               property: key
+#
+#    Central cluster, where the CronJob maintains `clickstack-ingest-key`: publish it to the same store with a PushSecret.
+#    (Needs the eso 2.15.0 build that reads `pushSecrets`; older builds only knew the misspelling `pushSercrets`, which
+#    is still accepted with a deprecation warning. An unknown key is silently ignored, so run `helm dependency update`
+#    to refresh the vendored eso chart.)
+#
+# secret:
+#   pushSecrets:
+#     - name: clickstack-ingest-key
+#       refreshInterval: 1h
+#       secretName: clickstack-ingest-key
+#       secretStoreRefs:
+#         - name: central-store
+#           kind: ClusterSecretStore
+#       data:
+#         - match:
+#             secretKey: key
+#             remoteRef:
+#               remoteKey: clickstack/ingest-key
+#               property: key
+#
+# 3. Rotation. The agents read the key from their environment at start, and the restart is done by the sync CronJob,
+#    which only exists next to the central ClickStack. After a rotation, restart the agents in each remote cluster:
+#    kubectl -n <ns> rollout restart ds/<release>-node-agent-agent deploy/<release>-cluster-agent
+#    The collector's `bearertokenauth` extension can read the key from a file (`filename:`), but it does not fit a mounted
+#    Secret: it only reacts to events on the token file's own name, and Kubernetes updates a Secret volume by swapping the
+#    `..data` symlink (tested: updating a mounted Secret produced events for `..data`, `..data_tmp` and the timestamped
+#    directories, none for the file itself). Automating the restart needs a reloader controller, a new dependency.
+
 # MARK: OTel Agents (Kubernetes telemetry)
 
 # OpenTelemetry Collector agents that gather Kubernetes telemetry and send it to the ClickStack collector over OTLP
