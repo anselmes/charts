@@ -34,7 +34,7 @@ spec:
       - name: default-gateway
         className: envoy
         listeners:
-          - name: http
+          - name: insecure
             port: 80
             protocol: HTTP
             allowedRoutes:
@@ -42,7 +42,7 @@ spec:
                 from: All
               kinds:
                 - kind: HTTPRoute
-          - name: https
+          - name: secure
             port: 443
             protocol: HTTPS
             hostname: "*.${DOMAIN_NAME}"

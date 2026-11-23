@@ -46,16 +46,6 @@ spec:
                     port: 443
                     protocol: TCP
                     targetPort: 10443
-                  - name: grpc
-                    nodePort: 8080
-                    port: 8080
-                    protocol: TCP
-                    targetPort: 18080
-                  - name: tls
-                    nodePort: 8443
-                    port: 8443
-                    protocol: TCP
-                    targetPort: 18443
           logging:
             level:
               default: info

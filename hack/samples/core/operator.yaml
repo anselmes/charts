@@ -28,14 +28,18 @@ spec:
   upgrade:
     crds: CreateReplace
   values:
-    mysql:
-      enabled: true
-      watchAllNamespaces: true
-      disableTelemetry: true
     postgres:
       enabled: true
       watchAllNamespaces: true
       disableTelemetry: true
+    mysql:
+      enabled: true
+      watchAllNamespaces: true
+      disableTelemetry: true
+    mongo:
+      enabled: true
+      disableTelemetry: true
+      watchAllNamespaces: true
     redis:
       enabled: true
       redisOperator:
