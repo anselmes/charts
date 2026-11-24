@@ -108,9 +108,50 @@ kubectl apply -f hack/samples/demo.yaml
 
 ## Optional
 
-```shell
-envsubst < hack/samples/optional/minio.yaml | kubectl apply -f -
+### MinIO AIStor
 
+MinIO runs with KES as its key manager, using Vault (OpenBao) as the KES keystore. Before applying
+`optional/minio.yaml`:
+
+1. Apply `ucp/vault.yaml`. It also creates the `external-secrets-store-ucp` store and the
+   read-only `vault-ca-reader` RBAC that let ESO sync the Vault CA into the `minio` namespace.
+2. Put the AIStor license in Vault at `secret/minio`, property `license`.
+3. Create the KES policy and Kubernetes auth role in OpenBao. KES authenticates as the
+   operator-created `minio-sa` service account:
+
+```shell
+bao policy write minio-kes - <<'EOF'
+path "secret/data/kes/minio/*"     { capabilities = ["create", "read", "update", "delete"] }
+path "secret/metadata/kes/minio/*" { capabilities = ["list", "read", "delete"] }
+EOF
+
+bao write auth/kubernetes/role/minio-kes \
+  bound_service_account_names=minio-sa \
+  bound_service_account_namespaces=minio \
+  policies=minio-kes ttl=1h
+```
+
+Pass `envsubst` an explicit variable list. A bare `envsubst` blanks `${MINIO_KES_IDENTITY}`, which
+KES expands itself at startup from the identity the operator injects:
+
+```shell
+yq '.spec.values' hack/samples/optional/minio.yaml \
+  | envsubst '${DOMAIN_NAME} ${MINIO_SITE_NAME} ${MINIO_SITE_REGION}' \
+  | helm upgrade --install --namespace minio minio service/aistor --values -
+```
+
+Check that the release is healthy:
+
+```shell
+kubectl -n minio get pods,externalsecret
+```
+
+`minio-pool-0-0` and `minio-kes` should be `2/2 Running`, and the `minio-env-configuration`,
+`minio-license` and `vault-ca` ExternalSecrets should be `SecretSynced`.
+
+### Other
+
+```shell
 kubectl apply -f hack/samples/optional/openebs.yaml
 kubectl apply -f hack/samples/optional/gatekeeper.yaml
 
