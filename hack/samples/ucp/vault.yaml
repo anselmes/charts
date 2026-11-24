@@ -378,3 +378,51 @@ spec:
                 serviceAccountRef:
                   name: external-secrets-operator-eso
                   namespace: operators
+      # Read-only access to the Vault TLS CA so other namespaces (e.g. minio KES) can sync it
+      # with an ExternalSecret instead of copying it by hand.
+      - kind: ClusterSecretStore
+        name: external-secrets-store-ucp
+        provider:
+          kubernetes:
+            remoteNamespace: ucp
+            server:
+              caProvider:
+                type: ConfigMap
+                name: kube-root-ca.crt
+                key: ca.crt
+                namespace: ucp
+            auth:
+              serviceAccount:
+                name: vault-ca-reader
+                namespace: ucp
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-ca-reader
+  namespace: ucp
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: vault-ca-reader
+  namespace: ucp
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [vault-tls]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vault-ca-reader
+  namespace: ucp
+subjects:
+  - kind: ServiceAccount
+    name: vault-ca-reader
+    namespace: ucp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: vault-ca-reader

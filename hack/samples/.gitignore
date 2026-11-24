@@ -1,5 +1,6 @@
 *.crt
-*.key
 *.env
+*.key
+*.license
 
 !*example.env
