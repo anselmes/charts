@@ -6,7 +6,7 @@ This chart deploys MinIO AIStor, an object storage cluster managed by the AIStor
 
 ## Installation Summary
 
-{{- if .Values.aistorop.enabled }}
+{{- if .Values.operator.enabled }}
 - **AIStor Operator**: Installed as dependency
 {{- else }}
 - **AIStor Operator**: Not installed (aistorop.enabled=false)
@@ -16,8 +16,8 @@ This chart deploys MinIO AIStor, an object storage cluster managed by the AIStor
 {{- else }}
 - **Object Store**: Not deployed (aistor.enabled=false)
 {{- end }}
-{{- if and .Values.adminJob.enabled .Values.adminJob.commands }}
-- **Admin Job**: {{ .Values.adminJob.name }} ({{ len .Values.adminJob.commands }} command(s))
+{{- if and .Values.job.enabled .Values.job.commands }}
+- **Admin Job**: {{ .Values.job.name }} ({{ len .Values.job.commands }} command(s))
 {{- else }}
 - **Admin Job**: Not created (no commands configured)
 {{- end }}
@@ -43,8 +43,8 @@ This chart deploys MinIO AIStor, an object storage cluster managed by the AIStor
 
 3. **Check the Admin Job** (if configured):
    ```bash
-   kubectl get adminjobs -n {{ .Release.Namespace }} {{ .Values.adminJob.name }}
-   kubectl describe adminjobs -n {{ .Release.Namespace }} {{ .Values.adminJob.name }}
+   kubectl get adminjobs -n {{ .Release.Namespace }} {{ .Values.job.name }}
+   kubectl describe adminjobs -n {{ .Release.Namespace }} {{ .Values.job.name }}
    ```
 
 4. **Access the MinIO Console**:
@@ -62,8 +62,8 @@ kubectl logs -n {{ .Release.Namespace }} -l v1.min.io/tenant={{ .Values.aistor.o
 
 **If the Admin Job fails:**
 ```bash
-kubectl describe adminjobs -n {{ .Release.Namespace }} {{ .Values.adminJob.name }}
-kubectl get events -n {{ .Release.Namespace }} --field-selector involvedObject.name={{ .Values.adminJob.name }}
+kubectl describe adminjobs -n {{ .Release.Namespace }} {{ .Values.job.name }}
+kubectl get events -n {{ .Release.Namespace }} --field-selector involvedObject.name={{ .Values.job.name }}
 ```
 
 **Check events:**

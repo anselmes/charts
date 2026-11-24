@@ -1,11 +1,14 @@
 ---
 # MARK: Admin Job
-adminJob:
+
+job:
   enabled: false
+
   name: create-bucket-job
   # execution: parallel
   # failureStrategy: stopOnFailure
   # ttlSecondsAfterFinished: 3600  # Delete after 1 hour
+
   commands: []
     # Create bucket
     # - name: create-bucket
@@ -83,6 +86,7 @@ adminJob:
     #   envFrom:
     #     - secretRef:
     #         name: user-credentials
+
   serviceAccountName:
     create: false
     name: minio-job
@@ -108,6 +112,7 @@ adminJob:
     #       }
     #     ]
     #   }
+
   objectStore:
     # name: minio
     # namespace: minio
@@ -115,6 +120,7 @@ adminJob:
       enabled: false
       policies: []
         # - consoleAdmin
+
   podAnnotations: {}
     # prometheus.io/scrape: "true"
     # prometheus.io/port: "9090"
@@ -127,23 +133,44 @@ adminJob:
 
 # AIStor Operator
 # Manages AIStor object storage clusters in Kubernetes environments
-aistorop:
+operator:
   # Enable AIStor operator deployment
   # Manages AIStor object storage clusters in Kubernetes environments
   enabled: false
+
   # The MinIO license can be set directly from the Helm chart. Note that it is not advised
   # to expose the license key in the Helm chart. Instead, it is recommended to create a
   # secret manually. It's just here for convenience.
   license: ""
   # global settings are settings that will be applied to all operators
   # unless explicitly overridden in the operator settings.
+
   global:
+    # Enable FIPS 140-3 mode for all operators. When true, every image resolved by
+    # the chart gets a ".fips" suffix appended to its tag, selecting the
+    # FIPS-enabled image variants. Leave false for the normal (non-FIPS) images.
+    fipsMode: false
     # The following settings will be set for all operators. They can
     # be overridden per operator by setting the same key in the
     # .operator.<operator> section.
+
     operator:
       # Specify number of replicas
       replicas: 1
+      # extraEnv:
+      #   - name: OTEL_EXPORTER_OTLP_ENDPOINT
+      #     # For gRPC protocol: use host:port (scheme optional, will be auto-stripped)
+      #     value: "otel-collector.observability.svc.cluster.local:4317"
+      #     # For HTTP protocol: include the http:// or https:// scheme
+      #     # value: "http://otel-collector.observability.svc.cluster.local:4318"
+      #   - name: OTEL_EXPORTER_OTLP_PROTOCOL
+      #     value: "grpc"  # or "http"
+      #   - name: OTEL_EXPORTER_OTLP_INSECURE
+      #     value: "false"
+      #   - name: OTEL_EXPORTER_OTLP_HEADERS
+      #     value: "authorization=Bearer token123"  # Optional: for authentication
+      extraEnv: []
+
   # All operators will be disabled by default, with the exception of
   # the object-store.
   operators:
@@ -157,9 +184,10 @@ aistorop:
       disabled: true
     warp:
       disabled: true
-  env: []
-    # - name: GODEBUG
-    #   value: fips140=on
+
+  # env: []
+  #   # - name: GODEBUG
+  #   #   value: fips140=on
 
 # MARK: Objectstore
 
@@ -169,6 +197,7 @@ aistor:
   # Enable AIStor Object Store deployment
   # Deploys an AIStor object storage cluster managed by the AIStor operator
   enabled: false
+
   # Root key for dynamically creating a secret for use with configuring root MinIO User
   secrets:
     name: minio-env-configuration
@@ -176,6 +205,7 @@ aistor:
     secretKey: null
     disableRoot: false
     existingSecret: true
+
   # Root key for AIStor Object Store
   objectStore:
     # The Object Store name
@@ -194,9 +224,22 @@ aistor:
     prometheusOperator: false
     configuration:
       name: minio-env-configuration
+
+    # env:
+    #   - name: MINIO_SITE_NAME
+    #     value: minio
+    #   - name: MINIO_SITE_REGION
+    #     value: us-east-2
+    #   - name: MINIO_BROWSER_REDIRECT_URL
+    #     value: https://minio.local
+    #   - name: MINIO_COMPRESSION_ENABLE
+    #     value: "on"
+    #   - name: MINIO_COMPRESSION_EXTENSIONS
+    #     value: .txt,.log,.csv,.json,.tar,.xml,.bin,.pdf
+    #   - name: MINIO_COMPRESSION_MIME_TYPES
+    #     value: text/*,application/json,application/xml
     env: []
-      # - name: GODEBUG
-      #   value: fips140=on
+
     pools:
       # The number of MinIO Object Store Pods / Servers in this pool.
       # For standalone mode, supply 1. For distributed mode, supply 4 or more.
@@ -262,6 +305,7 @@ aistor:
       enabled: false
       port: 9000
       protocol: http
+
     # Enable SFTP service for the Object Store (default is false)
     # sftp:
     #   enabled: true
@@ -289,6 +333,7 @@ aistor:
         #serviceExternalTrafficPolicy: Local
         #annotations: {}
         #labels: {}
+
     certificates:
       # This is used by MinIO to verify TLS connections from clients using those CAs
       trustedCAs: []
@@ -315,10 +360,11 @@ aistor:
       # The minimum number of days to expiry before an alert for an expiring certificate is fired.
       # In the below example, if a given certificate will expire in 7 days then expiration events will only be triggered 1 day before expiry
       # certExpiryAlertThreshold: 1
+
     # kes:
     #   replicas: 1
-    #   serviceAccountName: ""
     #   keyName: minio-key
+    #   serviceAccountName: ""  # operator-created (<name>-sa); the subchart does not tpl this value
     #   securityContext:
     #     runAsUser: 1000
     #     runAsGroup: 1000
@@ -334,6 +380,8 @@ aistor:
     #         - ALL
     #     seccompProfile:
     #       type: RuntimeDefault
+    #   trustedCAs:
+    #     - name: vault-ca
     #   configuration: |-
     #     address: :7373
     #     tls:
@@ -359,16 +407,23 @@ aistor:
     #         path: /tmp/kes/keys   # Path to directory. Keys will be stored as files. Not Recommended for Production.
     #       # vault:
     #       #   endpoint: http://vault.default.svc.cluster.local:8200   # The Vault endpoint
+    #       #   engine: secret
+    #       #   version: v2
     #       #   namespace: ""       # An optional Vault namespace. See: https://www.vaultproject.io/docs/enterprise/namespaces/index.html
-    #       #   prefix: minio       # An optional K/V prefix. The server will store keys under this prefix.
-    #       #   approle:            # AppRole credentials. See: https://www.vaultproject.io/docs/auth/approle.html
-    #       #     id: ""            # Your AppRole Role ID
-    #       #     secret: ""        # Your AppRole Secret ID
-    #       #     retry: 15s        # Duration until the server tries to re-authenticate after connection loss.
-    #       #   tls:                # The Vault client TLS configuration for mTLS authentication and certificate verification
-    #       #     key: ""           # Path to the TLS client private key for mTLS authentication to Vault
-    #       #     cert: ""          # Path to the TLS client certificate for mTLS authentication to Vault
-    #       #     ca: ""            # Path to one or multiple PEM root CA certificates
+    #       #   prefix: minio/kes   # An optional K/V prefix. The server will store keys under this prefix.
+    #       #   kubernetes:
+    #       #     engine: kubernetes
+    #       #     role: minio-kes
+    #       #     jwt: /var/run/secrets/kubernetes.io/serviceaccount/token
+    #       #     retry: 15s
+    #       #   # approle:            # AppRole credentials. See: https://www.vaultproject.io/docs/auth/approle.html
+    #       #   #   id: ""            # Your AppRole Role ID
+    #       #   #   secret: ""        # Your AppRole Secret ID
+    #       #   #   retry: 15s        # Duration until the server tries to re-authenticate after connection loss.
+    #       #   # tls:                # The Vault client TLS configuration for mTLS authentication and certificate verification
+    #       #   #   key: ""           # Path to the TLS client private key for mTLS authentication to Vault
+    #       #   #   cert: ""          # Path to the TLS client certificate for mTLS authentication to Vault
+    #       #   #   ca: ""            # Path to one or multiple PEM root CA certificates
     #       #   status:             # Vault status configuration. The server will periodically reach out to Vault to check its status.
     #       #     ping: 10s         # Duration until the server checks Vault's status again.
     #       # aws:
@@ -388,6 +443,7 @@ aistor:
 
 secret:
   enabled: false
+
   generators: []
     # - kind: Password
     #   name: aistor-password-generator
@@ -399,103 +455,77 @@ secret:
     #       symbolCharacters: -_$@
     #       noUpper: false
     #       allowRepeat: true
-    #       secretKeys:
-    #         - accessKey
-    #         - secretKey
-  externalSecrets: []
-    # - name: minio-env-configuration
-    #   externalSecretSpec:
-    #     refreshPolicy: CreatedOnce
-    #     target:
-    #       creationPolicy: Orphan
-    #       immutable: true
-    #       template:
-    #         data:
-    #           config.env: |-
-    #             export MINIO_ROOT_USER="{{ .accessKey }}"
-    #             export MINIO_ROOT_PASSWORD="{{ .secretKey }}"
-    #     dataFrom:
-    #       - sourceRef:
-    #           generatorRef:
-    #             apiVersion: generators.external-secrets.io/v1alpha1
-    #             kind: Password
-    #             name: aistor-password-generator
-    # - kind: ExternalSecret
-    #   name: minio-license
-    #   externalSecretSpec:
-    #     secretStoreRef:
-    #       name: vault
-    #       kind: ClusterSecretStore
-    #     data:
-    #       # checkov:skip=CKV_SECRET_6
-    #       - secretKey: minio.license
-    #         remoteRef:
-    #           key: minio
-    #           property: license
+
+  externalSecrets:
+    - kind: ExternalSecret
+      name: minio-env-configuration
+      hook: pre-install
+      externalSecretSpec:
+        refreshPolicy: CreatedOnce
+        target:
+          creationPolicy: Orphan
+          immutable: true
+          template:
+            data:
+              config.env: |-
+                export MINIO_ROOT_USER=admin
+                export MINIO_ROOT_PASSWORD="{{ .password }}"
+        dataFrom:
+          - sourceRef:
+              generatorRef:
+                apiVersion: generators.external-secrets.io/v1alpha1
+                kind: Password
+                name: aistor-password-generator
+    - kind: ExternalSecret
+      name: minio-license
+      hook: pre-install
+      externalSecretSpec:
+        secretStoreRef:
+          name: vault
+          kind: ClusterSecretStore
+        data:
+          # checkov:skip=CKV_SECRET_6
+          - secretKey: minio.license
+            remoteRef:
+              key: minio
+              property: license
+
+  secretStores:
+    - kind: ClusterSecretStore
+      name: external-secrets-store-minio
+      hook: pre-install
+      provider:
+        kubernetes:
+          remoteNamespace: minio
+          auth:
+            serviceAccount:
+              name: adminjob
+          # server:
+          #   caProvider:
+          #     type: ConfigMap
+          #     name: kube-root-ca.crt
+          #     key: ca.crt
 
 # MARK: Cert Manager
 
 ca:
   enabled: false
-  issuers:
-    - name: minio-ca-issuer
-      selfSigned: true
-      secret:
-        create: false
+
+  issuers: []
+    # - name: ca-issuer-minio
+    #   selfSigned: true
+    #   secret:
+    #     create: false
 
 # MARK: Gateway
 
 gateway:
   enabled: false
-  routes:
-    - name: minio-http-route
-      kind: HTTPRoute
-      hostnames:
-        - minio.local
-      rules:
-        - matches:
-            - path:
-                type: PathPrefix
-                value: /
-          backendRefs:
-            - name: minio
-              port: 443
-        - filters:
-            - type: RequestRedirect
-              requestRedirect:
-                scheme: https
-                statusCode: 301
-      gateways:
-        - name: minio-gateway
-    - name: minio-console-http-route
-      kind: HTTPRoute
-      hostnames:
-        - console.minio.local
-      rules:
-        - matches:
-            - path:
-                type: PathPrefix
-                value: /
-          backendRefs:
-            - name: minio-console
-              port: 9443
-        - filters:
-            - type: RequestRedirect
-              requestRedirect:
-                scheme: https
-                statusCode: 301
-      gateways:
-        - name: minio-gateway
+
   gateways: []
     # - name: minio-gateway
     #   className: envoy
     #   listeners:
-    #     - name: http
-    #       port: 80
-    #       protocol: HTTP
-    #       allowedRoutes:
-    #         namespaces:
-    #           from: Same
     #     - name: https
     #       port: 443
     #       protocol: HTTPS
@@ -507,5 +537,75 @@ gateway:
     #         mode: Terminate
     #         certificateRefs:
     #           - name: minio-gw-cert
-    #             issuer: minio-ca-issuer
+    #             issuer: ca-issuer-minio
     #             type: Issuer
+
+  routes:
+    - name: minio-http-route
+      kind: HTTPRoute
+      hostnames:
+        - s3.local
+      rules:
+        # HTTP -> HTTPS redirect in the same route: the header match is more specific than the
+        # catch-all rule below, so it wins only for plain-HTTP requests (Envoy sets X-Forwarded-Proto).
+        # Remove this rule if the gateway has no HTTP listener.
+        # - matches:
+        #     - headers:
+        #         - name: X-Forwarded-Proto
+        #           value: http
+        #   filters:
+        #     - type: RequestRedirect
+        #       requestRedirect:
+        #         scheme: https
+        #         statusCode: 301
+        - backendRefs:
+            - name: "{{ .Release.Name }}"
+              port: 443
+      gateways:
+        - name: minio-gateway
+    - name: minio-console-http-route
+      kind: HTTPRoute
+      hostnames:
+        - minio.local
+      rules:
+        # HTTP -> HTTPS redirect in the same route: the header match is more specific than the
+        # catch-all rule below, so it wins only for plain-HTTP requests (Envoy sets X-Forwarded-Proto).
+        # Remove this rule if the gateway has no HTTP listener.
+        # - matches:
+        #     - headers:
+        #         - name: X-Forwarded-Proto
+        #           value: http
+        #   filters:
+        #     - type: RequestRedirect
+        #       requestRedirect:
+        #         scheme: https
+        #         statusCode: 301
+        - backendRefs:
+            - name: "{{ .Release.Name }}-console"
+              port: 9443
+      gateways:
+        - name: minio-gateway
+
+      policies: []
+        # - name: minio-api-backend-tls
+        #   validation:
+        #     hostname: "{{ .Release.Name }}.{{ .Release.Namespace }}.svc.cluster.local"
+        #     caCertificateRefs:
+        #       - group: ""
+        #         kind: ConfigMap
+        #         name: kube-root-ca.crt
+        #   targetRefs:
+        #     - group: ""
+        #       kind: Service
+        #       name: "{{ .Release.Name }}"
+        # - name: minio-console-backend-tls
+        #   validation:
+        #     hostname: "{{ .Release.Name }}-console.{{ .Release.Namespace }}.svc.cluster.local"
+        #     caCertificateRefs:
+        #       - group: ""
+        #         kind: ConfigMap
+        #         name: kube-root-ca.crt
+        #   targetRefs:
+        #     - group: ""
+        #       kind: Service
+        #       name: "{{ .Release.Name }}-console"

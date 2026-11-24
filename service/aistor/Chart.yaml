@@ -3,23 +3,28 @@ apiVersion: v2
 name: aistor
 type: application
 description: A Helm chart that deploys MinIO AIStor and its dependencies.
-version: 1.0.2
+version: 1.2.0
 dependencies:
-  - alias: aistorop
+  - alias: operator
     name: aistor-operator
     repository: https://helm.min.io
-    version: 5.11.0
-    condition: aistorop.enabled
+    version: 6.3.1
+    condition: operator.enabled
   - alias: aistor
     name: aistor-objectstore
     repository: https://helm.min.io
-    version: 1.0.16
+    version: 1.2.0
     condition: aistor.enabled
+  - alias: secret
+    name: eso
+    repository: oci://ghcr.io/labsonline/charts
+    version: 2.15.0
+    condition: secret.enabled
   - name: ca
     repository: oci://ghcr.io/labsonline/charts
-    version: 1.0.8
+    version: 1.2.0
     condition: ca.enabled
   - name: gateway
     repository: oci://ghcr.io/labsonline/charts
-    version: 1.0.4
+    version: 1.2.0
     condition: gateway.enabled

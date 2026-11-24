@@ -1,9 +1,9 @@
-{{- if and .Values.adminJob.enabled .Values.adminJob.serviceAccountName.create }}
+{{- if and .Values.job.enabled .Values.job.serviceAccountName.create }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ .Values.adminJob.serviceAccountName.name }}
+  name: {{ .Values.job.serviceAccountName.name }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "aistor.labels" $ | nindent 4 }}

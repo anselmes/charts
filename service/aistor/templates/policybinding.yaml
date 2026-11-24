@@ -1,17 +1,17 @@
-{{- if and .Values.adminJob.enabled .Values.adminJob.objectStore.policy.enabled .Values.adminJob.objectStore.policy.policies }}
+{{- if and .Values.job.enabled .Values.job.objectStore.policy.enabled .Values.job.objectStore.policy.policies }}
 ---
 apiVersion: sts.min.io/v1beta1
 kind: PolicyBinding
 metadata:
-  name: {{ .Values.adminJob.name }}-policy-binding
+  name: {{ .Values.job.name }}-policy-binding
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "aistor.labels" $ | nindent 4 }}
 spec:
   application:
-    serviceaccount: {{ .Values.adminJob.serviceAccountName.name }}
-    namespace: {{ .Values.adminJob.objectStore.namespace | default .Release.Namespace }}
-  {{- with .Values.adminJob.objectStore.policy.policies }}
+    serviceaccount: {{ .Values.job.serviceAccountName.name }}
+    namespace: {{ .Values.job.objectStore.namespace | default .Release.Namespace }}
+  {{- with .Values.job.objectStore.policy.policies }}
   policies:
     {{- toYaml . | nindent 4 }}
   {{- end }}
