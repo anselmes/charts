@@ -8,12 +8,12 @@ dependencies:
   - alias: aws
     name: aws-cloud-controller-manager
     repository: https://kubernetes.github.io/cloud-provider-aws
-    version: 0.0.11
+    version: 0.0.12
     condition: aws.enabled
   - alias: openstack
     name: openstack-cloud-controller-manager
     repository: https://kubernetes.github.io/cloud-provider-openstack
-    version: 2.36.1
+    version: 2.37.1
     condition: openstack.enabled
   - alias: vsphere
     name: vsphere-cpi
