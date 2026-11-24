@@ -1,9 +1,22 @@
 ---
+# MARK: Cilium
+
 # Configuration for the Cilium CNI plugin
 cilium:
   # Enable or disable the Cilium CNI plugin
   # Set to true to deploy Cilium as the CNI for your Kubernetes cluster.
-  enabled: false
+  enabled: true
+
+  # This section contains configuration values for the Cilium Helm chart.
+  # Adjust these values to customize the deployment of Cilium CNI in your Kubernetes cluster.
+  kubeProxyReplacement: true  # Enable or disable kube-proxy replacement by Cilium.
+  k8sServiceHost: auto        # Kubernetes API server host (set to 'auto' to detect automatically).
+  k8sServicePort: 6443        # Kubernetes API server port.
+  l2announcements:
+    enabled: false            # Enable or disable Layer 2 announcements.
+    interface: eth0           # Network interface to use for L2 announcements.
+  bgpControlPlane:
+    enabled: false            # Enable or disable the BGP control plane.
 
   # Configuration for BGP (Border Gateway Protocol)
   bgp:
@@ -119,23 +132,13 @@ cilium:
       # - start: 172.16.0.128
       #   stop: 172.16.0.191
 
-  # This section contains configuration values for the Cilium Helm chart.
-  # Adjust these values to customize the deployment of Cilium CNI in your Kubernetes cluster.
-  kubeProxyReplacement: true  # Enable or disable kube-proxy replacement by Cilium.
-  k8sServiceHost: auto        # Kubernetes API server host (set to 'auto' to detect automatically).
-  k8sServicePort: 6443        # Kubernetes API server port.
-  # l2announcements:
-  #   enabled: true             # Enable or disable Layer 2 announcements.
-  #   interface: eth0           # Network interface to use for L2 announcements.
-  bgpControlPlane:
-    enabled: true  # Enable or disable the BGP control plane.
+# MARK: Calico
 
 calico:
   # Enable or disable the Calico CNI plugin
   # Set to true to deploy Calico as the CNI for your Kubernetes cluster.
   enabled: false
 
-  # FIXME: lb-ipv4-ippool blocks installation
   # installation:
   #   kubernetesProvider: ""
   #   calicoNetwork:

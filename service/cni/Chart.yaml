@@ -3,14 +3,14 @@ apiVersion: v2
 name: cni
 type: application
 description: A Helm chart that deploys either Cilium or Calico as the CNI plugin for Kubernetes.
-version: 1.0.10
+version: 1.1.0
 dependencies:
   - name: cilium
     repository: https://helm.cilium.io
-    version: 1.19.6
+    version: 1.20.5
     condition: cilium.enabled
   - alias: calico
     name: tigera-operator
     repository: https://docs.tigera.io/calico/charts
-    version: 3.32.1
+    version: 3.33.1
     condition: calico.enabled
