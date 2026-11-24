@@ -917,10 +917,10 @@ clickhouse-operator:
   certManager:
     enabled: true
     ## Custom issuer configuration for cert-manager issued certificates.
-    ## Defaults to this chart's own monitoring-ca-issuer (see ca: below).
+    ## Defaults to this chart's own ca-issuer-monitoring (see ca: below).
     ##
     issuerRef:
-      name: monitoring-ca-issuer
+      name: ca-issuer-monitoring
       kind: Issuer
 
   ## Prometheus ServiceMonitor for metrics scraping.
@@ -1419,7 +1419,7 @@ secret:
 
   generators: []
     # - kind: Password
-    #   name: pwdgen
+    #   name: password-generator-monitoring
     #   generator:
     #     passwordSpec:
     #       length: 42
@@ -1447,11 +1447,11 @@ secret:
           - sourceRef:
               generatorRef:
                 apiVersion: generators.external-secrets.io/v1alpha1
-                kind: ClusterGenerator  # Password | ClusterGenerator
-                name: pwdgen
+                kind: Password
+                name: password-generator-monitoring
     # Admin credentials for the HyperDX user that the ingest-key-sync CronJob (clickstack.additionalManifests) registers and logs in as.
     # HyperDX rejects a password without a special character from !@#$%^&*(),.?":{}|<>;-+= (`_` does not count), but the
-    # shared pwdgen draws its symbols from "-_", so roughly 1 in 32 passwords has none. The trailing `+` guarantees one.
+    # shared password-generator-monitoring draws its symbols from "-_", so roughly 1 in 32 passwords has none. The trailing `+` guarantees one.
     - kind: ExternalSecret
       name: clickstack-admin
       externalSecretSpec:
@@ -1465,8 +1465,8 @@ secret:
           - sourceRef:
               generatorRef:
                 apiVersion: generators.external-secrets.io/v1alpha1
-                kind: ClusterGenerator  # Password | ClusterGenerator
-                name: pwdgen
+                kind: Password
+                name: password-generator-monitoring
     # Real ClickStack credentials, owned by ESO alone. Helm never renders this Secret, so an upgrade cannot reset it
     # (the upstream-rendered `clickstack-secret` is Helm-owned: an ESO `Merge` into it was reset to the empty
     # placeholders on every `helm upgrade` and then refilled with NEWLY generated passwords, breaking ClickHouse,
@@ -1490,8 +1490,8 @@ secret:
           - sourceRef:
               generatorRef:
                 apiVersion: generators.external-secrets.io/v1alpha1
-                kind: ClusterGenerator  # Password | ClusterGenerator
-                name: pwdgen
+                kind: Password
+                name: password-generator-monitoring
             rewrite:
               - regexp:
                   source: "^password$"
@@ -1499,8 +1499,8 @@ secret:
           - sourceRef:
               generatorRef:
                 apiVersion: generators.external-secrets.io/v1alpha1
-                kind: ClusterGenerator  # Password | ClusterGenerator
-                name: pwdgen
+                kind: Password
+                name: password-generator-monitoring
             rewrite:
               - regexp:
                   source: "^password$"
@@ -1508,8 +1508,8 @@ secret:
           - sourceRef:
               generatorRef:
                 apiVersion: generators.external-secrets.io/v1alpha1
-                kind: ClusterGenerator  # Password | ClusterGenerator
-                name: pwdgen
+                kind: Password
+                name: password-generator-monitoring
             rewrite:
               - regexp:
                   source: "^password$"
@@ -1517,7 +1517,7 @@ secret:
           - sourceRef:
               generatorRef:
                 apiVersion: generators.external-secrets.io/v1alpha1
-                kind: ClusterGenerator  # Password | ClusterGenerator
+                kind: Password
                 name: uuidgen
 
 # MARK: Certificate Authority
@@ -1553,7 +1553,7 @@ ca:
     #       - client auth
     #   issuerRef:
     #     kind: Issuer
-    #     name: monitoring-ca-issuer
+    #     name: ca-issuer-monitoring
     # - name: "{{ .Release.Name }}-mongodb-ssl-internal"
     #   subject:
     #     organizations:
@@ -1575,10 +1575,10 @@ ca:
     #       - client auth
     #   issuerRef:
     #     kind: Issuer
-    #     name: monitoring-ca-issuer
+    #     name: ca-issuer-monitoring
 
   issuers: []
-    # - name: monitoring-ca-issuer
+    # - name: ca-issuer-monitoring
     #   selfSigned: true
     #   secret:
     #     create: false
@@ -1615,8 +1615,8 @@ gateway:
     #       tls:
     #         mode: Terminate
     #         certificateRefs:
-    #           - name: monitoring-ui-tls
-    #             issuer: monitoring-ca-issuer
+    #           - name: monitoring-gw-cert
+    #             issuer: ca-issuer-monitoring
     #             type: Issuer
     #     - name: otlp-grpc
     #       port: 4317
@@ -1630,8 +1630,8 @@ gateway:
     #       tls:
     #         mode: Terminate
     #         certificateRefs:
-    #           - name: monitoring-otlp-tls
-    #             issuer: monitoring-ca-issuer
+    #           - name: otlp-gw-cert
+    #             issuer: ca-issuer-monitoring
     #             type: Issuer
     #     - name: otlp-http
     #       port: 4318
@@ -1645,8 +1645,8 @@ gateway:
     #       tls:
     #         mode: Terminate
     #         certificateRefs:
-    #           - name: monitoring-otlp-tls
-    #             issuer: monitoring-ca-issuer
+    #           - name: otlp-gw-cert
+    #             issuer: ca-issuer-monitoring
     #             type: Issuer
 
   # Route `rules` are rendered through tpl (gateway chart >= 1.2.0), so backend names can follow the release name.

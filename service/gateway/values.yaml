@@ -54,7 +54,6 @@ policies: []
   #     - group: ""
   #       kind: Service
   #       name: dev-backend
-  #       namespace: default
 
 # MARK: Grants
 

@@ -14,7 +14,8 @@ jobs:
       memory: 64Mi
     limits:
       cpu: 250m
-      memory: 128Mi
+      # kubectl API discovery grows with the number of CRDs in the cluster; 128Mi gets OOMKilled.
+      memory: 512Mi
   # Pod-level context: only PodSecurityContext fields are valid here.
   podSecurityContext:
     runAsNonRoot: true
