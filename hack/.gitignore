@@ -6,7 +6,8 @@
 
 !mke-demo-app/**
 !samples/**
-!build.sh
+!apparmor.profile
+!seccomp.json
 
 # ...even if they are in subdirectories
 !*/

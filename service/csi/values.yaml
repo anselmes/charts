@@ -460,3 +460,38 @@ vsphere:
     # Allow online volume expansion
     # Enables resizing of persistent volumes without downtime
     allowVolumeExpansion: true
+
+# MARK: - DirectPV
+
+directpv:
+  enabled: false
+
+  # Set custom kubelet directory other than /var/lib/kubelet
+  #kubeletDirPath: ""
+
+  # Set rack value
+  #rack: "default"
+
+  # Set zone value
+  #zone: "default"
+
+  # Set region
+  #region: "default"
+
+  controller:
+    replicas: 3
+    podAnnotations: {}
+    podLabels: {}
+    hostNetwork: false
+
+  nodeserver:
+    podAnnotations: {}
+    podLabels: {}
+    nodeSelector: {}
+      # aistor.min.io/pool-id: "1"
+    tolerations: []
+      # - key: "node-role.kubernetes.io/control-plane"
+      #   operator: "Exists"
+      #   effect: "NoSchedule"
+    hostNetwork: false
+    seccompLocalhostProfile: ""
