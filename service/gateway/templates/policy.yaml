@@ -8,16 +8,16 @@ metadata:
     {{- include "gateway.labels" $ | nindent 4 }}
 spec:
   validation:
-    hostname: {{ .validation.hostname | quote }}
+    hostname: {{ tpl .validation.hostname $ | quote }}
     {{- if .validation.wellKnownCACertificates }}
     wellKnownCACertificates: {{ .validation.wellKnownCACertificates }}
     {{- end }}
     {{- with .validation.caCertificateRefs }}
     caCertificateRefs:
-      {{- toYaml . | nindent 6 }}
+      {{- tpl (toYaml .) $ | nindent 6 }}
     {{- end }}
   {{- with .targetRefs }}
   targetRefs:
-    {{- toYaml . | nindent 4 }}
+    {{- tpl (toYaml .) $ | nindent 4 }}
   {{- end }}
 {{- end }}
