@@ -1,6 +1,6 @@
 services:
   nethsm:
-    image: nitrokey/nethsm:testing-v5.1
+    image: nitrokey/nethsm:latest-sdk
     platform: linux/amd64
     ports:
       - 8443:8443

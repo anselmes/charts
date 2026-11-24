@@ -149,7 +149,7 @@ spec:
                 - name: maas-region
                   port: 5240
           gateways:
-            - name: http-gateway
+            - name: default-gateway
               namespace: kube-system
     policies:
       - name: tls-upstream-maas

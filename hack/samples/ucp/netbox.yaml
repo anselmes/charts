@@ -63,7 +63,7 @@ spec:
       httpRoute:
         enabled: true
         parentRefs:
-          - name: http-gateway
+          - name: default-gateway
             namespace: kube-system
         hostnames:
           - netbox.${DOMAIN_NAME}

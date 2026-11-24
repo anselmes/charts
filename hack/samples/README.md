@@ -40,8 +40,27 @@ envsubst < hack/samples/core/gateway.yaml | kubectl apply -f -
 
 ## Infra Services
 
+Vault (OpenBao) auto-unseals with a NetHSM through PKCS#11 and initializes itself from the
+`initialize` stanzas in its config, which create the `admin` userpass user. No recovery key or
+root token is generated. Set the NetHSM variables from `hack/samples/example.env` in
+`hack/samples/.env` (git-ignored) before applying anything below:
+
+| Variable                     | Purpose                                                |
+| ---------------------------- | ------------------------------------------------------ |
+| `NETHSM_ADDRESS`             | NetHSM host or `host:port` reachable from the cluster  |
+| `NETHSM_OPERATOR_USERNAME`   | NetHSM user with the Operator role                     |
+| `NETHSM_OPERATOR_PASSPHRASE` | That user's passphrase, used as the seal `pin`         |
+
+The NetHSM must be version 5.0 or later and hold the key `bao-root-rsa`
+(`RSA_Decryption_OAEP_SHA256`) with a `label` set to `bao-root-rsa`. The PKCS#11 library matches
+the seal's `key_label` against that label, so a key with only an id is never found.
+
 ```shell
-docker compose -f hack/samples/compose.yaml up -d
+set -a && source hack/samples/.env && set +a
+
+# optional: local NetHSM test instance (NETHSM_ADDRESS=<host-ip>:8443, operator/OperatorOperator)
+docker compose -f hack/samples/compose.yml up -d
+
 kubectl -n ucp create configmap p11nethsm \
   -o=yaml \
   --dry-run=client \

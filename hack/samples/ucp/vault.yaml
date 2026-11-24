@@ -109,19 +109,6 @@ spec:
           - envName: PGDATABASE
             secretName: vault-postgres-pguser-vault-postgres
             secretKey: dbname
-        extraContainers: []
-          # - name: init
-          #   image: '{{ .Values.server.image.registry }}/{{ .Values.server.image.repository }}:{{ .Values.server.image.tag | default (trimPrefix "v" .Chart.AppVersion) }}'
-          #   imagePullPolicy: Always
-          #   command: [sh, -c]
-          #   args:
-          #     - >-
-          #       until bao operator init; do sleep 5; done; exec sleep infinity
-          #   env:
-          #     - name: BAO_ADDR
-          #       value: https://127.0.0.1:8200
-          #     - name: BAO_SKIP_VERIFY
-          #       value: "true"
         volumes:
           - name: pg-ca-cert
             secret:
@@ -220,7 +207,7 @@ spec:
               lib       = "/usr/lib/nitrokey/libnethsm_pkcs11.so"
               slot      = "0"
               key_label = "bao-root-rsa"
-              pin       = "OperatorOperator"
+              pin       = "${NETHSM_OPERATOR_PASSPHRASE}"
             }
 
             # Example configuration for enabling Prometheus metrics in your config.
@@ -279,7 +266,7 @@ spec:
                 - name: vault
                   port: 8200
           gateways:
-            - name: http-gateway
+            - name: default-gateway
               namespace: kube-system
       policies:
         - name: tls-upstream-vault
