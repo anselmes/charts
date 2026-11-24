@@ -203,6 +203,53 @@ spec:
               }
             }
 
+            # KV v2 mount used by External Secrets
+            initialize "kv" {
+              request "mount" {
+                operation = "update"
+                path      = "sys/mounts/secret"
+                data = {
+                  type    = "kv"
+                  options = { version = "2" }
+                }
+              }
+            }
+
+            # Kubernetes auth for the External Secrets controller (no static credentials)
+            initialize "eso" {
+              request "auth" {
+                operation = "update"
+                path      = "sys/auth/kubernetes"
+                data = {
+                  type = "kubernetes"
+                }
+              }
+              request "config" {
+                operation = "update"
+                path      = "auth/kubernetes/config"
+                data = {
+                  kubernetes_host = "https://kubernetes.default.svc"
+                }
+              }
+              request "policy" {
+                operation = "update"
+                path      = "sys/policies/acl/external-secrets"
+                data = {
+                  policy = "path \"secret/data/*\" { capabilities = [\"create\",\"read\",\"update\",\"patch\"] }\npath \"secret/metadata/*\" { capabilities = [\"read\",\"list\",\"delete\"] }"
+                }
+              }
+              request "role" {
+                operation = "update"
+                path      = "auth/kubernetes/role/external-secrets"
+                data = {
+                  bound_service_account_names      = ["external-secrets-operator-eso"]
+                  bound_service_account_namespaces = ["operators"]
+                  token_policies                   = ["external-secrets"]
+                  ttl                              = "1h"
+                }
+              }
+            }
+
             seal "pkcs11" {
               lib       = "/usr/lib/nitrokey/libnethsm_pkcs11.so"
               slot      = "0"
@@ -280,3 +327,54 @@ spec:
             - group: ""
               kind: Service
               name: vault
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: external-secrets-store-vault
+  namespace: ucp
+spec:
+  interval: 10m0s
+  releaseName: external-secrets-store-vault
+  timeout: 15m0s
+  dependsOn:
+    - name: external-secrets-operator
+      namespace: operators
+    - name: vault
+  chart:
+    spec:
+      interval: 5m
+      chart: eso
+      version: 2.15.0
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    secretStores:
+      - kind: ClusterSecretStore
+        name: external-secrets-store-vault
+        provider:
+          vault:
+            server: https://vault.ucp.svc.cluster.local:8200
+            path: secret
+            version: v2
+            caProvider:
+              type: Secret
+              name: vault-tls
+              namespace: ucp
+              key: ca.crt
+            auth:
+              kubernetes:
+                mountPath: kubernetes
+                role: external-secrets
+                serviceAccountRef:
+                  name: external-secrets-operator-eso
+                  namespace: operators
