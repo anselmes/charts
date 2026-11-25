@@ -40,7 +40,10 @@ spec:
   releaseName: minio
   timeout: 15m0s
   dependsOn:
-    - name: minio-secrets
+    - name: external-secrets-generator
+      namespace: sre
+    - name: gateway
+      namespace: kube-system
     - name: minio-operator
   chart:
     spec:
