@@ -1,5 +1,5 @@
 ---
-# MARK: Certificates
+# MARK: - Certificates
 
 # List of certificates to be managed by cert-manager.
 # Each certificate defines the desired state of a TLS certificate.
@@ -239,7 +239,7 @@ issuers:
   #           name: ca-webhook-secret-pdns
   #           key: token
 
-# MARK: Cert Manager
+# MARK: - Cert Manager
 
 # Configuration for cert-manager.
 certmanager:
@@ -256,7 +256,7 @@ certmanager:
   config:
     enableGatewayAPI: false  # Enable or disable Gateway API support.
 
-# MARK: Trust Manager
+# MARK: - Trust Manager
 
 # Configuration for trust-manager.
 trustmanager:

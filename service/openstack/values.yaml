@@ -33,7 +33,7 @@ deployment:
     local: general
     persistent: general
 
-# MARK: Keystone
+# MARK: - Keystone
 
 keystone:
   keycloak:
@@ -48,7 +48,7 @@ keystone:
           admin_project_name: admin
           admin_project_domain_name: Default
 
-# MARK: Glance
+# MARK: - Glance
 
 glance:
   backend: file
@@ -59,7 +59,7 @@ glance:
     class: standard
     size: 10Gi
 
-# MARK: Cinder
+# MARK: - Cinder
 
 cinder:
   # backends: lvm
@@ -79,7 +79,7 @@ cinder:
   #           encryption-key-size: 256
   #           encryption-provider: luks
 
-# MARK: Nova
+# MARK: - Nova
 
 nova:
   migrationInterface: oam
@@ -112,7 +112,7 @@ nova:
           enabled_filters:
             - ~AvailabilityZoneFilter
 
-# MARK: Neutron
+# MARK: - Neutron
 
 neutron:
   tunnelInterface: oam
@@ -144,7 +144,7 @@ neutron:
   #         support_sync_ha_routers_info: false
   #         support_sync_ovs_info: false
 
-# MARK: Open vSwitch
+# MARK: - Open vSwitch
 
 openvswitch: {}
 # values:
@@ -153,7 +153,7 @@ openvswitch: {}
 #       DEFAULT:
 #         support_sync_ovs_info: false
 
-# MARK: Octavia
+# MARK: - Octavia
 
 octavia:
   subnets: []
@@ -162,7 +162,7 @@ octavia:
   #     start: 172.31.240.10
   #     end: 172.31.255.250
 
-# MARK: Heat
+# MARK: - Heat
 
 heat: {}
 # values:
@@ -171,7 +171,7 @@ heat: {}
 #       clients_heat:
 #         insecure: true
 
-# MARK: Rockoon Operator
+# MARK: - Rockoon Operator
 
 operator:
   enabled: false

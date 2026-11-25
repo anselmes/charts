@@ -1,6 +1,5 @@
 ---
-
-# MARK: OpenEBS
+# MARK: - OpenEBS
 
 # Configuration for OpenEBS - Open Source Container Attached Storage
 # OpenEBS provides dynamic local and replicated storage options for Kubernetes
@@ -171,7 +170,7 @@ openebs:
   alloy:
     enabled: false
 
-# MARK: AWS EBS
+# MARK: - AWS EBS
 
 # AWS EBS CSI Driver configuration
 # Provides persistent storage using Amazon Elastic Block Store (EBS) volumes
@@ -221,7 +220,7 @@ ebs:
     # Creates a general-purpose storage class for EBS volumes
     enabled: false
 
-# MARK: Openstack Cinder
+# MARK: - Openstack Cinder
 
 # OpenStack Cinder CSI Driver configuration
 # Provides block storage integration with OpenStack Cinder volumes
@@ -258,7 +257,7 @@ cinder:
       # Enables resizing of volumes without pod restart
       allowVolumeExpansion: true
 
-# MARK: Rook Operator
+# MARK: - Rook Operator
 
 # Rook Ceph Operator configuration
 # Rook orchestrates Ceph storage cluster in Kubernetes environments
@@ -284,7 +283,7 @@ rook:
     # Required for Rook to manage Ceph cluster resources
     enabled: true
 
-# MARK: Rook Ceph
+# MARK: - Rook Ceph
 
 # Rook Ceph Cluster configuration
 # Defines the actual Ceph storage cluster managed by Rook operator
@@ -411,7 +410,7 @@ ceph:
     # If true, this snapshot class will be used by default for filesystem snapshots.
     isDefault: true
 
-# MARK: vSphere
+# MARK: - vSphere
 
 # VMware vSphere CSI Driver configuration
 # Provides persistent storage integration with vSphere infrastructure

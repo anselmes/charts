@@ -1,5 +1,5 @@
 ---
-# MARK: Cilium
+# MARK: - Cilium
 
 # Configuration for the Cilium CNI plugin
 cilium:
@@ -132,7 +132,7 @@ cilium:
       # - start: 172.16.0.128
       #   stop: 172.16.0.191
 
-# MARK: Calico
+# MARK: - Calico
 
 calico:
   # Enable or disable the Calico CNI plugin

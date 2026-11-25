@@ -1,5 +1,5 @@
 ---
-# MARK: Sidecard Client
+# MARK: - Sidecard Client
 
 client:
   enabled: false
@@ -15,7 +15,7 @@ client:
   matchLabels:
     netbird: client
 
-# MARK: Routing Peer
+# MARK: - Routing Peer
 
 peer:
   enabled: false
@@ -125,7 +125,7 @@ peer:
   tolerations: []
   affinity: {}
 
-# MARK: Reverse Proxy
+# MARK: - Reverse Proxy
 
 proxy:
   enabled: false
@@ -195,7 +195,7 @@ proxy:
   tolerations: []
   affinity: {}
 
-# MARK: Operator
+# MARK: - Operator
 
 operator:
   enabled: false

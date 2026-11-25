@@ -1,5 +1,5 @@
 ---
-# MARK: Jobs
+# MARK: - Jobs
 
 # Hook Jobs that wait for the CRDs and `kubectl apply` the resources below.
 jobs:
@@ -35,7 +35,7 @@ jobs:
     seccompProfile:
       type: RuntimeDefault
 
-# MARK: Generator
+# MARK: - Generator
 
 generators: []
   # - # kind: ClusterGenerator
@@ -57,7 +57,7 @@ generators: []
   #     sshKeySpec:
   #       keyType: ed25519
 
-# MARK: Push Secret
+# MARK: - Push Secret
 
 pushSecrets: []
   # - # name: my-push-secret
@@ -80,7 +80,7 @@ pushSecrets: []
 # -- Deprecated misspelling of `pushSecrets`, still accepted (entries of both lists are applied). Use `pushSecrets`.
 pushSercrets: []
 
-# MARK: External Secret
+# MARK: - External Secret
 
 externalSecrets: []
   # - # Helm hook phase of the Job that applies this resource (default: post-install,post-upgrade).
@@ -136,7 +136,7 @@ externalSecrets: []
   #       #     key: secret/admin
   #       #     property: password
 
-# MARK: Secret Store
+# MARK: - Secret Store
 
 secretStores:
   - # kind: ClusterSecretStore
@@ -176,7 +176,7 @@ secretStores:
       #         namespace: default
       #         key: secret-id
 
-# MARK: External Secrets Operator
+# MARK: - External Secrets Operator
 
 eso:
   enabled: false

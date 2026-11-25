@@ -943,7 +943,7 @@ msr:
     cacheCleanInterval: 14400
 
 # data:
-#   # MARK: Postgres
+#   # MARK: - Postgres
 
 #   postgres:
 #     enabled: false
@@ -1005,7 +1005,7 @@ msr:
 #       #                   values:
 #       #                     - "true"
 
-#   # MARK: Redis
+#   # MARK: - Redis
 
 #   redisreplication:
 #     enabled: false
@@ -1045,7 +1045,7 @@ msr:
 gateway:
   gateways: null
 
-  # MARK: Routes
+  # MARK: - Routes
 
   routes:
     []
@@ -1092,7 +1092,7 @@ gateway:
     #   gateways:
     #     - name: msr-gateway
 
-  # MARK: Policies
+  # MARK: - Policies
 
   policies:
     []

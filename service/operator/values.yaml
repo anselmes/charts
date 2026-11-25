@@ -1,6 +1,5 @@
 ---
-
-# MARK: Postgres
+# MARK: - Postgres
 
 postgres:
   enabled: false
@@ -34,7 +33,7 @@ postgres:
   # default is false which means telemetry will be collected
   disableTelemetry: false
 
-# MARK: MySQL
+# MARK: - MySQL
 
 mysql:
   enabled: false
@@ -67,7 +66,7 @@ mysql:
 
   disableTelemetry: false
 
-# MARK: Mongo
+# MARK: - Mongo
 
 mongo:
   enabled: false
@@ -121,7 +120,7 @@ mongo:
 
   affinity: {}
 
-# MARK: Redis
+# MARK: - Redis
 
 redis:
   enabled: false

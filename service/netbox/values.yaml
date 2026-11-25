@@ -399,7 +399,7 @@ netbox:
 
 # data:
 
-#   # MARK: Postgres
+#   # MARK: - Postgres
 
 #   postgres:
 #     enabled: false
@@ -423,7 +423,7 @@ netbox:
 #       enabled: false
 #       trackLatestRestorableTime: true
 
-#   # MARK: Redis
+#   # MARK: - Redis
 
 #   redisreplication:
 #     enabled: false
@@ -447,7 +447,7 @@ netbox:
 #             requests:
 #               storage: 1Gi
 
-#   # MARK: Redis Sentinel
+#   # MARK: - Redis Sentinel
 
 #   redissentinel:
 #     enabled: false

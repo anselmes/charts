@@ -1,6 +1,5 @@
 ---
-
-# MARK: EDNS Endpoints
+# MARK: - EDNS Endpoints
 
 endpoints:
   # Define DNS endpoints to be managed by ExternalDNS.
@@ -59,7 +58,7 @@ endpoints:
   #         - ns1.example.com
   #         - ns2.example.com
 
-# MARK: External DNS
+# MARK: - External DNS
 
 externaldns:
   # Enable or disable the ExternalDNS integration.

@@ -1,6 +1,5 @@
 ---
-
-# MARK: RBAC
+# MARK: - RBAC
 
 rbac: []
 # - name: kcm-ns-viewer
@@ -13,7 +12,7 @@ rbac: []
 #       name: admins
 #       apiGroup: rbac.authorization.k8s.io
 
-# MARK: Authentication
+# MARK: - Authentication
 
 auth:
   enabled: true
@@ -25,7 +24,7 @@ auth:
     #   -----BEGIN CERTIFICATE-----
     #   -----END CERTIFICATE-----
 
-# MARK: Domain
+# MARK: - Domain
 
 domain:
   enabled: false
@@ -34,7 +33,7 @@ domain:
   issuer:
     url: https://pinniped-supervisor.ucp.svc.cluster.local/default
 
-# MARK: IDP
+# MARK: - IDP
 
 idp:
   enabled: false
@@ -48,7 +47,7 @@ idp:
     #   -----BEGIN CERTIFICATE-----
     #   -----END CERTIFICATE-----
 
-# MARK: Pinniped
+# MARK: - Pinniped
 
 pinniped:
   install: false
@@ -117,7 +116,7 @@ pinniped:
 ca:
   issuers: null
 
-  # MARK: - Certificate
+  # MARK: - - Certificate
 
   certificates:
     []
@@ -136,7 +135,7 @@ ca:
 gateway:
   gateways: null
 
-  # MARK: Routes
+  # MARK: - Routes
 
   routes:
     []
@@ -156,7 +155,7 @@ gateway:
     #   gateways:
     #     - name: pinniped-gateway
 
-  # MARK: Policies
+  # MARK: - Policies
 
   policies:
     []

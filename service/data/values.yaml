@@ -1,6 +1,5 @@
 ---
-
-# MARK: Postgres
+# MARK: - Postgres
 
 postgres:
   enabled: false
@@ -97,7 +96,7 @@ postgres:
     # pguser user password
     pguser: ""
 
-# MARK: MySQL
+# MARK: - MySQL
 
 mysql:
   enabled: false
@@ -180,7 +179,7 @@ mysql:
       requests: {}
       limits: {}
 
-# MARK: Mongo
+# MARK: - Mongo
 
 mongo:
   enabled: false
@@ -295,7 +294,7 @@ mongo:
       #   memory: 100M
       #   cpu: 200m
 
-# MARK: Redis Cluster
+# MARK: - Redis Cluster
 
 rediscluster:
   enabled: false
@@ -398,7 +397,7 @@ rediscluster:
     secret:
       secretName: ""
 
-# MARK: Redis Replication
+# MARK: - Redis Replication
 
 redisreplication:
   enabled: false
@@ -470,7 +469,7 @@ redisreplication:
     secret:
       secretName: ""
 
-# MARK: Redis Sentinel
+# MARK: - Redis Sentinel
 
 redissentinel:
   enabled: false
@@ -549,7 +548,7 @@ redissentinel:
     secret:
       secretName: ""
 
-# MARK: Redis
+# MARK: - Redis
 
 redis:
   enabled: false

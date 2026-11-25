@@ -1,5 +1,5 @@
 ---
-# MARK: Shared
+# MARK: - Shared
 
 fullnameOverride: monitoring
 
@@ -35,7 +35,7 @@ jobs:
     seccompProfile:
       type: RuntimeDefault
 
-# MARK: Global
+# MARK: - Global
 
 # Read by the clickstack and collector subcharts (podAnnotations checksum, custom-config ConfigMap).
 global:
@@ -44,7 +44,7 @@ global:
     # Rendered by the clickstack subchart into `clickstack-otel-custom-config`.
     customConfig: ""
 
-# MARK: Remote cluster (agents only)
+# MARK: - Remote cluster (agents only)
 
 # A remote cluster runs only the agents: install this chart with `clickstack.enabled=false`, `node-agent.enabled=true`
 # and `cluster-agent.enabled=true`. The defaults above assume the ClickStack collector sits next to the agents, so a
@@ -142,7 +142,7 @@ global:
 #    `..data` symlink (tested: updating a mounted Secret produced events for `..data`, `..data_tmp` and the timestamped
 #    directories, none for the file itself). Automating the restart needs a reloader controller, a new dependency.
 
-# MARK: OTel Agents (Kubernetes telemetry)
+# MARK: - OTel Agents (Kubernetes telemetry)
 
 # OpenTelemetry Collector agents that gather Kubernetes telemetry and send it to the ClickStack collector over OTLP
 # (an alternative to k8s-monitoring/Alloy below, with OTel-native metric names and no CRD or operator).
@@ -591,7 +591,7 @@ clickstack:
       # otherwise upstream's default applies.
       # defaultConnections: ""
 
-# MARK: OTel Collector
+# MARK: - OTel Collector
 
   # Grafana Alloy has no ClickHouse exporter, and ClickHouse has no OTLP-compatible
   # listener of its own -- this deploys a vanilla OpenTelemetry Collector Contrib
@@ -676,7 +676,7 @@ clickstack:
       zipkin:
         enabled: false
 
-# MARK: - ClickHouse
+# MARK: - - ClickHouse
 
   # -- In-cluster ClickHouse via ClickHouseCluster CR. Set enabled: false for external ClickHouse.
   # -- In-cluster ClickHouse via the upstream ClickHouseCluster/KeeperCluster CRs.
@@ -825,7 +825,7 @@ clickstack:
   mongodb:
     enabled: false
 
-# MARK: ClickHouse Operator
+# MARK: - ClickHouse Operator
 
 clickhouse-operator:
   enabled: false
@@ -949,7 +949,7 @@ clickhouse-operator:
     #   data:
     #     extra-data: "value"
 
-# MARK: Kubernetes Monitoring
+# MARK: - Kubernetes Monitoring
 
 # Grafana k8s-monitoring Stack Configuration (Grafana Alloy collectors).
 monitoring:
@@ -1183,7 +1183,7 @@ monitoring:
     alloy-profiles:
       enabled: false
 
-# MARK: Grafana
+# MARK: - Grafana
 
 grafana:
   enabled: false
@@ -1202,7 +1202,7 @@ grafana:
     class: ""
     size: 10Gi
 
-# MARK: Grafana Dashboards
+# MARK: - Grafana Dashboards
 
   # ClickHouse plugin's bundled OTel + general-purpose dashboards. Rather
   # than vendoring the JSON (which silently drifts from the pinned plugin
@@ -1253,12 +1253,12 @@ grafana:
     #     # - name: grafana-piechart-panel
     #     #   version: 1.3.9
 
-# MARK: Grafana Folders
+# MARK: - Grafana Folders
 
   folders:
     - clickhouse
 
-# MARK: Grafana Datasources
+# MARK: - Grafana Datasources
 
   datasources:
     - name: ClickHouse
@@ -1294,7 +1294,7 @@ grafana:
         - name: grafana-clickhouse-datasource
           version: 4.20.0
 
-# MARK: Grafana Operator
+# MARK: - Grafana Operator
 
   operator:
     enabled: false
@@ -1356,7 +1356,7 @@ grafana:
     # -- extra container volume mounts
     extraVolumeMounts: []
 
-# MARK: Mongo DB
+# MARK: - Mongo DB
 
 data:
   mongo:
@@ -1412,7 +1412,7 @@ data:
         repository: percona/fluentbit
         # tag: 4.0.1
 
-# MARK: External Secret
+# MARK: - External Secret
 
 secret:
   enabled: false
@@ -1520,7 +1520,7 @@ secret:
                 kind: Password
                 name: uuidgen
 
-# MARK: Certificate Authority
+# MARK: - Certificate Authority
 
 # A namespaced Issuer (never ClusterIssuer) for this release's Gateway TLS
 # listeners, vendored the same way vault/Chart.yaml and fleet's "ca:" block
@@ -1583,7 +1583,7 @@ ca:
     #   secret:
     #     create: false
 
-# MARK: Gateway
+# MARK: - Gateway
 
 # Fronts Grafana's UI and the OTel Collector's ingestion ports. `enabled`
 # here gates whether this release installs its own `gateway` chart instance;

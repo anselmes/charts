@@ -1,5 +1,5 @@
 ---
-# MARK: AWS
+# MARK: - AWS
 
 aws:
   # Enable or disable the AWS Cloud Controller Manager.
@@ -53,7 +53,7 @@ aws:
   cloudConfig:
     enabled: false
 
-# MARK: OpenStack
+# MARK: - OpenStack
 
 openstack:
   # Enable or disable the OpenStack Cloud Controller Manager.
@@ -176,7 +176,7 @@ openstack:
       mountPath: /etc/kubernetes/pki
       readOnly: true
 
-# MARK: vSphere
+# MARK: - vSphere
 
 vsphere:
   # Enable or disable the vSphere Cloud Provider Interface (CPI).

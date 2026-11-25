@@ -1,5 +1,5 @@
 ---
-# MARK: Admin Job
+# MARK: - Admin Job
 
 job:
   enabled: false
@@ -129,7 +129,7 @@ job:
     # environment: production
     # team: platform
 
-# MARK: Operator
+# MARK: - Operator
 
 # AIStor Operator
 # Manages AIStor object storage clusters in Kubernetes environments
@@ -189,7 +189,7 @@ operator:
   #   # - name: GODEBUG
   #   #   value: fips140=on
 
-# MARK: Objectstore
+# MARK: - Objectstore
 
 # AIStor Object Store configuration
 # Defines the AIStor object storage cluster managed by the AIStor operator
@@ -439,7 +439,7 @@ aistor:
     #       #       secretkey: ""   # Your AWS Secret Key
     #       #       token: ""       # Your AWS session token (usually optional)
 
-# MARK: External Secret
+# MARK: - External Secret
 
 secret:
   enabled: false
@@ -506,7 +506,7 @@ secret:
           #     name: kube-root-ca.crt
           #     key: ca.crt
 
-# MARK: Cert Manager
+# MARK: - Cert Manager
 
 ca:
   enabled: false
@@ -517,7 +517,7 @@ ca:
     #   secret:
     #     create: false
 
-# MARK: Gateway
+# MARK: - Gateway
 
 gateway:
   enabled: false
