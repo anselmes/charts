@@ -1428,8 +1428,8 @@ secret:
     #       symbolCharacters: -_$@
     #       noUpper: false
     #       allowRepeat: true
-    # - kind: ClusterGenerator
-    #   name: uuidgen
+    # - kind: UUID
+    #   name: uuid-generator-monitoring
     #   type: UUID
     #   generator:
     #     uuidSpec: {}
@@ -1517,8 +1517,8 @@ secret:
           - sourceRef:
               generatorRef:
                 apiVersion: generators.external-secrets.io/v1alpha1
-                kind: Password
-                name: uuidgen
+                kind: UUID
+                name: uuid-generator-monitoring
 
 # MARK: - Certificate Authority
 
