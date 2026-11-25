@@ -1,0 +1,65 @@
+{{- if .Values.keycloak.enabled }}
+---
+# TODO: Advanced Configuration
+apiVersion: k8s.keycloak.org/v2beta1
+kind: Keycloak
+metadata:
+  name: {{  .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keycloak.labels" $ | nindent 4 }}
+spec:
+  instances: {{ .Values.keycloak.replicas }}
+  features:
+    enabled:
+      - client-admin-api:v2
+  {{- with .Values.keycloak.postgres }}
+  db:
+    vendor: postgres
+    host: {{ required "keycloak.postgres.host is required when keycloak.postgres is set" .host }}
+    {{- with .database }}
+    database: {{ . }}
+    {{- end }}
+    {{- with .usernameSecret }}
+    usernameSecret:
+      name: {{ .name }}
+      key: {{ .key }}
+    {{- end }}
+    {{- with .passwordSecret }}
+    passwordSecret:
+      name: {{ .name }}
+      key: {{ .key }}
+    {{- end }}
+  {{- end }}
+  {{- with .Values.keycloak.bootstrapAdmin }}
+  bootstrapAdmin:
+    {{- with .user }}
+    user:
+      secret: {{ .secret }}
+    {{- end }}
+    {{- with .service }}
+    service:
+      secret: {{ .secret }}
+    {{- end }}
+  {{- end }}
+  hostname:
+    hostname: {{ .Values.keycloak.hostname }}
+  {{- with .Values.keycloak.proxy }}
+  proxy:
+    headers: {{ .headers }}
+  {{- end }}
+  http:
+    {{- if .Values.keycloak.http.tls.enabled }}
+    tlsSecret: {{ tpl .Values.keycloak.http.tls.secretName $ }}
+    {{- else }}
+    httpEnabled: true
+    {{- end }}
+    {{- with .Values.keycloak.http.annotations }}
+    annotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  {{- with .Values.keycloak.networkPolicy }}
+  networkPolicy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

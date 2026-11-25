@@ -1,0 +1,65 @@
+Keycloak — {{ .Release.Name }} deployed to namespace {{ .Release.Namespace }}.
+
+{{- if .Values.operator.enabled }}
+
+Keycloak operator is ENABLED (subchart: keycloak-operator-helm).
+{{- else }}
+
+Keycloak operator is DISABLED. Ensure it (and its CRDs) is installed separately before using the resources below.
+{{- end }}
+
+{{- if .Values.keycloak.enabled }}
+
+Keycloak: {{ .Release.Name }} ({{ .Values.keycloak.replicas }} replica(s))
+  Hostname: {{ .Values.keycloak.hostname }}
+  Service:  {{ .Release.Name }}-service.{{ .Release.Namespace }}.svc:{{ if .Values.keycloak.http.tls.enabled }}8443 (TLS){{ else }}8080 (plain HTTP, terminate TLS at the gateway/proxy){{ end }}
+{{- with .Values.keycloak.bootstrapAdmin }}
+{{- with .user }}
+
+Bootstrap admin (used only when the master realm is first created):
+  kubectl -n {{ $.Release.Namespace }} get secret {{ .secret }} -o jsonpath='{.data.username}' | base64 -d; echo
+  kubectl -n {{ $.Release.Namespace }} get secret {{ .secret }} -o jsonpath='{.data.password}' | base64 -d; echo
+{{- end }}
+{{- end }}
+{{- else }}
+
+Keycloak server is DISABLED (keycloak.enabled=false); only the other resources below are deployed.
+{{- end }}
+
+{{- if .Values.data.postgres.enabled }}
+
+Database: Percona PostgreSQL cluster (subchart: data)
+  Keycloak must use a hyphen-free database user/name, because it runs an unquoted `SET SEARCH_PATH TO <user>`.
+{{- end }}
+
+{{- if .Values.realms }}
+
+Realms (KeycloakRealmImport; created only if absent, later edits do not update an existing realm):
+{{- range .Values.realms }}
+  - {{ .name }} -> Keycloak {{ .keycloakRef | default $.Release.Name }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.clients }}
+
+Clients (must live in the same namespace as the Keycloak CR):
+{{- range .Values.clients }}
+  - {{ .name }} ({{ .type }}) in realm {{ .realmRef }} -> Keycloak {{ .keycloakRef | default $.Release.Name }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.secret.enabled }}
+
+External Secrets (subchart: eso; the External Secrets operator must be installed separately):
+{{- range .Values.secret.externalSecrets }}
+  - {{ .name }} ({{ .kind | default "ExternalSecret" }})
+{{- end }}
+{{- end }}
+
+{{- if .Values.gateway.enabled }}
+
+Gateway routes:
+{{- range .Values.gateway.routes }}
+  - {{ .name }} ({{ .kind }}){{ with .hostnames }} -> {{ join ", " . }}{{ end }}
+{{- end }}
+{{- end }}

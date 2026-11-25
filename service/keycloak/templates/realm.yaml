@@ -1,0 +1,19 @@
+{{- range .Values.realms }}
+---
+apiVersion: k8s.keycloak.org/v2beta1
+kind: KeycloakRealmImport
+metadata:
+  name: {{ .name }}
+  labels:
+    {{- include "keycloak.labels" $ | nindent 4 }}
+spec:
+  keycloakCRName: {{ .keycloakRef | default $.Release.Name }}
+  {{- with .realm }}
+  realm:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .placeholders }}
+  placeholders:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

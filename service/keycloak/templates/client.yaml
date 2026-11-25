@@ -1,0 +1,14 @@
+{{- range .Values.clients }}
+---
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: {{ required "clients[].type must be KeycloakOIDCClient or KeycloakSAMLClient" .type }}
+metadata:
+  name: {{ .name }}
+  labels:
+    {{- include "keycloak.labels" $ | nindent 4 }}
+spec:
+  keycloakCRName: {{ .keycloakRef | default $.Release.Name }}
+  realm: {{ required "clients[].realmRef is required" .realmRef }}
+  client:
+    {{- toYaml (required "clients[].client is required" .client) | nindent 4 }}
+{{- end }}

@@ -1,0 +1,304 @@
+---
+# MARK: Keycloak Clients
+
+clients: []
+  # - type: KeycloakOIDCClient
+  #   name: my-oidc-app
+  #   # keycloakRef: keycloak  # Keycloak CR to import into (defaults to the release name)
+  #   realmRef: default-realm
+  #   client:
+  #     loginFlows:
+  #       - STANDARD
+  #     redirectUris:
+  #       - https://my-app.example.com/*
+  #   auth:
+  #     method: client-secret
+  #     secretRef:
+  #       name: my-oidc-client
+  #       key: client-secret
+  # - type: KeycloakSAMLClient
+  #   name: my-saml-app
+  #   # keycloakRef: keycloak  # Keycloak CR to import into (defaults to the release name)
+  #   realmRef: default-realm
+  #   client:
+  #     nameIdFormat: persistent
+  #     signDocuments: true
+  #     signAssertions: true
+  #     forcePostBinding: true
+  #   auth:
+  #     method: client-secret
+  #     secretRef:
+  #       name: my-saml-client
+  #       key: client-secret
+
+# MARK: Keycoak Realms
+
+# One KeycloakRealmImport per entry. Imports only create a realm that does not exist yet;
+# later edits to `realm` do not update an existing realm.
+realms: []
+  # - name: default
+  #   # keycloakRef: keycloak  # Keycloak CR to import into (defaults to the release name)
+  #   realm:
+  #     enabled: true
+  #     id: default-realm
+  #     realm: default-realm
+  #     displayName: DefaultRealm
+  #   # Substitutes ${ENV_KEY} placeholders inside `realm` from Secrets; can be combined with `realm`.
+  #   placeholders:
+  #     ENV_KEY:
+  #       secret:
+  #         name: SECRET_NAME
+  #         key: SECRET_KEY
+
+# MARK: Keycloak
+
+keycloak:
+  enabled: true
+  replicas: 1
+  hostname: keycloak.local
+
+  http:
+    # annotations:
+    #   service.alpha.openshift.io/serving-cert-secret-name: svc-tls-secret
+    #   tlsSecret: svc-tls-secret
+    tls:
+      enabled: false
+      secretName: "{{ .Release.Name }}-internal-tls"
+
+  proxy:
+    headers: xforwarded
+
+  # Bootstrap admin: only used for the initial cluster creation. Each secret must hold
+  # `username`/`password` (user) or `client-id`/`client-secret` (service). Pair with the
+  # ESO externalSecrets below (secret.enabled=true) so the credentials are generated, not committed.
+  # bootstrapAdmin:
+  #   user:
+  #     secret: keycloak-admin-password
+  #   service:
+  #     secret: keycloak-admin-service-account
+
+  # External database. Leave empty to omit `spec.db` (the Keycloak CR then needs another DB source).
+  postgres: {}
+  #   # Service name (not the pguser Secret): <cluster>-primary or <cluster>-pgbouncer
+  #   host: keycloak-postgres-primary
+  #   # Percona names the DB after the user; Keycloak defaults to "keycloak"
+  #   database: keycloak
+  #   usernameSecret:
+  #     name: keycloak-postgres-pguser-keycloak
+  #     key: user
+  #   passwordSecret:
+  #     name: keycloak-postgres-pguser-keycloak
+  #     key: password
+
+  # networkPolicy:
+  #   enabled: true
+  #   https: {}
+
+# MARK: - Keycloak Operator
+
+operator:
+  enabled: false
+
+  crds:
+    enabled: true
+
+  operator:
+    replicas: 1
+    resources:
+      limits:
+        cpu: 700m
+        memory: 450Mi
+      requests:
+        cpu: 300m
+        memory: 450Mi
+
+# MARK: - External Secret
+
+secret:
+  enabled: false
+
+  generators: []
+    # - kind: Password
+    #   name: password-generator-keycloak
+    #   generator:
+    #     passwordSpec:
+    #       length: 42
+    #       digits: 5
+    #       symbols: 5
+    #       symbolCharacters: -_$@
+    #       noUpper: false
+    #       allowRepeat: true
+    # - kind: UUID
+    #   name: uuid-generator-keycloak
+    #   type: UUID
+    #   generator:
+    #     uuidSpec: {}
+
+  externalSecrets:
+    - kind: ExternalSecret
+      name: keycloak-admin-password
+      hook: pre-install,pre-upgrade
+      externalSecretSpec:
+        refreshInterval: "0"
+        target:
+          creationPolicy: Owner
+          template:
+            data:
+              username: admin
+              password: "{{ .password }}"
+        dataFrom:
+          - sourceRef:
+              generatorRef:
+                apiVersion: generators.external-secrets.io/v1alpha1
+                kind: Password
+                name: password-generator-keycloak
+    # - kind: ExternalSecret
+    #   name: keycloak-admin-service-account
+    #   hook: pre-install,pre-upgrade
+    #   externalSecretSpec:
+    #     refreshInterval: "0"
+    #     target:
+    #       creationPolicy: Owner
+    #       template:
+    #         data:
+    #           client-id: "{{ .uuid }}"
+    #           client-secret: "{{ .password }}"
+    #     dataFrom:
+    #       - sourceRef:
+    #           generatorRef:
+    #             apiVersion: generators.external-secrets.io/v1alpha1
+    #             kind: Password
+    #             name: password-generator-keycloak
+    #       - sourceRef:
+    #           generatorRef:
+    #             apiVersion: generators.external-secrets.io/v1alpha1
+    #             kind: UUID
+    #             name: uuid-generator-keycloak
+    # - kind: ExternalSecret
+    #   name: my-oidc-client
+    #   hook: pre-install,pre-upgrade
+    #   externalSecretSpec:
+    #     refreshInterval: "0"
+    #     target:
+    #       creationPolicy: Owner
+    #       template:
+    #         data:
+    #           client-secret: "{{ .password }}"
+    #     dataFrom:
+    #       - sourceRef:
+    #           generatorRef:
+    #             apiVersion: generators.external-secrets.io/v1alpha1
+    #             kind: Password
+    #             name: password-generator-keycloak
+    # - kind: ExternalSecret
+    #   name: my-saml-client
+    #   hook: pre-install,pre-upgrade
+    #   externalSecretSpec:
+    #     refreshInterval: "0"
+    #     target:
+    #       creationPolicy: Owner
+    #       template:
+    #         data:
+    #           client-secret: "{{ .password }}"
+    #     dataFrom:
+    #       - sourceRef:
+    #           generatorRef:
+    #             apiVersion: generators.external-secrets.io/v1alpha1
+    #             kind: Password
+    #             name: password-generator-keycloak
+
+# MARK: Postgres
+
+data:
+  postgres:
+    enabled: false
+    postgresVersion: 17
+    finalizers:
+      - percona.com/delete-pvc
+      - percona.com/delete-ssl
+      - percona.com/delete-backups
+    instances:
+      - name: keycloak
+        replicas: 3
+        dataVolumeClaimSpec:
+          storageClassName: ""
+          resources:
+            requests:
+              storage: 1Gi
+    proxy:
+      pgBouncer:
+        replicas: 2
+    backups:
+      enabled: true
+      trackLatestRestorableTime: true
+
+# MARK: - Certificate Authority
+
+ca:
+  enabled: false
+
+  certificates: []
+    # - name: "{{ .Release.Name }}-internal"
+    #   dns:
+    #     name: "{{ .Release.Name }}"
+    #     aliases:
+    #       - "{{ .Release.Name }}"
+    #       - "{{ .Release.Name }}.{{ .Release.Namespace }}"
+    #       - "{{ .Release.Name }}.{{ .Release.Namespace }}.svc"
+    #       - "{{ .Release.Name }}.{{ .Release.Namespace }}.svc.cluster.local"
+    #   issuerRef:
+    #     kind: Issuer
+    #     name: ca-issuer-keycloak
+
+  issuers: []
+    # - name: ca-issuer-keycloak
+    #   selfSigned: true
+    #   secret:
+    #     create: false
+
+# MARK: - Gateway
+
+gateway:
+  enabled: false
+
+  gateways: []
+    # - name: keycloak-gateway
+    #   className: envoy # verify this matches the installed GatewayClass (gwapi chart's envoy class by convention)
+    #   listeners:
+    #     - name: https
+    #       port: 443
+    #       protocol: HTTPS
+    #       hostname: keycloak.local
+    #       allowedRoutes:
+    #         namespaces:
+    #           from: Same
+    #       tls:
+    #         mode: Terminate
+    #         certificateRefs:
+    #           - name: keycloak-gw-cert
+    #             issuer: ca-issuer-keycloak
+    #             type: Issuer
+
+  routes:
+    - name: keycloak
+      kind: HTTPRoute
+      hostnames:
+        - keycloak.local
+      rules:
+        # HTTP -> HTTPS redirect in the same route: the header match is more specific than the
+        # catch-all rule below, so it wins only for plain-HTTP requests (Envoy sets X-Forwarded-Proto).
+        # Remove this rule if the gateway has no HTTP listener.
+        # - matches:
+        #     - headers:
+        #         - name: X-Forwarded-Proto
+        #           value: http
+        #   filters:
+        #     - type: RequestRedirect
+        #       requestRedirect:
+        #         scheme: https
+        #         statusCode: 301
+        - backendRefs:
+            - name: keycloak-service
+              port: 8080
+      gateways:
+        - name: keycloak-gateway

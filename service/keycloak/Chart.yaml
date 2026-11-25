@@ -1,0 +1,29 @@
+---
+apiVersion: v2
+name: keycloak
+type: application
+description: A Helm chart that deploys Keycloak (operator, server, realms and OIDC/SAML clients) and its dependencies.
+version: 26.8.2
+dependencies:
+  - alias: operator
+    name: keycloak-operator-helm
+    repository: oci://quay.io/keycloak
+    version: 26.8.2
+    condition: operator.enabled
+  - alias: secret
+    name: eso
+    repository: oci://ghcr.io/labsonline/charts
+    version: 2.15.0
+    condition: secret.enabled
+  - name: data
+    repository: oci://ghcr.io/labsonline/charts
+    version: 1.0.1
+    condition: data.postgres.enabled
+  - name: ca
+    repository: oci://ghcr.io/labsonline/charts
+    version: 1.2.0
+    condition: ca.enabled
+  - name: gateway
+    repository: oci://ghcr.io/labsonline/charts
+    version: 1.2.0
+    condition: gateway.enabled
