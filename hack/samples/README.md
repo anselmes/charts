@@ -14,15 +14,11 @@ kubectl apply -f hack/samples/flux.yaml
 
 # namespaces
 kubectl create namespace cert-manager
-kubectl create namespace operators
-
-kubectl create namespace ucp
 kubectl create namespace cicd
-
-kubectl create namespace fleetdm
+kubectl create namespace iam
 kubectl create namespace minio
-
-kubectl create namespace knative
+kubectl create namespace operators
+kubectl create namespace ucp
 ```
 
 ## Core Services
@@ -90,16 +86,6 @@ kubectl apply -f hack/samples/cicd/gitea.yaml
 kubectl apply -f hack/samples/cicd/sonarqube.yaml
 ```
 
-## Knative
-
-```shell
-export GATEWAY_SERVICE="$(kubectl -n kube-system get service --selector gateway.envoyproxy.io/owning-gateway-name=default-gateway -o custom-columns=NAME:.metadata.name --no-headers)"
-
-kubectl apply -f hack/samples/knative/operator.yaml
-
-envsubst < hack/samples/knative/serving.yaml | kubectl apply -f -
-```
-
 ## Workload
 
 ```shell
@@ -152,7 +138,6 @@ kubectl -n minio get pods,externalsecret
 ### Other
 
 ```shell
-kubectl apply -f hack/samples/optional/openebs.yaml
 kubectl apply -f hack/samples/optional/gatekeeper.yaml
 
 kubectl apply -f hack/samples/optional/cloudflare.yaml
