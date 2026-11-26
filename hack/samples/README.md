@@ -34,11 +34,125 @@ kubectl apply -f hack/samples/core/operator.yaml
 envsubst < hack/samples/core/gateway.yaml | kubectl apply -f -
 ```
 
+## Identity Services
+
+### Keycloak
+
+Keycloak runs in the `iam` namespace under the Keycloak operator. `harbor/keycloak.yaml` installs the
+operator in `operators`, then the Keycloak server, a Percona PostgreSQL cluster, the realm import
+named by `KEYCLOAK_REALM_NAME` and the gateway route. External Secrets generates the bootstrap `admin`
+password from the `password-generator` ClusterGenerator, so no credential is committed.
+
+Set the realm variables from `hack/samples/example.env` in `hack/samples/.env` (git-ignored). The
+Vault and MinIO samples read the same variables:
+
+| Variable                   | Purpose                                 |
+| -------------------------- | --------------------------------------- |
+| `KEYCLOAK_REALM_NAME`         | Realm id and name shared by the clients |
+| `KEYCLOAK_REALM_DISPLAY_NAME` | Realm display name                      |
+
+```shell
+set -a && source hack/samples/.env && set +a
+
+envsubst < hack/samples/harbor/keycloak.yaml | kubectl apply -f -
+
+kubectl -n iam get keycloak,keycloakrealmimport,externalsecret
+```
+
+Read the bootstrap admin password:
+
+```shell
+kubectl -n iam get secret keycloak-admin-password -o jsonpath='{.data.password}' | base64 -d; echo
+```
+
+> [!IMPORTANT]
+> Keycloak creates the bootstrap admin only when it creates the master realm. If the database
+> already holds a master realm that was created without `bootstrapAdmin`, sign-in fails with
+> `user_not_found` and the Keycloak log shows only a `temp-admin` user whose password is gone.
+
+To recover on a fresh install, reset the Keycloak schema and restart the pod so that Keycloak
+bootstraps again with the generated admin:
+
+> [!CAUTION]
+> The reset below drops every realm, user and client in the Keycloak database. Run it only on a
+> fresh install, before anything else depends on this Keycloak.
+
+```shell
+kubectl -n iam exec "$(kubectl -n iam get pod -l postgres-operator.crunchydata.com/role=primary -o name)" \
+  -c database -- psql -d keycloak \
+  -c 'DROP SCHEMA keycloak CASCADE; CREATE SCHEMA keycloak AUTHORIZATION keycloak;'
+
+kubectl -n iam delete pod keycloak-0
+```
+
+The database user and name are `keycloak`, not the Percona default `keycloak-postgres`. Keycloak runs
+an unquoted `SET SEARCH_PATH TO <user>` at startup, which fails on a name with a hyphen.
+
+#### OIDC clients
+
+Applications register with Keycloak through `KeycloakOIDCClient` resources, rendered by the
+`clients` list of the `keycloak` chart. A client resource must live in the same namespace as the
+Keycloak resource, so each `*-keycloak-client` release uses `targetNamespace: iam`. The client secret
+is generated in `iam` and synced into the application's namespace by a ClusterSecretStore:
+
+| Application | Sample                  | Client release           | Secret in the application namespace |
+| ----------- | ----------------------- | ------------------------ | ----------------------------------- |
+| Vault       | `ucp/vault.yaml`        | `vault-keycloak-client`  | `vault-oidc-client` in `ucp`        |
+| MinIO       | `optional/minio.yaml`   | `minio-keycloak-client`  | `minio-oidc-client` in `minio`      |
+
+`harbor/keycloak.yaml` also creates the `external-secrets-store-iam` store and the read-only
+`oidc-client-reader` RBAC. The Role names each readable Secret, so add the Secret of any new client to
+its `resourceNames`. The client releases reconcile only once Keycloak and the `KEYCLOAK_REALM_NAME`
+realm exist, and the Vault release depends on `vault-keycloak-client`, so apply
+`harbor/keycloak.yaml` before `ucp/vault.yaml`.
+
+#### Vault group mapping
+
+Vault has two OIDC roles. The `default` role lets any realm user sign in with the `default` policy
+only. The `admin` role accepts only users whose `groups` claim contains `vault-admins` and grants
+the `superuser` policy. The realm import creates the `vault-admins` group, but only when it creates
+a new realm. Keycloak must also emit the `groups` claim. `KeycloakOIDCClient` has no client-scope or
+mapper fields, so do this once in the admin console of the realm:
+
+1. Under Client scopes, create a scope `groups` of type Default. Add a mapper of type Group
+   Membership with token claim name `groups` and full group path turned off, adding the claim to
+   the ID token and to userinfo.
+2. Under Clients, open `vault`, then Client scopes, and add `groups` as a Default scope.
+3. Under Groups, add your users to `vault-admins`.
+
+Then sign in with the `admin` role:
+
+```shell
+bao login -method=oidc role=admin
+```
+
+#### MinIO policy mapping
+
+MinIO reads the policy names of a user from the `policy` claim of the token. A user without that
+claim cannot sign in. The realm import creates a group `consoleAdmin`, which is the name of the
+built-in MinIO administrator policy, so the group name becomes the policy name. Keycloak must emit
+the claim, which again takes a one-time step in the realm's admin console:
+
+1. Under Clients, open `minio`, then Client scopes, then `minio-dedicated`, and add a mapper by
+   configuration of type Group Membership. Set the token claim name to `policy`, turn full group
+   path off, and add the claim to the ID token and to userinfo. The `groups` scope that Vault uses
+   does not help here, because it emits a claim named `groups`, not `policy`.
+2. Under Groups, add your users to `consoleAdmin`. For other access levels, create groups named
+   after other built-in policies, such as `consolereadonly` (browse buckets in the Console),
+   `readonly` or `readwrite`. Policy names are case-sensitive: check the exact spelling under
+   Access, IAM Policies in the MinIO Console.
+3. Check the result under Clients, `minio`, Client scopes, Evaluate. Pick a user and open the
+   generated ID token: it must contain `"policy": ["consoleAdmin"]`.
+
+A user who belongs to none of these groups has no `policy` claim, and the Console reports a bare
+`Error from IDP` after the Keycloak sign-in. That is expected: add the user to a group.
+
 ## Infra Services
 
 Vault (OpenBao) auto-unseals with a NetHSM through PKCS#11 and initializes itself from the
 `initialize` stanzas in its config, which create the `admin` userpass user. No recovery key or
-root token is generated. Set the NetHSM variables from `hack/samples/example.env` in
+root token is generated. It also registers Keycloak as an OIDC login, so apply the Identity
+Services section first. Set the NetHSM variables from `hack/samples/example.env` in
 `hack/samples/.env` (git-ignored) before applying anything below:
 
 | Variable                     | Purpose                                                |
@@ -96,13 +210,26 @@ kubectl apply -f hack/samples/demo.yaml
 
 ### MinIO AIStor
 
-MinIO runs with KES as its key manager, using Vault (OpenBao) as the KES keystore. Before applying
-`optional/minio.yaml`:
+`optional/minio.yaml` holds three Flux releases, each in the namespace that owns it:
+
+| Release                 | Namespace   | Purpose                                                                  |
+| ----------------------- | ----------- | ------------------------------------------------------------------------ |
+| `minio-keycloak-client` | `iam`       | `KeycloakOIDCClient` for MinIO and its generated client secret           |
+| `minio-operator`        | `operators` | AIStor operator, its CRDs and the `minio-license` Secret                 |
+| `minio`                 | `minio`     | ObjectStore with KES, the ExternalSecrets, the gateway routes and policy |
+
+MinIO runs with KES as its key manager, using Vault (OpenBao) as the KES keystore, and signs users
+in through Keycloak. Before applying the file:
 
 1. Apply `ucp/vault.yaml`. It also creates the `external-secrets-store-ucp` store and the
-   read-only `vault-ca-reader` RBAC that let ESO sync the Vault CA into the `minio` namespace.
+   read-only `vault-ca-reader` RBAC that let ESO sync the Vault CA into the `minio` namespace. It
+   also creates the `external-secrets-store-kube-system` store that syncs the default gateway CA,
+   which MinIO needs to trust Keycloak for its OIDC login.
 2. Put the AIStor license in Vault at `secret/minio`, property `license`.
-3. Create the KES policy and Kubernetes auth role in OpenBao. KES authenticates as the
+3. Apply `harbor/keycloak.yaml`, which the `minio-keycloak-client` release depends on. It creates
+   the `external-secrets-store-iam` store that syncs the `minio-oidc-client` secret into the `minio`
+   namespace.
+4. Create the KES policy and Kubernetes auth role in OpenBao. KES authenticates as the
    operator-created `minio-sa` service account:
 
 ```shell
@@ -117,23 +244,45 @@ bao write auth/kubernetes/role/minio-kes \
   policies=minio-kes ttl=1h
 ```
 
-Pass `envsubst` an explicit variable list. A bare `envsubst` blanks `${MINIO_KES_IDENTITY}`, which
-KES expands itself at startup from the identity the operator injects:
+The file reads these variables from `hack/samples/.env`:
+
+| Variable            | Purpose                                              |
+| ------------------- | ---------------------------------------------------- |
+| `DOMAIN_NAME`       | Base domain of the `minio`, `s3` and `iam` hostnames |
+| `KEYCLOAK_REALM_NAME`  | Keycloak realm that the `minio` client is created in |
+| `MINIO_SITE_NAME`   | Site name reported by the object store               |
+| `MINIO_SITE_REGION` | Site region reported by the object store             |
+
+Apply the file with `envsubst` and an explicit variable list. A bare `envsubst` blanks
+`${MINIO_KES_IDENTITY}`, which KES expands itself at startup from the identity the operator injects.
+Flux then orders the releases: `minio` waits for `minio-operator`, the gateway and the External
+Secrets generators, and `minio-keycloak-client` waits for Keycloak.
 
 ```shell
-yq '.spec.values' hack/samples/optional/minio.yaml \
-  | envsubst '${DOMAIN_NAME} ${MINIO_SITE_NAME} ${MINIO_SITE_REGION}' \
-  | helm upgrade --install --namespace minio minio service/aistor --values -
+set -a && source hack/samples/.env && set +a
+
+envsubst '${DOMAIN_NAME} ${KEYCLOAK_REALM_NAME} ${MINIO_SITE_NAME} ${MINIO_SITE_REGION}' \
+  < hack/samples/optional/minio.yaml | kubectl apply -f -
 ```
 
-Check that the release is healthy:
+Check that the releases and the object store are healthy:
 
 ```shell
-kubectl -n minio get pods,externalsecret
+kubectl get helmrelease -A | grep minio
+kubectl -n operators get pods,externalsecret
+kubectl -n minio get objectstore,pods,externalsecret
+kubectl -n iam get keycloakoidcclient minio
 ```
 
 `minio-pool-0-0` and `minio-kes` should be `2/2 Running`, and the `minio-env-configuration`,
-`minio-license` and `vault-ca` ExternalSecrets should be `SecretSynced`.
+`vault-ca`, `default-gateway-ca` and `minio-oidc-client` ExternalSecrets should be `SecretSynced`.
+The operator reads the AIStor license from its own namespace, so `minio-license` is in `operators`
+and must be `SecretSynced` there. Without it the operator logs `error checking license` and never
+reconciles the ObjectStore. The `minio` client should report no errors.
+
+To sign in through Keycloak, add the `policy` claim mapper and the `consoleAdmin` group membership
+described under Identity Services (MinIO policy mapping). The Console login page then offers a
+Keycloak sign-in.
 
 ### Other
 
