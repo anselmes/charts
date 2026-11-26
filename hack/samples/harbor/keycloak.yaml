@@ -1,0 +1,264 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: keycloak-operator
+  namespace: operators
+spec:
+  interval: 10m0s
+  releaseName: keycloak-operator
+  timeout: 15m0s
+  chart:
+    spec:
+      interval: 5m
+      chart: keycloak
+      version: 26.8.2
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    operator:
+      enabled: true
+    keycloak:
+      enabled: false
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: keycloak
+  namespace: iam
+spec:
+  interval: 10m0s
+  releaseName: keycloak
+  timeout: 15m0s
+  dependsOn:
+    - name: external-secrets-generator
+      namespace: sre
+    - name: keycloak-operator
+      namespace: operators
+  chart:
+    spec:
+      interval: 5m
+      chart: keycloak
+      version: 26.8.2
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    realms:
+      - name: ${KEYCLOAK_REALM_NAME}
+        realm:
+          enabled: true
+          id: ${KEYCLOAK_REALM_NAME}
+          realm: ${KEYCLOAK_REALM_NAME}
+          displayName: ${KEYCLOAK_REALM_DISPLAY_NAME}
+          groups:
+            # Vault maps this group to its `superuser` policy (see ucp/vault.yaml, role admin).
+            - name: vault-admins
+            # MinIO reads policy names from the `policy` claim (see optional/minio.yaml), so each
+            # of these groups is named after the built-in MinIO policy it grants. Names are
+            # case-sensitive.
+            - name: consoleAdmin
+            - name: consolereadonly
+            - name: readwrite
+            - name: readonly
+    keycloak:
+      enabled: true
+      replicas: 1
+      hostname: https://iam.${DOMAIN_NAME}
+      bootstrapAdmin:
+        user:
+          secret: keycloak-admin-password
+        service:
+          secret: keycloak-admin
+      postgres:
+        host: keycloak-postgres-primary
+        database: keycloak
+        usernameSecret:
+          name: keycloak-postgres-pguser-keycloak
+          key: user
+        passwordSecret:
+          name: keycloak-postgres-pguser-keycloak
+          key: password
+    secret:
+      enabled: true
+      externalSecrets:
+        - kind: ExternalSecret
+          name: keycloak-admin-password
+          hook: pre-install,pre-upgrade
+          externalSecretSpec:
+            refreshInterval: "0"
+            target:
+              creationPolicy: Owner
+              template:
+                data:
+                  username: admin
+                  password: "{{ .password }}"
+            dataFrom:
+              - sourceRef:
+                  generatorRef:
+                    apiVersion: generators.external-secrets.io/v1alpha1
+                    kind: ClusterGenerator
+                    name: password-generator
+        # Must be named `<keycloak-name>-admin`: the operator looks it up by that name.
+        - kind: ExternalSecret
+          name: keycloak-admin
+          hook: pre-install,pre-upgrade
+          externalSecretSpec:
+            refreshInterval: "0"
+            target:
+              creationPolicy: Owner
+              template:
+                data:
+                  client-id: "{{ .uuid }}"
+                  client-secret: "{{ .password }}"
+            dataFrom:
+              - sourceRef:
+                  generatorRef:
+                    apiVersion: generators.external-secrets.io/v1alpha1
+                    kind: ClusterGenerator
+                    name: password-generator
+              - sourceRef:
+                  generatorRef:
+                    apiVersion: generators.external-secrets.io/v1alpha1
+                    kind: ClusterGenerator
+                    name: uuid-generator
+    data:
+      postgres:
+        enabled: true
+        postgresVersion: 17
+        # Hyphen-free user/db: Keycloak's Liquibase runs an unquoted
+        # `SET SEARCH_PATH TO <user>`, which fails on the default "keycloak-postgres".
+        users:
+          - name: keycloak
+            databases:
+              - keycloak
+        instances:
+          - name: keycloakdb
+            replicas: 1
+            dataVolumeClaimSpec:
+              resources:
+                requests:
+                  storage: 1Gi
+        proxy:
+          pgBouncer:
+            replicas: 1
+    gateway:
+      enabled: true
+      routes:
+        - name: keycloak
+          kind: HTTPRoute
+          hostnames:
+            - iam.${DOMAIN_NAME}
+          rules:
+            - matches:
+                - headers:
+                    - name: X-Forwarded-Proto
+                      value: http
+              filters:
+                - type: RequestRedirect
+                  requestRedirect:
+                    scheme: https
+                    statusCode: 301
+            - backendRefs:
+                - name: keycloak-service
+                  port: 8080
+          gateways:
+            - name: default-gateway
+              namespace: kube-system
+---
+# Read-only access to the OIDC client secrets generated in `iam`, so apps in other
+# namespaces (ucp, minio) can sync them with an ExternalSecret instead of copying by hand.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: external-secrets-store-iam
+  namespace: iam
+spec:
+  interval: 10m0s
+  releaseName: external-secrets-store-iam
+  timeout: 15m0s
+  dependsOn:
+    - name: external-secrets-operator
+      namespace: operators
+  chart:
+    spec:
+      interval: 5m
+      chart: eso
+      version: 2.15.0
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    secretStores:
+      - kind: ClusterSecretStore
+        name: external-secrets-store-iam
+        provider:
+          kubernetes:
+            remoteNamespace: iam
+            server:
+              caProvider:
+                type: ConfigMap
+                name: kube-root-ca.crt
+                key: ca.crt
+                namespace: iam
+            auth:
+              serviceAccount:
+                name: oidc-client-reader
+                namespace: iam
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: oidc-client-reader
+  namespace: iam
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: oidc-client-reader
+  namespace: iam
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    # Add each new client's secret here.
+    resourceNames: [vault-oidc-client, minio-oidc-client]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: oidc-client-reader
+  namespace: iam
+subjects:
+  - kind: ServiceAccount
+    name: oidc-client-reader
+    namespace: iam
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: oidc-client-reader
