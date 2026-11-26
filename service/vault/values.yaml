@@ -555,7 +555,7 @@ gateway:
           - backendRefs:
               - name: vault
                 port: 8200
-      gateways:
+      listeners:
         - name: vault-gateway
 
   policies: []

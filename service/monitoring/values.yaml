@@ -1672,7 +1672,7 @@ gateway:
             - name: '{{ include "monitoring.clickstack.app" . }}'
               port: 3000
       # Route-level (not inside a rule): the gateway chart turns this into parentRefs.
-      gateways:
+      listeners:
         - name: monitoring-gateway
     # - name: clickstack-otlp
     #   kind: GRPCRoute
@@ -1682,7 +1682,7 @@ gateway:
     #     - backendRefs:
     #         - name: "{{ .Release.Name }}-otel-collector"
     #           port: 4317
-    #   gateways:
+    #   listeners:
     #     - name: monitoring-gateway
     # - name: otel-collector-http
     #   kind: HTTPRoute
@@ -1692,7 +1692,7 @@ gateway:
     #     - backendRefs:
     #         - name: "{{ .Release.Name }}-otel-collector"
     #           port: 4318
-    #   gateways:
+    #   listeners:
     #     - name: monitoring-gateway
     # - name: grafana
     #   kind: HTTPRoute
@@ -1712,5 +1712,5 @@ gateway:
     #     - backendRefs:
     #         - name: grafana-service
     #           port: 3000
-    #   gateways:
+    #   listeners:
     #     - name: monitoring-gateway

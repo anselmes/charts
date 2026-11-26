@@ -314,5 +314,5 @@ gateway:
         - backendRefs:
             - name: keycloak-service
               port: 8080
-      gateways:
+      listeners:
         - name: keycloak-gateway

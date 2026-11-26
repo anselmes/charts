@@ -578,7 +578,7 @@ gateway:
         - backendRefs:
             - name: "{{ .Release.Name }}"
               port: 443
-      gateways:
+      listeners:
         - name: minio-gateway
     - name: minio-console-http-route
       kind: HTTPRoute
@@ -600,7 +600,7 @@ gateway:
         - backendRefs:
             - name: "{{ .Release.Name }}-console"
               port: 9443
-      gateways:
+      listeners:
         - name: minio-gateway
 
       policies: []
