@@ -37,6 +37,14 @@ spec:
           enableListenerSet: true
         featureGates:
           ListenerSets: true
+    # Distributes the root CA (see core/trust.yaml). trust-manager may only write the Secrets
+    # listed here; it needs read access to Secrets cluster-wide to do so.
+    trustmanager:
+      enabled: true
+      secretTargets:
+        enabled: true
+        authorizedSecrets:
+          - ca-issuer
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -66,9 +74,40 @@ spec:
   upgrade:
     crds: CreateReplace
   values:
+    # Bootstrap chain: a self-signed issuer signs the root CA (hook weights 5, 10), and
+    # `ca-issuer` is backed by that CA (weight 20). Leaf certificates, such as the gateway's
+    # `http-gw-cert`, chain to the CA, so consumers pin the stable CA in `ca.crt`
+    # (`ca-issuer`) instead of a leaf that changes on every reissue.
     issuers:
-      - name: ca-issuer
-        clustered: true
+      - name: ca-issuer-self-signed
         selfSigned: true
+        wait: true
         secret:
           create: false
+      - name: ca-issuer
+        clustered: true
+        type: ca
+        wait: true
+        hookWeight: 20
+        secret:
+          name: ca-issuer-tls
+          create: false
+    certificates:
+      - name: ca-issuer
+        duration: 87600h
+        renewal: 8760h
+        isCA: true
+        wait: true
+        subject:
+          organizations:
+            - mockingbird
+        dns:
+          name: ca-issuer
+          aliases: []
+          addresses: []
+          usages:
+            - cert sign
+            - crl sign
+        issuerRef:
+          name: ca-issuer-self-signed
+          kind: Issuer

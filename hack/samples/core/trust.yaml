@@ -1,0 +1,25 @@
+---
+# Distributes the root CA behind `ca-issuer` (see certmanager.yaml) as the `ca-issuer`
+# Secret, key `ca.crt`, in the namespaces below. Vault pins it for Keycloak's OIDC discovery,
+# MinIO trusts it for its OIDC login, and MinIO's KES trusts it to reach Vault (`vault-cert` is
+# issued by `ca-issuer` too). The Secret is named after the Bundle. Apply this after the
+# cert-manager release is Ready, and before applying anything that mounts the Secret.
+apiVersion: trust.cert-manager.io/v1alpha1
+kind: Bundle
+metadata:
+  name: ca-issuer
+spec:
+  sources:
+    - secret:
+        name: ca-issuer-tls
+        key: ca.crt
+  target:
+    secret:
+      key: ca.crt
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: In
+          values:
+            - minio
+            - ucp
