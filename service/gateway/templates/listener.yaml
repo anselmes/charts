@@ -1,0 +1,60 @@
+{{- with .Values.listenerSet }}
+{{- $issuer := "" }}
+{{- $issuerType := "ClusterIssuer" }}
+{{- range .listeners }}
+{{- if .tls }}
+{{- range .tls.certificateRefs }}
+{{- if .issuer }}
+{{- $issuer = .issuer }}
+{{- if .type }}
+{{- $issuerType = .type }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: ListenerSet
+metadata:
+  name: {{ .name | default (printf "%s-listeners" .gatewayRef.name) }}
+  labels:
+    {{- include "gateway.labels" $ | nindent 4 }}
+  {{- if $issuer }}
+  annotations:
+    {{- if eq $issuerType "Issuer" }}
+    cert-manager.io/issuer: {{ $issuer }}
+    {{- else }}
+    cert-manager.io/cluster-issuer: {{ $issuer }}
+    {{- end }}
+  {{- end }}
+spec:
+  listeners:
+  {{- range .listeners }}
+    - name: {{ .name }}
+      port: {{ .port }}
+      protocol: {{ .protocol }}
+      {{- if .hostname }}
+      hostname: {{ .hostname | quote }}
+      {{- end }}
+      {{- with .allowedRoutes }}
+      allowedRoutes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .tls }}
+      tls:
+        mode: {{ .tls.mode }}
+        {{- with .tls.certificateRefs }}
+        certificateRefs:
+          {{- range . }}
+          - name: {{ .name }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+  {{- end }}
+  parentRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: {{ .gatewayRef.name }}
+    namespace: {{ .gatewayRef.namespace | default $.Release.Namespace }}
+{{- end }}

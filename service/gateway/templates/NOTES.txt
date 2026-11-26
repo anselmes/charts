@@ -119,13 +119,18 @@ This chart manages Gateway API resources including Gateways, HTTPRoutes, and oth
 {{- range .Values.gateways }}
 - **{{ .name }}**:
   - Class: {{ .className }}
-  - Listeners: {{ len .listeners }}
-  {{- range .listeners }}
-  - {{ .name }} ({{ .protocol }}, port {{ .port }})
-  {{- end }}
 {{- end }}
 {{- else }}
 - No gateways configured
+{{- end }}
+
+**Listener Configuration**:
+{{- with .Values.listenerSet }}
+{{- range .listeners }}
+- {{ .name }} ({{ .protocol }}, port {{ .port }}) -> Gateway {{ $.Values.listenerSet.gatewayRef.name }}
+{{- end }}
+{{- else }}
+- No listeners configured
 {{- end }}
 
 **Routes Configuration**:

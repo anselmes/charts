@@ -14,7 +14,7 @@ routes: []
   #     - backendRefs:
   #         - name: nginx-svc
   #           port: 80
-  #   gateways:
+  #   listeners:
   #     - name: default-gateway
   #       namespace: default
   #       # sectionName: https   # optional: attach to a single listener by name
@@ -25,7 +25,7 @@ routes: []
   #     - backendRefs:
   #         - name: kafka-svc
   #           port: 9092
-  #   gateways:
+  #   listeners:
   #     - name: tls-gateway
   # - name: hello-world
   #   kind: GRPCRoute
@@ -33,7 +33,7 @@ routes: []
   #     - backendRefs:
   #         - name: hello-world-svc
   #           port: 8080
-  #   gateways:
+  #   listeners:
   #     - name: grpc-gateway
 
 # MARK: - Policies
@@ -69,6 +69,48 @@ grants: []
   #       kind: Gateway
   #       namespace: kube-system
 
+# MARK: - Listeners
+
+listenerSet: {}
+  # listeners:
+  #   - name: udp
+  #     port: 80
+  #     protocol: UDP
+  #     allowedRoutes:
+  #       namespaces:
+  #         from: All
+  #       kinds:
+  #         - kind: UDPRoute
+  #   - name: tls
+  #     port: 443
+  #     protocol: TLS
+  #     allowedRoutes:
+  #       namespaces:
+  #         from: All
+  #       kinds:
+  #         - kind: TLSRoute
+  #     tls:
+  #       mode: Passthrough
+  #   - name: https
+  #     port: 443
+  #     protocol: HTTPS
+  #     hostname: "*.local"
+  #     allowedRoutes:
+  #       namespaces:
+  #         from: All
+  #     kinds:
+  #       - kind: GRPCRoute
+  #       - kind: HTTPRoute
+  #     tls:
+  #       mode: Terminate
+  #       certificateRefs:
+  #         - name: default-gw-cert
+  #           issuer: self-signed-ca-issuer
+  #           type: ClusterIssuer               # ClusterIssuer (default) or Issuer
+  # gatewayRef:
+  #   name: default-gateway
+  #   # namespace: default
+
 # MARK: - Gateways
 
 # Define the Gateway configurations.
@@ -79,6 +121,9 @@ gateways:
     # addresses:
     #   - type: IPAddress
     #     value: 10.200.201.2
+    allowedListeners:
+      namespaces:
+        from: Same
     listeners:
       - name: http
         port: 80
@@ -86,54 +131,3 @@ gateways:
         allowedRoutes:
           namespaces:
             from: All
-      # - name: https
-      #   port: 443
-      #   protocol: HTTPS
-      #   hostname: "*.local"
-      #   allowedRoutes:
-      #     namespaces:
-      #       from: All
-      #   tls:
-      #     mode: Terminate
-      #     certificateRefs:
-      #       - name: default-gw-cert
-      #         issuer: self-signed-ca-issuer
-      #         type: ClusterIssuer               # ClusterIssuer (default) or Issuer
-  # - name: tls-gateway
-  #   className: envoy
-  #   listeners:
-  #     - name: tls
-  #       port: 443
-  #       protocol: TLS
-  #       allowedRoutes:
-  #         namespaces:
-  #           from: All
-  #         kinds:
-  #           - kind: TLSRoute
-  #       tls:
-  #         mode: Passthrough
-  # - name: grpc-gateway
-  #   className: envoy
-  #   listeners:
-  #     - name: http
-  #       port: 80
-  #       protocol: HTTP
-  #       allowedRoutes:
-  #         namespaces:
-  #           from: All
-  #         kinds:
-  #           - kind: GRPCRoute
-  #     - name: grpc
-  #       port: 443
-  #       protocol: HTTPS
-  #       hostname: "*.rpc.local"
-  #       allowedRoutes:
-  #         namespaces:
-  #           from: All
-  #         kinds:
-  #           - kind: GRPCRoute
-  #       tls:
-  #         mode: Terminate
-  #         certificateRefs:
-  #           - name: grpc-gw-cert
-  #             issuer: self-signed-ca-issuer     # type: ClusterIssuer  # ClusterIssuer (default) or Issuer

@@ -14,13 +14,13 @@
 {{- end }}
 {{- end }}
 ---
-apiVersion: gateway.networking.k8s.io/v1beta1
+apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: {{ .name }}
-  {{- if $issuer }}
   labels:
     {{- include "gateway.labels" $ | nindent 4 }}
+  {{- if $issuer }}
   annotations:
     {{- if eq $issuerType "Issuer" }}
     cert-manager.io/issuer: {{ $issuer }}
@@ -30,10 +30,16 @@ metadata:
   {{- end }}
 spec:
   gatewayClassName: {{ .className }}
-  {{- range .addresses }}
+  {{- with .addresses }}
   addresses:
+    {{- range . }}
     - type: {{ .type }}
       value: {{ .value }}
+    {{- end }}
+  {{- end }}
+  {{- with .allowedListeners }}
+  allowedListeners:
+    {{- toYaml . | nindent 4 }}
   {{- end }}
   listeners:
   {{- range .listeners }}
@@ -50,9 +56,11 @@ spec:
       {{- if .tls }}
       tls:
         mode: {{ .tls.mode }}
-        {{- range .tls.certificateRefs }}
+        {{- with .tls.certificateRefs }}
         certificateRefs:
+          {{- range . }}
           - name: {{ .name }}
+          {{- end }}
         {{- end }}
       {{- end }}
   {{- end }}
