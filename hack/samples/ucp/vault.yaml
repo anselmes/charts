@@ -145,8 +145,9 @@ spec:
       namespace: kube-system
     - name: operator
       namespace: operators
-    - name: vault-keycloak-client
+    - name: vault-oidc-client
       namespace: iam
+    - name: vault-credential
   chart:
     spec:
       interval: 5m
@@ -469,15 +470,6 @@ spec:
           hostnames:
             - vault.${DOMAIN_NAME}
           rules:
-            - matches:
-                - headers:
-                    - name: X-Forwarded-Proto
-                      value: http
-              filters:
-                - type: RequestRedirect
-                  requestRedirect:
-                    scheme: https
-                    statusCode: 301
             - backendRefs:
                 - name: vault
                   port: 8200
