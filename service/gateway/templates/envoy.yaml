@@ -1,0 +1,21 @@
+{{- range .Values.envoy.policies }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: {{ required "envoy policy type is required" .type }}
+metadata:
+  name: {{ required "envoy policy name is required" .name }}
+  labels:
+    {{- include "gateway.labels" $ | nindent 4 }}
+spec:
+  {{- with .spec }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+  {{- with .targetRefs }}
+  targetRefs:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .targetSelectors }}
+  targetSelectors:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

@@ -131,3 +131,79 @@ gateways:
         allowedRoutes:
           namespaces:
             from: All
+
+# MARK: - Envoy
+
+envoy:
+  policies: []
+    # - type: BackendTrafficPolicy
+    #   name: backend-traffic-policy
+    #   spec:
+    #     # mergeType: StrategicMerge  # Enables merging with gateway policy
+    #     loadBalancer:
+    #       type: RoundRobin
+    #       # type: BackendUtilization
+    #       # backendUtilization:
+    #       #   keepResponseHeaders: true # Keep headers and forward them to the client
+    #     # circuitBreaker:
+    #     #   maxConnections: 50
+    #     # rateLimit:
+    #     #   # global:
+    #     #   #   rules:
+    #     #   #     - clientSelectors:
+    #     #   #         - sourceCIDR:
+    #     #   #             type: Distinct
+    #     #   #             value: 0.0.0.0/0
+    #     #   #       limit:
+    #     #   #         requests: 100
+    #     #   #         unit: Second
+    #     #   #       shared: true
+    #     #   local:
+    #     #     requests: 10
+    #     #     unit: Second
+    #   targetRefs: # Direct reference targeting
+    #     - kind: HTTPRoute
+    #       name: my-route
+    #     # - kind: Gateway
+    #     #   name: default-gateway
+    #   # targetSelectors:  # Label-based targeting
+    #   #   - kind: HTTPRoute
+    #   #     matchLabels:
+    #   #       app: payment-service
+    #   #   - kind: Gateway
+    #   #     matchLabels:
+    #   #       gw: payment-gateway
+    # - type: ClientTrafficPolicy
+    #   name: client-traffic-policy
+    #   spec:
+    #     # tls:
+    #     #   minVersion: "1.3"
+    #     timeout:
+    #       http:
+    #         idleTimeout: 30s
+    #   targetRefs:
+    #     - kind: Gateway
+    #       name: default-gateway
+    #       # sectionName: https
+    # - type: SecurityPolicy
+    #   name: security-policy
+    #   spec:
+    #     # mergeType: StrategicMerge  # Enables merging with gateway policy
+    #     cors:
+    #       allowOrigins:
+    #         - exact: https://example.com
+    #       # allowMethods:
+    #       #   - GET
+    #       #   - POST
+    #       # allowHeaders:
+    #       #   - x-header-1
+    #     basicAuth:
+    #       users:
+    #         name: basic-auth-secret
+    #   targetRefs:
+    #     - kind: HTTPRoute
+    #       name: my-route
+    #       # sectionName: rule-1  # Targets specific named rule
+    #     # - kind: Gateway
+    #     #   name: default-gateway
+    #     #   # sectionName: https  # Targets specific listener
