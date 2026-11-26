@@ -25,8 +25,10 @@ spec:
   {{- if .listeners }}
   parentRefs:
     {{- range .listeners }}
-    - name: {{ .name }}
-      namespace: {{ .namespace | default .Release.Namespace }}
+    - group: {{ .group | default "gateway.networking.k8s.io" }}
+      kind: {{ .kind | default "Gateway" }}
+      name: {{ .name }}
+      namespace: {{ .namespace | default $.Release.Namespace }}
       {{- if .sectionName }}
       sectionName: {{ .sectionName }}
       {{- end }}

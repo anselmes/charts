@@ -17,6 +17,7 @@ routes: []
   #   listeners:
   #     - name: default-gateway
   #       namespace: default
+  #       # kind: ListenerSet    # optional: Gateway (default) or ListenerSet
   #       # sectionName: https   # optional: attach to a single listener by name
   #       # port: 443            # optional: attach to a single listener by port
   # - name: kafka
