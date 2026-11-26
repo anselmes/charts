@@ -42,7 +42,11 @@ spec:
   dependsOn:
     - name: external-secrets-generator
       namespace: sre
+    - name: gateway
+      namespace: kube-system
     - name: keycloak-operator
+      namespace: operators
+    - name: operator
       namespace: operators
   chart:
     spec:
@@ -167,15 +171,6 @@ spec:
           hostnames:
             - iam.${DOMAIN_NAME}
           rules:
-            - matches:
-                - headers:
-                    - name: X-Forwarded-Proto
-                      value: http
-              filters:
-                - type: RequestRedirect
-                  requestRedirect:
-                    scheme: https
-                    statusCode: 301
             - backendRefs:
                 - name: keycloak-service
                   port: 8080

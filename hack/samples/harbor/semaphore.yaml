@@ -199,11 +199,6 @@ spec:
               backendRefs:
                 - name: semaphoreui
                   port: 3000
-            - filters:
-                - type: RequestRedirect
-                  requestRedirect:
-                    scheme: https
-                    statusCode: 301
           gateways:
             - name: default-gateway
               namespace: kube-system

@@ -4,7 +4,7 @@ apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: clickhouse-operator
-  namespace: sre
+  namespace: operators
 spec:
   interval: 10m0s
   releaseName: clickhouse-operator
@@ -44,8 +44,12 @@ spec:
   releaseName: clickstack
   timeout: 15m0s
   dependsOn:
+    - name: clickhouse-operator
+      namespace: operators
     - name: external-secrets-operator
       namespace: operators
+    - name: gateway
+      namespace: kube-system
     - name: operators
       namespace: operators
   chart:
@@ -193,15 +197,6 @@ spec:
               hostnames:
                 - clickstack.testplay.io
               rules:
-                - matches:
-                    - headers:
-                        - name: X-Forwarded-Proto
-                          value: http
-                  filters:
-                    - type: RequestRedirect
-                      requestRedirect:
-                        scheme: https
-                        statusCode: 301
                 - backendRefs:
                     - name: '{{ include "monitoring.clickstack.app" . }}'
                       port: 3000
