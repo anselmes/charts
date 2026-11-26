@@ -131,6 +131,8 @@ spec:
       namespace: sre
     - name: gateway
       namespace: kube-system
+    - name: minio-oidc-client
+      namespace: iam
     - name: minio-operator
       namespace: operators
   chart:
@@ -287,11 +289,6 @@ spec:
               backendRefs:
                 - name: "{{ .Release.Name }}"
                   port: 443
-            - filters:
-                - type: RequestRedirect
-                  requestRedirect:
-                    scheme: https
-                    statusCode: 301
           listeners:
             - name: default-gateway-listeners
               kind: ListenerSet
@@ -308,11 +305,6 @@ spec:
               backendRefs:
                 - name: "{{ .Release.Name }}-console"
                   port: 9443
-            - filters:
-                - type: RequestRedirect
-                  requestRedirect:
-                    scheme: https
-                    statusCode: 301
           listeners:
             - name: default-gateway-listeners
               kind: ListenerSet
