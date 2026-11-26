@@ -2,6 +2,78 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
+  name: vault-keycloak-client
+  namespace: iam
+spec:
+  interval: 10m0s
+  releaseName: vault-keycloak-client
+  timeout: 15m0s
+  dependsOn:
+    - name: keycloak
+      namespace: iam
+  chart:
+    spec:
+      interval: 5m
+      chart: keycloak
+      version: 26.8.2
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    keycloak:
+      enabled: false
+    secret:
+      enabled: true
+      externalSecrets:
+        - kind: ExternalSecret
+          name: vault-oidc-client
+          hook: pre-install,pre-upgrade
+          externalSecretSpec:
+            refreshInterval: "0"
+            target:
+              creationPolicy: Owner
+              template:
+                metadata:
+                  labels:
+                    operator.keycloak.org/kind: KeycloakOIDCClient
+                data:
+                  client-secret: "{{ .password }}"
+            dataFrom:
+              - sourceRef:
+                  generatorRef:
+                    apiVersion: generators.external-secrets.io/v1alpha1
+                    kind: ClusterGenerator
+                    name: password-generator
+    clients:
+      - type: KeycloakOIDCClient
+        name: vault
+        keycloakRef: keycloak
+        realmRef: ${KEYCLOAK_REALM_NAME}
+        client:
+          enabled: true
+          loginFlows:
+            - STANDARD
+          redirectUris:
+            - https://vault.${DOMAIN_NAME}/*
+            # `bao login -method=oidc` listens locally for the callback.
+            - http://localhost:8250/oidc/callback
+          auth:
+            method: client-secret
+            secretRef:
+              name: vault-oidc-client
+              key: client-secret
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
   name: vault-credential
   namespace: ucp
 spec:
@@ -42,6 +114,35 @@ spec:
                   apiVersion: generators.external-secrets.io/v1alpha1
                   kind: ClusterGenerator
                   name: password-generator
+      # CA of the default gateway certificate, which signs `iam.${DOMAIN_NAME}`. Vault needs it to
+      # trust Keycloak's OIDC discovery endpoint.
+      - kind: ExternalSecret
+        name: default-gateway-ca
+        hook: pre-install,pre-upgrade
+        externalSecretSpec:
+          refreshInterval: 1h
+          secretStoreRef:
+            name: external-secrets-store-kube-system
+            kind: ClusterSecretStore
+          data:
+            - secretKey: ca.crt
+              remoteRef:
+                key: http-gw-cert
+                property: ca.crt
+      # OIDC client secret generated in `iam` (see vault-keycloak-client above).
+      - kind: ExternalSecret
+        name: vault-oidc-client
+        hook: pre-install,pre-upgrade
+        externalSecretSpec:
+          refreshInterval: 1h
+          secretStoreRef:
+            name: external-secrets-store-iam
+            kind: ClusterSecretStore
+          data:
+            - secretKey: client-secret
+              remoteRef:
+                key: vault-oidc-client
+                property: client-secret
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -59,6 +160,10 @@ spec:
       namespace: kube-system
     - name: operator
       namespace: operators
+    - name: vault-keycloak-client
+      namespace: iam
+    - name: external-secrets-store-gateway
+      namespace: ucp
   chart:
     spec:
       interval: 5m
@@ -94,6 +199,9 @@ spec:
           - envName: INITIAL_ADMIN_PASSWORD
             secretName: vault-initial-admin-password
             secretKey: password
+          - envName: OIDC_CLIENT_SECRET
+            secretName: vault-oidc-client
+            secretKey: client-secret
           - envName: PGHOST
             secretName: vault-postgres-pguser-vault-postgres
             secretKey: host
@@ -124,6 +232,12 @@ spec:
                   path: tls.crt
                 - key: tls.key
                   path: tls.key
+          - name: default-gateway-ca
+            secret:
+              secretName: default-gateway-ca
+              items:
+                - key: ca.crt
+                  path: ca.crt
           - name: p11nethsm
             configMap:
               name: p11nethsm
@@ -139,6 +253,10 @@ spec:
           - name: vault-tls
             mountPath: /etc/ssl/private/vault-tls.key
             subPath: tls.key
+            readOnly: true
+          - name: default-gateway-ca
+            mountPath: /etc/ssl/certs/default-gateway-ca.crt
+            subPath: ca.crt
             readOnly: true
           - name: p11nethsm
             mountPath: /etc/nitrokey/p11nethsm.conf
@@ -246,6 +364,74 @@ spec:
                   bound_service_account_namespaces = ["operators"]
                   token_policies                   = ["external-secrets"]
                   ttl                              = "1h"
+                }
+              }
+            }
+
+            # OIDC login through Keycloak (realm ${KEYCLOAK_REALM_NAME}, client vault). The client secret and
+            # the default gateway CA are read from the environment and the mounted CA file, never inlined.
+            # The discovery URL must be the public issuer URL: Keycloak puts the same URL in `iss`.
+            initialize "oidc" {
+              request "auth" {
+                operation = "update"
+                path      = "sys/auth/oidc"
+                data = {
+                  type = "oidc"
+                }
+              }
+              request "config" {
+                operation = "update"
+                path      = "auth/oidc/config"
+                data = {
+                  oidc_discovery_url = "https://iam.${DOMAIN_NAME}/realms/${KEYCLOAK_REALM_NAME}"
+                  oidc_client_id     = "vault"
+                  oidc_client_secret = {
+                    eval_type       = "string"
+                    eval_source     = "env"
+                    env_var         = "OIDC_CLIENT_SECRET"
+                    require_present = true
+                  }
+                  oidc_discovery_ca_pem = {
+                    eval_type   = "string"
+                    eval_source = "file"
+                    path        = "/etc/ssl/certs/default-gateway-ca.crt"
+                  }
+                  default_role = "default"
+                }
+              }
+              # Any realm user may sign in, but only gets the `default` policy.
+              request "role-default" {
+                operation = "update"
+                path      = "auth/oidc/role/default"
+                data = {
+                  user_claim            = "preferred_username"
+                  oidc_scopes           = ["openid", "profile", "email"]
+                  allowed_redirect_uris = [
+                    "https://vault.${DOMAIN_NAME}/ui/vault/auth/oidc/oidc/callback",
+                    "http://localhost:8250/oidc/callback"
+                  ]
+                  token_policies        = ["default"]
+                  ttl                   = "1h"
+                }
+              }
+              # Group mapping: members of the Keycloak group `vault-admins` get `superuser`.
+              # Sign in with role=admin. Needs a `groups` claim from Keycloak (see the README).
+              request "role-admin" {
+                operation = "update"
+                path      = "auth/oidc/role/admin"
+                data = {
+                  user_claim            = "preferred_username"
+                  groups_claim          = "groups"
+                  oidc_scopes           = ["openid", "profile", "email"]
+                  bound_claims          = {
+                    groups = ["vault-admins"]
+                  }
+                  allowed_redirect_uris = [
+                    "https://vault.${DOMAIN_NAME}/ui/vault/auth/oidc/oidc/callback",
+                    "http://localhost:8250/oidc/callback"
+                  ]
+                  token_policies        = ["superuser"]
+                  ttl                   = "1h"
                 }
               }
             }
@@ -426,3 +612,84 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: vault-ca-reader
+---
+# Read-only access to the default gateway certificate Secret in kube-system, so Vault can trust the
+# CA that signs Keycloak's public hostname. Kept separate from external-secrets-store-vault because
+# that release depends on `vault`, while the vault pod needs this Secret to start.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: external-secrets-store-gateway
+  namespace: ucp
+spec:
+  interval: 10m0s
+  releaseName: external-secrets-store-gateway
+  timeout: 15m0s
+  dependsOn:
+    - name: external-secrets-operator
+      namespace: operators
+  chart:
+    spec:
+      interval: 5m
+      chart: eso
+      version: 2.15.0
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    secretStores:
+      - kind: ClusterSecretStore
+        name: external-secrets-store-kube-system
+        provider:
+          kubernetes:
+            remoteNamespace: kube-system
+            server:
+              caProvider:
+                type: ConfigMap
+                name: kube-root-ca.crt
+                key: ca.crt
+                namespace: kube-system
+            auth:
+              serviceAccount:
+                name: gateway-ca-reader
+                namespace: kube-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gateway-ca-reader
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gateway-ca-reader
+  namespace: kube-system
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    # RBAC cannot limit keys: this Secret also holds the gateway's tls.key.
+    resourceNames: [http-gw-cert]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gateway-ca-reader
+  namespace: kube-system
+subjects:
+  - kind: ServiceAccount
+    name: gateway-ca-reader
+    namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: gateway-ca-reader

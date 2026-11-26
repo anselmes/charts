@@ -1,10 +1,81 @@
 ---
-# MARK: Operator
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: minio-keycloak-client
+  namespace: iam
+spec:
+  interval: 10m0s
+  releaseName: minio-keycloak-client
+  timeout: 15m0s
+  dependsOn:
+    - name: keycloak
+      namespace: iam
+  chart:
+    spec:
+      interval: 5m
+      chart: keycloak
+      version: 26.8.2
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    keycloak:
+      enabled: false
+    secret:
+      enabled: true
+      externalSecrets:
+        - kind: ExternalSecret
+          name: minio-oidc-client
+          hook: pre-install,pre-upgrade
+          externalSecretSpec:
+            refreshInterval: "0"
+            target:
+              creationPolicy: Owner
+              template:
+                metadata:
+                  labels:
+                    operator.keycloak.org/kind: KeycloakOIDCClient
+                data:
+                  client-secret: "{{ .password }}"
+            dataFrom:
+              - sourceRef:
+                  generatorRef:
+                    apiVersion: generators.external-secrets.io/v1alpha1
+                    kind: ClusterGenerator
+                    name: password-generator
+    clients:
+      - type: KeycloakOIDCClient
+        name: minio
+        keycloakRef: keycloak
+        realmRef: ${KEYCLOAK_REALM_NAME}
+        client:
+          # Clients are created disabled unless this is set.
+          enabled: true
+          loginFlows:
+            - STANDARD
+          redirectUris:
+            - https://minio.${DOMAIN_NAME}/*
+            - https://s3.${DOMAIN_NAME}/*
+          auth:
+            method: client-secret
+            secretRef:
+              name: minio-oidc-client
+              key: client-secret
+---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: minio-operator
-  namespace: minio
+  namespace: operators
 spec:
   interval: 10m0s
   releaseName: minio-operator
@@ -26,10 +97,26 @@ spec:
   upgrade:
     crds: CreateReplace
   values:
-    aistorop:
+    operator:
       enabled: true
+    secret:
+      enabled: true
+      externalSecrets:
+        - kind: ExternalSecret
+          name: minio-license
+          hook: pre-install,pre-upgrade
+          externalSecretSpec:
+            refreshInterval: 1m
+            secretStoreRef:
+              name: external-secrets-store-vault
+              kind: ClusterSecretStore
+            data:
+              # checkov:skip=CKV_SECRET_6
+              - secretKey: minio.license
+                remoteRef:
+                  key: minio/license
+                  property: key
 ---
-# MARK: MinIO
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -45,6 +132,7 @@ spec:
     - name: gateway
       namespace: kube-system
     - name: minio-operator
+      namespace: operators
   chart:
     spec:
       interval: 5m
@@ -82,6 +170,28 @@ spec:
             value: .txt,.log,.csv,.json,.tar,.xml,.bin,.pdf
           - name: MINIO_COMPRESSION_MIME_TYPES
             value: text/*,application/json,application/xml
+          - name: MINIO_IDENTITY_OPENID_DISPLAY_NAME
+            value: Keycloak
+          - name: MINIO_IDENTITY_OPENID_CONFIG_URL
+            value: https://iam.${DOMAIN_NAME}/realms/${KEYCLOAK_REALM_NAME}/.well-known/openid-configuration
+          - name: MINIO_IDENTITY_OPENID_CLIENT_ID
+            value: minio
+          - name: MINIO_IDENTITY_OPENID_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: minio-oidc-client
+                key: client-secret
+          - name: MINIO_IDENTITY_OPENID_SCOPES
+            value: openid,profile,email
+          - name: MINIO_IDENTITY_OPENID_REDIRECT_URI
+            value: https://minio.${DOMAIN_NAME}/oauth_callback
+          - name: MINIO_IDENTITY_OPENID_CLAIM_NAME
+            value: policy
+        # MinIO fetches the discovery document from Keycloak's public hostname, so it must trust the
+        # default gateway CA that signs it.
+        certificates:
+          trustedCAs:
+            - name: default-gateway-ca
         pools:
           - name: pool-0
             servers: 1
@@ -148,19 +258,20 @@ spec:
                     apiVersion: generators.external-secrets.io/v1alpha1
                     kind: ClusterGenerator
                     name: password-generator
+        # Needs external-secrets-store-kube-system, created by ucp/vault.yaml.
         - kind: ExternalSecret
-          name: minio-license
+          name: default-gateway-ca
           hook: pre-install,pre-upgrade
           externalSecretSpec:
+            refreshInterval: 1h
             secretStoreRef:
-              name: external-secrets-store-vault
+              name: external-secrets-store-kube-system
               kind: ClusterSecretStore
             data:
-              # checkov:skip=CKV_SECRET_6
-              - secretKey: minio.license
+              - secretKey: ca.crt
                 remoteRef:
-                  key: minio/license
-                  property: key
+                  key: http-gw-cert
+                  property: ca.crt
         - kind: ExternalSecret
           name: vault-ca
           hook: pre-install,pre-upgrade
@@ -174,6 +285,20 @@ spec:
                 remoteRef:
                   key: vault-tls
                   property: ca.crt
+        # OIDC client secret generated in `iam` (see minio-keycloak-client above).
+        - kind: ExternalSecret
+          name: minio-oidc-client
+          hook: pre-install,pre-upgrade
+          externalSecretSpec:
+            refreshInterval: 1h
+            secretStoreRef:
+              name: external-secrets-store-iam
+              kind: ClusterSecretStore
+            data:
+              - secretKey: client-secret
+                remoteRef:
+                  key: minio-oidc-client
+                  property: client-secret
     gateway:
       enabled: true
       routes:
