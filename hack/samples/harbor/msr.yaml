@@ -151,5 +151,5 @@ spec:
                 - name: msr-harbor-portal
                   port: 80
           gateways:
-            - name: http-gateway
+            - name: default-gateway
               namespace: kube-system

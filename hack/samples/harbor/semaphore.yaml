@@ -205,5 +205,5 @@ spec:
                     scheme: https
                     statusCode: 301
           gateways:
-            - name: http-gateway
+            - name: default-gateway
               namespace: kube-system
