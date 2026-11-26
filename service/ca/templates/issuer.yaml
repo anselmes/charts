@@ -100,7 +100,7 @@ spec:
                       selector:
                         dnsZones:
                         {{- range .acme.zones }}
-                          - {{ . }}
+                          - {{ . | quote }}
                         {{- end }}
                     {{- end }}
                 {{- end }}
