@@ -253,8 +253,13 @@ certmanager:
     # Enable or disable the installation of Custom Resource Definitions (CRDs).
     # Set to true to install CRDs required by cert-manager.
     enabled: true
+  # Enable or disable Gateway API support.
   config:
-    enableGatewayAPI: false  # Enable or disable Gateway API support.
+    gatewayAPI:
+      enabled: false
+      enableListenerSet: false
+    featureGates:
+      ListenerSets: false
 
 # MARK: - Trust Manager
 
