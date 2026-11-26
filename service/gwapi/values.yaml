@@ -17,19 +17,28 @@ crds:
   experimental:
     enabled: false
 
-# MARK: Envoy
+# MARK: Envoy CRDs
 
-envoy:
+# -- Envoy Gateway CRDs only (gateway.envoyproxy.io); Gateway API CRDs are
+# managed by the gwapi-crds-* subcharts.
+envoyCrds:
   enabled: true
-
-  # -- Disable Envoy's bundled Gateway API CRDs when crds.install is standard or
-  # experimental, since this chart manages them. Set to true when crds.install
-  # is none/empty to let Envoy install them instead.
   crds:
     envoyGateway:
       enabled: true
     gatewayAPI:
       enabled: false
+
+# MARK: Envoy
+
+envoy:
+  enabled: true
+
+  # Envoy's bundled `crds` subchart is disabled: it installs an experimental
+  # Gateway API v1.6.1 bundle that overwrites the CRDs from gwapi-crds-*. Envoy
+  # Gateway's own CRDs come from the `envoyCrds` dependency below instead.
+  crds:
+    enabled: false
 
   proxies: []
     # - name: envoy-proxy
