@@ -239,6 +239,29 @@ issuers:
   #           name: ca-webhook-secret-pdns
   #           key: token
 
+# MARK: - Bundles
+
+# List of trust-manager Bundles to distribute CA certificates. Requires `trustmanager.enabled` (here
+# or in another release). Like certificates, each Bundle is created by a hook Job once the
+# trust-manager CRD exists. `wait`, `hook` and `hookWeight` work as for certificates (weight 30 by
+# default, after issuers and certificates).
+bundles: []
+  # - name: ca-issuer                 # Bundle name; a Secret target is named after it.
+  #   wait: false                     # Optional: block the hook Job until the Bundle is Synced.
+  #   sources:                        # Read from trust-manager's trust namespace only.
+  #     - secret:
+  #         name: ca-issuer-tls
+  #         key: ca.crt
+  #   target:
+  #     secret:                       # Needs trustmanager.secretTargets, which must list the name.
+  #       key: ca.crt
+  #     namespaceSelector:
+  #       matchExpressions:
+  #         - key: kubernetes.io/metadata.name
+  #           operator: In
+  #           values:
+  #             - default
+
 # MARK: - Cert Manager
 
 # Configuration for cert-manager.

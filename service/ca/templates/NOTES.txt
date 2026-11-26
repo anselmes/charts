@@ -20,6 +20,9 @@ This chart manages Certificate Authority resources including Issuers, ClusterIss
 {{- if .Values.certificates }}
 - **Certificates**: {{ len .Values.certificates }} configured
 {{- end }}
+{{- if .Values.bundles }}
+- **Bundles**: {{ len .Values.bundles }} configured
+{{- end }}
 
 ## Verification Steps
 

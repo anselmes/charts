@@ -1,0 +1,64 @@
+{{- range .Values.bundles }}
+{{- $name := tpl .name $ }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-bundle-{{ $name }}
+  labels:
+    {{- include "ca.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: {{ .hook | default "post-install,post-upgrade" }}
+    helm.sh/hook-weight: {{ .hookWeight | default 30 | quote }}
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  template:
+    spec:
+      serviceAccountName: cert-manager-resource-creator
+      restartPolicy: OnFailure
+      containers:
+        - name: kubectl
+          image: alpine/k8s:1.32.3
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for trust-manager CRDs to be available..."
+              for i in {1..60}; do
+                if kubectl get crd bundles.trust.cert-manager.io >/dev/null 2>&1; then
+                  echo "CRD found, creating Bundle"
+                  cat <<EOF | kubectl apply -f -
+              apiVersion: trust.cert-manager.io/v1alpha1
+              kind: Bundle
+              metadata:
+                name: {{ $name }}
+                labels:
+                  {{- include "ca.labels" $ | nindent 18 }}
+              spec:
+                sources:
+                  {{- toYaml .sources | nindent 18 }}
+                target:
+                  {{- toYaml .target | nindent 18 }}
+              EOF
+                  {{- if .wait }}
+                  echo "Waiting for Bundle {{ $name }} to be Synced..."
+                  for j in {1..60}; do
+                    if [[ "$(kubectl get bundle {{ $name }} -o jsonpath='{.status.conditions[?(@.type=="Synced")].status}')" == "True" ]]; then
+                      echo "Bundle Synced"
+                      exit 0
+                    fi
+                    sleep 5
+                  done
+                  echo "Timed out waiting for Bundle {{ $name }}"
+                  exit 1
+                  {{- else }}
+                  exit 0
+                  {{- end }}
+                fi
+                echo "Attempt $i: trust-manager CRD not ready, waiting 10s..."
+                sleep 10
+              done
+              echo "Timeout waiting for trust-manager CRD"
+              exit 1
+{{- end }}
