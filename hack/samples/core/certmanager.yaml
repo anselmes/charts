@@ -32,7 +32,11 @@ spec:
     certmanager:
       enabled: true
       config:
-        enableGatewayAPI: true
+        gatewayAPI:
+          enabled: true
+          enableListenerSet: true
+        featureGates:
+          ListenerSets: true
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease

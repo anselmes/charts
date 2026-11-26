@@ -12,22 +12,20 @@ spec:
     spec:
       interval: 5m
       chart: gwapi
-      version: 1.0.8
+      version: 1.0.10
       sourceRef:
         kind: HelmRepository
         name: labsonline-catalog
         namespace: sre
   install:
+    crds: CreateReplace
     remediation:
       remediateLastFailure: true
       retries: 3
+  upgrade:
+    crds: CreateReplace
   values:
     envoy:
-      crds:
-        envoyGateway:
-          enabled: true
-        gatewayAPI:
-          enabled: false
       proxies:
         - name: envoy-proxy
           serviceType: NodePort

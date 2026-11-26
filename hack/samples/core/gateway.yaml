@@ -17,7 +17,7 @@ spec:
     spec:
       interval: 5m
       chart: gateway
-      version: 1.2.0
+      version: 1.2.1
       sourceRef:
         kind: HelmRepository
         name: labsonline-catalog
@@ -33,8 +33,11 @@ spec:
     gateways:
       - name: default-gateway
         className: envoy
+        allowedListeners:
+          namespaces:
+            from: Same
         listeners:
-          - name: insecure
+          - name: http
             port: 80
             protocol: HTTP
             allowedRoutes:
@@ -42,18 +45,38 @@ spec:
                 from: All
               kinds:
                 - kind: HTTPRoute
-          - name: secure
-            port: 443
-            protocol: HTTPS
-            hostname: "*.${DOMAIN_NAME}"
-            allowedRoutes:
-              namespaces:
-                from: All
-              kinds:
-                - kind: HTTPRoute
-                - kind: GRPCRoute
-            tls:
-              mode: Terminate
-              certificateRefs:
-                - name: http-gw-cert
-                  issuer: ca-issuer
+    listenerSet:
+      listeners:
+        - name: udp
+          port: 80
+          protocol: UDP
+          allowedRoutes:
+            namespaces:
+              from: All
+            kinds:
+              - kind: UDPRoute
+        - name: tls
+          port: 443
+          protocol: TLS
+          allowedRoutes:
+            namespaces:
+              from: All
+            kinds:
+              - kind: TLSRoute
+          tls:
+            mode: Passthrough
+        - name: https
+          port: 443
+          protocol: HTTPS
+          hostname: "*.${DOMAIN_NAME}"
+          allowedRoutes:
+            namespaces:
+              from: All
+            kinds:
+              - kind: GRPCRoute
+              - kind: HTTPRoute
+          tls:
+            mode: Terminate
+            certificateRefs:
+              - name: http-gw-cert
+                issuer: ca-issuer
