@@ -2,11 +2,11 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: vault-keycloak-client
+  name: vault-oidc-client
   namespace: iam
 spec:
   interval: 10m0s
-  releaseName: vault-keycloak-client
+  releaseName: vault-oidc-client
   timeout: 15m0s
   dependsOn:
     - name: keycloak
@@ -114,21 +114,6 @@ spec:
                   apiVersion: generators.external-secrets.io/v1alpha1
                   kind: ClusterGenerator
                   name: password-generator
-      # CA of the default gateway certificate, which signs `iam.${DOMAIN_NAME}`. Vault needs it to
-      # trust Keycloak's OIDC discovery endpoint.
-      - kind: ExternalSecret
-        name: default-gateway-ca
-        hook: pre-install,pre-upgrade
-        externalSecretSpec:
-          refreshInterval: 1h
-          secretStoreRef:
-            name: external-secrets-store-kube-system
-            kind: ClusterSecretStore
-          data:
-            - secretKey: ca.crt
-              remoteRef:
-                key: http-gw-cert
-                property: ca.crt
       # OIDC client secret generated in `iam` (see vault-keycloak-client above).
       - kind: ExternalSecret
         name: vault-oidc-client
@@ -162,8 +147,6 @@ spec:
       namespace: operators
     - name: vault-keycloak-client
       namespace: iam
-    - name: external-secrets-store-gateway
-      namespace: ucp
   chart:
     spec:
       interval: 5m
@@ -232,9 +215,9 @@ spec:
                   path: tls.crt
                 - key: tls.key
                   path: tls.key
-          - name: default-gateway-ca
+          - name: ca-issuer
             secret:
-              secretName: default-gateway-ca
+              secretName: ca-issuer
               items:
                 - key: ca.crt
                   path: ca.crt
@@ -254,8 +237,8 @@ spec:
             mountPath: /etc/ssl/private/vault-tls.key
             subPath: tls.key
             readOnly: true
-          - name: default-gateway-ca
-            mountPath: /etc/ssl/certs/default-gateway-ca.crt
+          - name: ca-issuer
+            mountPath: /etc/ssl/certs/ca-issuer.crt
             subPath: ca.crt
             readOnly: true
           - name: p11nethsm
@@ -394,7 +377,7 @@ spec:
                   oidc_discovery_ca_pem = {
                     eval_type   = "string"
                     eval_source = "file"
-                    path        = "/etc/ssl/certs/default-gateway-ca.crt"
+                    path        = "/etc/ssl/certs/ca-issuer.crt"
                   }
                   default_role = "default"
                 }
@@ -565,132 +548,3 @@ spec:
                 serviceAccountRef:
                   name: external-secrets-operator-eso
                   namespace: operators
-      # Read-only access to the Vault TLS CA so other namespaces (e.g. minio KES) can sync it
-      # with an ExternalSecret instead of copying it by hand.
-      - kind: ClusterSecretStore
-        name: external-secrets-store-ucp
-        provider:
-          kubernetes:
-            remoteNamespace: ucp
-            server:
-              caProvider:
-                type: ConfigMap
-                name: kube-root-ca.crt
-                key: ca.crt
-                namespace: ucp
-            auth:
-              serviceAccount:
-                name: vault-ca-reader
-                namespace: ucp
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: vault-ca-reader
-  namespace: ucp
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: vault-ca-reader
-  namespace: ucp
-rules:
-  - apiGroups: [""]
-    resources: [secrets]
-    resourceNames: [vault-tls]
-    verbs: [get, list, watch]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: vault-ca-reader
-  namespace: ucp
-subjects:
-  - kind: ServiceAccount
-    name: vault-ca-reader
-    namespace: ucp
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: vault-ca-reader
----
-# Read-only access to the default gateway certificate Secret in kube-system, so Vault can trust the
-# CA that signs Keycloak's public hostname. Kept separate from external-secrets-store-vault because
-# that release depends on `vault`, while the vault pod needs this Secret to start.
-apiVersion: helm.toolkit.fluxcd.io/v2
-kind: HelmRelease
-metadata:
-  name: external-secrets-store-gateway
-  namespace: ucp
-spec:
-  interval: 10m0s
-  releaseName: external-secrets-store-gateway
-  timeout: 15m0s
-  dependsOn:
-    - name: external-secrets-operator
-      namespace: operators
-  chart:
-    spec:
-      interval: 5m
-      chart: eso
-      version: 2.15.0
-      sourceRef:
-        kind: HelmRepository
-        name: labsonline-catalog
-        namespace: sre
-  install:
-    crds: CreateReplace
-    remediation:
-      remediateLastFailure: true
-      retries: 3
-  upgrade:
-    crds: CreateReplace
-  values:
-    secretStores:
-      - kind: ClusterSecretStore
-        name: external-secrets-store-kube-system
-        provider:
-          kubernetes:
-            remoteNamespace: kube-system
-            server:
-              caProvider:
-                type: ConfigMap
-                name: kube-root-ca.crt
-                key: ca.crt
-                namespace: kube-system
-            auth:
-              serviceAccount:
-                name: gateway-ca-reader
-                namespace: kube-system
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: gateway-ca-reader
-  namespace: kube-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: gateway-ca-reader
-  namespace: kube-system
-rules:
-  - apiGroups: [""]
-    resources: [secrets]
-    # RBAC cannot limit keys: this Secret also holds the gateway's tls.key.
-    resourceNames: [http-gw-cert]
-    verbs: [get, list, watch]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: gateway-ca-reader
-  namespace: kube-system
-subjects:
-  - kind: ServiceAccount
-    name: gateway-ca-reader
-    namespace: kube-system
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: gateway-ca-reader
