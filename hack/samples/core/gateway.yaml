@@ -17,7 +17,7 @@ spec:
     spec:
       interval: 5m
       chart: gateway
-      version: 1.2.1
+      version: 1.2.3
       sourceRef:
         kind: HelmRepository
         name: labsonline-catalog
@@ -45,7 +45,23 @@ spec:
                 from: All
               kinds:
                 - kind: HTTPRoute
+    # Port 80 lives on the Gateway itself, while the app routes attach to the ListenerSet, so
+    # nothing else answers plain HTTP. Redirect every HTTP request to HTTPS.
+    routes:
+      - name: https-redirect
+        kind: HTTPRoute
+        rules:
+          - filters:
+              - type: RequestRedirect
+                requestRedirect:
+                  scheme: https
+                  statusCode: 301
+        listeners:
+          - name: default-gateway
+            sectionName: http
     listenerSet:
+      gatewayRef:
+        name: default-gateway
       listeners:
         - name: udp
           port: 80
