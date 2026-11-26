@@ -238,6 +238,23 @@ aistor:
     #     value: .txt,.log,.csv,.json,.tar,.xml,.bin,.pdf
     #   - name: MINIO_COMPRESSION_MIME_TYPES
     #     value: text/*,application/json,application/xml
+    # - name: MINIO_IDENTITY_OPENID_DISPLAY_NAME
+    #   value: Keycloak
+    # - name: MINIO_IDENTITY_OPENID_CONFIG_URL
+    #   value: https://iam.local/realms/sandbox/.well-known/openid-configuration
+    # - name: MINIO_IDENTITY_OPENID_CLIENT_ID
+    #   value: minio
+    # - name: MINIO_IDENTITY_OPENID_CLIENT_SECRET
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: minio-oidc-client
+    #       key: client-secret
+    # - name: MINIO_IDENTITY_OPENID_SCOPES
+    #   value: openid,profile,email
+    # - name: MINIO_IDENTITY_OPENID_REDIRECT_URI
+    #   value: https://minio.local/oauth_callback
+    # - name: MINIO_IDENTITY_OPENID_CLAIM_NAME
+    #   value: policy
     env: []
 
     pools:

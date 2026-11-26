@@ -9,7 +9,7 @@ This chart deploys MinIO AIStor, an object storage cluster managed by the AIStor
 {{- if .Values.operator.enabled }}
 - **AIStor Operator**: Installed as dependency
 {{- else }}
-- **AIStor Operator**: Not installed (aistorop.enabled=false)
+- **AIStor Operator**: Not installed (operator.enabled=false)
 {{- end }}
 {{- if .Values.aistor.enabled }}
 - **Object Store**: {{ .Values.aistor.objectStore.name }} ({{ len .Values.aistor.objectStore.pools }} pool(s))
@@ -75,8 +75,8 @@ kubectl get events -n {{ .Release.Namespace }} --sort-by='.lastTimestamp'
 
 **Chart Dependencies:**
 {{- range .Chart.Dependencies }}
-{{- if eq .Name "aistorop" }}
-- aistor-operator v{{ .Version }} (as aistorop)
+{{- if eq .Name "operator" }}
+- aistor-operator v{{ .Version }} (as operator)
 {{- else if eq .Name "aistor" }}
 - aistor-objectstore v{{ .Version }} (as aistor)
 {{- else if eq .Name "secret" }}

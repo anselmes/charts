@@ -7,20 +7,22 @@ clients: []
   #   # keycloakRef: keycloak  # Keycloak CR to import into (defaults to the release name)
   #   realmRef: default-realm
   #   client:
+  #     enabled: true # clients are created disabled unless this is set
   #     loginFlows:
   #       - STANDARD
   #     redirectUris:
   #       - https://my-app.example.com/*
-  #   auth:
-  #     method: client-secret
-  #     secretRef:
-  #       name: my-oidc-client
-  #       key: client-secret
+  #     auth:
+  #       method: client-secret
+  #       secretRef:
+  #         name: my-oidc-client
+  #         key: client-secret
   # - type: KeycloakSAMLClient
   #   name: my-saml-app
   #   # keycloakRef: keycloak  # Keycloak CR to import into (defaults to the release name)
   #   realmRef: default-realm
   #   client:
+  #     enabled: true # clients are created disabled unless this is set
   #     nameIdFormat: persistent
   #     signDocuments: true
   #     signAssertions: true
@@ -43,6 +45,8 @@ realms: []
   #     id: default-realm
   #     realm: default-realm
   #     displayName: DefaultRealm
+  #     groups:
+  #       - name: admins
   #   # Substitutes ${ENV_KEY} placeholders inside `realm` from Secrets; can be combined with `realm`.
   #   placeholders:
   #     ENV_KEY:
@@ -74,8 +78,10 @@ keycloak:
   # bootstrapAdmin:
   #   user:
   #     secret: keycloak-admin-password
+  #   # Required for the clients list: the operator signs in with this service account and reads
+  #   # the Secret `<release>-admin`, so the Secret must have exactly that name.
   #   service:
-  #     secret: keycloak-admin-service-account
+  #     secret: keycloak-admin
 
   # External database. Leave empty to omit `spec.db` (the Keycloak CR then needs another DB source).
   postgres: {}
@@ -153,7 +159,7 @@ secret:
                 kind: Password
                 name: password-generator-keycloak
     # - kind: ExternalSecret
-    #   name: keycloak-admin-service-account
+    #   name: keycloak-admin # must be `<release>-admin`
     #   hook: pre-install,pre-upgrade
     #   externalSecretSpec:
     #     refreshInterval: "0"
@@ -182,6 +188,10 @@ secret:
     #     target:
     #       creationPolicy: Owner
     #       template:
+    #         metadata:
+    #           labels:
+    #             # The Keycloak operator finds client secrets by this label.
+    #             operator.keycloak.org/kind: KeycloakOIDCClient
     #         data:
     #           client-secret: "{{ .password }}"
     #     dataFrom:
@@ -198,6 +208,10 @@ secret:
     #     target:
     #       creationPolicy: Owner
     #       template:
+    #         metadata:
+    #           labels:
+    #             # The Keycloak operator finds client secrets by this label.
+    #             operator.keycloak.org/kind: KeycloakOIDCClient
     #         data:
     #           client-secret: "{{ .password }}"
     #     dataFrom:

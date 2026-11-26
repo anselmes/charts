@@ -68,6 +68,8 @@ vault:
       # GOOGLE_REGION: global
       # GOOGLE_PROJECT: myproject
       # GOOGLE_APPLICATION_CREDENTIALS: /openbao/userconfig/myproject/myproject-creds.json
+      # PGSSLMODE: require
+      # PGSSLROOTCERT: /etc/ssl/certs/pg-ca.crt
 
     # extraSecretEnvironmentVars is a list of extra environment variables to set with the stateful set.
     # These variables take value from existing Secret objects.
@@ -75,6 +77,27 @@ vault:
       # - envName: AWS_SECRET_ACCESS_KEY
       #   secretName: openbao
       #   secretKey: AWS_SECRET_ACCESS_KEY
+      # - envName: INITIAL_ADMIN_PASSWORD
+      #   secretName: vault-initial-admin-password
+      #   secretKey: password
+      # - envName: OIDC_CLIENT_SECRET
+      #   secretName: vault-oidc-client
+      #   secretKey: client-secret
+      # - envName: PGHOST
+      #   secretName: vault-postgres-pguser-vault-postgres
+      #   secretKey: host
+      # - envName: PGPORT
+      #   secretName: vault-postgres-pguser-vault-postgres
+      #   secretKey: port
+      # - envName: PGUSER
+      #   secretName: vault-postgres-pguser-vault-postgres
+      #   secretKey: user
+      # - envName: PGPASSWORD
+      #   secretName: vault-postgres-pguser-vault-postgres
+      #   secretKey: password
+      # - envName: PGDATABASE
+      #   secretName: vault-postgres-pguser-vault-postgres
+      #   secretKey: dbname
 
     # volumes is a list of volumes made available to all containers. These are rendered
     # via toYaml rather than pre-processed like the extraVolumes value.
@@ -82,6 +105,23 @@ vault:
     volumes: null
     #   - name: plugins
     #     emptyDir: {}
+    # - name: pg-ca-cert
+    #   secret:
+    #     secretName: vault-postgres-cluster-cert
+    #     items:
+    #       - key: ca.crt
+    #         path: ca.crt
+    # - name: vault-tls
+    #   secret:
+    #     secretName: vault-tls
+    #     items:
+    #       - key: tls.crt
+    #         path: tls.crt
+    #       - key: tls.key
+    #         path: tls.key
+    # - name: p11nethsm
+    #   configMap:
+    #     name: p11nethsm
 
     # volumeMounts is a list of volumeMounts for the main server container. These are rendered
     # via toYaml rather than pre-processed like the extraVolumes value.
@@ -90,6 +130,22 @@ vault:
     #   - mountPath: /usr/local/libexec/vault
     #     name: plugins
     #     readOnly: true
+    # - name: pg-ca-cert
+    #   mountPath: /etc/ssl/certs/pg-ca.crt
+    #   subPath: ca.crt
+    #   readOnly: true
+    # - name: vault-tls
+    #   mountPath: /etc/ssl/certs/vault-tls.crt
+    #   subPath: tls.crt
+    #   readOnly: true
+    # - name: vault-tls
+    #   mountPath: /etc/ssl/private/vault-tls.key
+    #   subPath: tls.key
+    #   readOnly: true
+    # - name: p11nethsm
+    #   mountPath: /etc/nitrokey/p11nethsm.conf
+    #   subPath: p11nethsm.conf
+    #   readOnly: true
 
     # Affinity Settings
     # Commenting out or setting as empty the affinity variable, will allow
@@ -427,7 +483,7 @@ data:
       pgBouncer:
         replicas: 2
     backups:
-      enabled: false
+      enabled: true
       trackLatestRestorableTime: true
 
 # MARK: - Certificate Authority
