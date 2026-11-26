@@ -24,10 +24,8 @@ kubectl create namespace ucp
 ## Core Services
 
 ```shell
-kubectl apply -f hack/samples/core/gwapi/envoy.yaml
-
+kubectl apply -f hack/samples/core/envoy.yaml
 kubectl apply -f hack/samples/core/eso.yaml
-
 kubectl apply -f hack/samples/core/certmanager.yaml
 kubectl apply -f hack/samples/core/operator.yaml
 
