@@ -319,8 +319,9 @@ spec:
                   requestRedirect:
                     scheme: https
                     statusCode: 301
-          gateways:
-            - name: default-gateway
+          listeners:
+            - name: default-gateway-listeners
+              kind: ListenerSet
               namespace: kube-system
         - name: minio-console-http-route
           kind: HTTPRoute
@@ -339,8 +340,9 @@ spec:
                   requestRedirect:
                     scheme: https
                     statusCode: 301
-          gateways:
-            - name: default-gateway
+          listeners:
+            - name: default-gateway-listeners
+              kind: ListenerSet
               namespace: kube-system
       policies:
         - name: minio-api-backend-tls
