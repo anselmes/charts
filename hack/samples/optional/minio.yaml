@@ -2,11 +2,11 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: minio-keycloak-client
+  name: minio-oidc-client
   namespace: iam
 spec:
   interval: 10m0s
-  releaseName: minio-keycloak-client
+  releaseName: minio-oidc-client
   timeout: 15m0s
   dependsOn:
     - name: keycloak
@@ -191,7 +191,7 @@ spec:
         # default gateway CA that signs it.
         certificates:
           trustedCAs:
-            - name: default-gateway-ca
+            - name: ca-issuer
         pools:
           - name: pool-0
             servers: 1
@@ -201,7 +201,7 @@ spec:
           keyName: minio-key
           serviceAccountName: minio-sa
           trustedCAs:
-            - name: vault-ca
+            - name: ca-issuer
           configuration: |-
             address: :7373
             tls:
@@ -258,33 +258,6 @@ spec:
                     apiVersion: generators.external-secrets.io/v1alpha1
                     kind: ClusterGenerator
                     name: password-generator
-        # Needs external-secrets-store-kube-system, created by ucp/vault.yaml.
-        - kind: ExternalSecret
-          name: default-gateway-ca
-          hook: pre-install,pre-upgrade
-          externalSecretSpec:
-            refreshInterval: 1h
-            secretStoreRef:
-              name: external-secrets-store-kube-system
-              kind: ClusterSecretStore
-            data:
-              - secretKey: ca.crt
-                remoteRef:
-                  key: http-gw-cert
-                  property: ca.crt
-        - kind: ExternalSecret
-          name: vault-ca
-          hook: pre-install,pre-upgrade
-          externalSecretSpec:
-            refreshInterval: 1h
-            secretStoreRef:
-              name: external-secrets-store-ucp
-              kind: ClusterSecretStore
-            data:
-              - secretKey: ca.crt
-                remoteRef:
-                  key: vault-tls
-                  property: ca.crt
         # OIDC client secret generated in `iam` (see minio-keycloak-client above).
         - kind: ExternalSecret
           name: minio-oidc-client
