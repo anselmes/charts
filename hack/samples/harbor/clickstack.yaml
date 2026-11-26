@@ -205,8 +205,9 @@ spec:
                 - backendRefs:
                     - name: '{{ include "monitoring.clickstack.app" . }}'
                       port: 3000
-              gateways:
-                - name: default-gateway
+              listeners:
+                - name: default-gateway-listeners
+                  kind: ListenerSet
                   namespace: kube-system
             # OTLP/gRPC (4317). GRPCRoute needs a gRPC backend port: 4318 is OTLP/HTTP.
             - name: clickstack-otlp
@@ -217,7 +218,8 @@ spec:
                 - backendRefs:
                     - name: "{{ .Release.Name }}-otel-collector"
                       port: 4317
-              gateways:
-                - name: default-gateway
+              listeners:
+                - name: default-gateway-listeners
+                  kind: ListenerSet
                   namespace: kube-system
                   sectionName: secure   # listener names on default-gateway are insecure (:80) / secure (:443)

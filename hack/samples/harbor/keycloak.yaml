@@ -179,8 +179,9 @@ spec:
             - backendRefs:
                 - name: keycloak-service
                   port: 8080
-          gateways:
-            - name: default-gateway
+          listeners:
+            - name: default-gateway-listeners
+              kind: ListenerSet
               namespace: kube-system
 ---
 # Read-only access to the OIDC client secrets generated in `iam`, so apps in other
