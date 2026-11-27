@@ -34,7 +34,7 @@ spec:
                 name: {{ .name }}
                 namespace: {{ $.Release.Namespace }}
                 labels:
-                  {{- include "edns.labels" $ | nindent 14 }}
+                  {{- include "edns.labels" $ | nindent 18 }}
               spec:
                 endpoints:
                   {{- range .records }}
