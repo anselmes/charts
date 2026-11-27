@@ -58,6 +58,19 @@ class SamplesTests(unittest.TestCase):
         self.assertEqual(cc.samples_from_docs("s.yaml", docs), {})
 
 
+class SubstitutionTests(unittest.TestCase):
+    def test_parse_env(self) -> None:
+        text = "# comment\nexport A=one\nB='two'\nexport EMPTY=\n\nnot a pair\n"
+        self.assertEqual(cc.parse_env(text), {"A": "one", "B": "two", "EMPTY": ""})
+
+    def test_substitute_like_flux(self) -> None:
+        env = {"DOMAIN": "svc.local", "EMPTY": ""}
+        self.assertEqual(
+            cc.substitute("h: a.${DOMAIN} e: '${EMPTY}' u: '${UNSET}' k: $${KEEP}", env),
+            "h: a.svc.local e: '' u: '' k: $${KEEP}",
+        )
+
+
 class ScriptTests(unittest.TestCase):
     def test_command_with_inline_script(self) -> None:
         self.assertEqual(
@@ -85,6 +98,13 @@ class ScriptTests(unittest.TestCase):
             with self.subTest(kind=kind):
                 scripts = cc.extract_scripts("c/t.yaml", job(["bash", "-c", "true"], kind=kind))
                 self.assertEqual(scripts, [cc.Script("c/t.yaml", "kubectl", "bash", "true")])
+
+    def test_own_templates_only(self) -> None:
+        chart = cc.Chart(path=cc.REPO_ROOT, name="semaphore", library=False)
+        self.assertTrue(cc.is_own_template(chart, "semaphore/templates/job.yaml"))
+        self.assertFalse(
+            cc.is_own_template(chart, "semaphore/charts/semaphoreui/templates/deployment.yaml")
+        )
 
     def test_ignores_other_kinds(self) -> None:
         self.assertEqual(cc.extract_scripts("x", {"kind": "ConfigMap", "data": {}}), [])

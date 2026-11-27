@@ -1,0 +1,4 @@
+---
+# The chart has no default for the referenced chart, so CI supplies one.
+kgst:
+  chart: ingress-nginx:4.11.5

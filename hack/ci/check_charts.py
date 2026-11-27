@@ -3,13 +3,18 @@
 # Copyright (c) 2026 Schubert Anselme <schubert@anselm.es>
 """Lint and render every chart in the repository.
 
-For each chart this runs ``helm lint`` and ``helm template`` with the chart's
-default values, then again with the values of every HelmRelease under
-``hack/samples`` that installs the chart (its ``.spec.values``), and with each
-``<chart>/ci/*-values.yaml`` file (the chart-testing convention). Shell scripts
-embedded in rendered workloads (``command: [bash, -c, <script>]``) are checked
-with ``shellcheck``, and manifests they write through heredocs must parse as
-YAML.
+For each chart this runs ``helm lint`` and ``helm template`` with each
+``<chart>/ci/*-values.yaml`` file, or with the chart's default values when it
+has none (the chart-testing convention), then again with the values of every
+HelmRelease under ``hack/samples`` that installs the chart (its
+``.spec.values``). Flux ``${VAR}`` substitutions in the samples are filled from
+``hack/samples/example.env``; variables it leaves empty or unset become empty
+strings, as Flux does.
+
+Shell scripts embedded in the chart's own rendered workloads
+(``command: [bash, -c, <script>]``) are checked with ``shellcheck``, and
+manifests they write through heredocs must parse as Kubernetes objects.
+Scripts from third-party subcharts are not checked.
 
 Requires ``helm``, ``yq`` (mikefarah, v4) and ``shellcheck`` on ``PATH``.
 
@@ -37,6 +42,8 @@ from pathlib import Path, PurePosixPath
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SAMPLES_DIR = REPO_ROOT / "hack" / "samples"
+SAMPLES_ENV = SAMPLES_DIR / "example.env"
+SUBSTITUTION = re.compile(r"(?<!\$)\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
 EXCLUDED_DIRS = frozenset({".git", "upstream", "charts"})
 SHELLS = {"sh": "sh", "ash": "sh", "bash": "bash", "dash": "dash", "ksh": "ksh"}
 WORKLOAD_KINDS = frozenset(
@@ -154,11 +161,29 @@ def samples_from_docs(label: str, docs: Iterable[object]) -> dict[str, list[Samp
     return found
 
 
-def discover_samples(samples_dir: Path) -> dict[str, list[Sample]]:
+def parse_env(text: str) -> dict[str, str]:
+    """Read ``[export] NAME=value`` lines from a shell environment file."""
+    env: dict[str, str] = {}
+    for line in text.splitlines():
+        line = line.strip().removeprefix("export ").strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, value = line.split("=", 1)
+        env[name.strip()] = value.strip().strip("'\"")
+    return env
+
+
+def substitute(text: str, env: dict[str, str]) -> str:
+    """Apply Flux post-build ``${VAR}`` substitution; unset variables become empty."""
+    return SUBSTITUTION.sub(lambda m: env.get(m.group(1), ""), text)
+
+
+def discover_samples(samples_dir: Path, env: dict[str, str]) -> dict[str, list[Sample]]:
     found: dict[str, list[Sample]] = {}
     for path in sorted(samples_dir.rglob("*.yaml")):
         label = str(path.relative_to(REPO_ROOT))
-        for chart, samples in samples_from_docs(label, yaml_docs(path.read_text())).items():
+        docs = yaml_docs(substitute(path.read_text(), env))
+        for chart, samples in samples_from_docs(label, docs).items():
             found.setdefault(chart, []).extend(samples)
     return found
 
@@ -277,15 +302,15 @@ def check_chart(
                 report.fail(f"{rel}: helm dependency update failed\n{result.stderr}")
                 return
 
-        variants: list[tuple[str, str, str, dict[str, object] | None]] = [
-            ("default values", chart.name, "default", None)
-        ]
-        variants += [(s.label, s.release, s.namespace, s.values) for s in samples]
+        variants: list[tuple[str, str, str, dict[str, object] | None]] = []
         for values_path in sorted((chart.path / "ci").glob("*-values.yaml")):
             label = str(values_path.relative_to(REPO_ROOT))
             values = yaml_docs(values_path.read_text())[0] or {}
             assert isinstance(values, dict)
             variants.append((label, chart.name, "default", values))
+        if not variants:
+            variants.append(("default values", chart.name, "default", None))
+        variants += [(s.label, s.release, s.namespace, s.values) for s in samples]
 
         seen: set[tuple[str, str, str]] = set()
         for label, release, namespace, values in variants:
@@ -311,6 +336,8 @@ def check_chart(
                 continue
 
             for source, text in split_rendered(rendered.stdout):
+                if not is_own_template(chart, source):
+                    continue
                 if "command:" not in text and "args:" not in text:
                     continue
                 for doc in yaml_docs(text):
@@ -322,6 +349,11 @@ def check_chart(
                         check_script(script, label, report)
     finally:
         print("::endgroup::", flush=True)
+
+
+def is_own_template(chart: Chart, source: str) -> bool:
+    """Whether a rendered ``# Source:`` path is in the chart itself, not a subchart."""
+    return source.startswith(f"{chart.name}/templates/")
 
 
 def embedded_manifests(body: str) -> list[str]:
@@ -397,7 +429,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         if missing := wanted - {c.path.resolve() for c in charts}:
             parser.error(f"not a chart: {', '.join(map(str, sorted(missing)))}")
 
-    samples = discover_samples(SAMPLES_DIR)
+    env = parse_env(SAMPLES_ENV.read_text()) if SAMPLES_ENV.exists() else {}
+    samples = discover_samples(SAMPLES_DIR, env)
     report = Report()
     if not args.offline:
         add_repositories(charts)
