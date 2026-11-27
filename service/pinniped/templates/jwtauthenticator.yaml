@@ -40,7 +40,7 @@ spec:
               metadata:
                 name: {{ include "pinniped.fullname" . }}-jwt-auth
                 labels:
-                  {{- include "pinniped.labels" . | nindent 14 }}
+                  {{- include "pinniped.labels" . | nindent 18 }}
               spec:
                 issuer: {{ .Values.auth.issuer.url }}
                 audience: {{ .Values.auth.audience }}
