@@ -1,0 +1,34 @@
+---
+# Enables optional components so CI renders their templates.
+headscale:
+  enabled: true
+  apiKey:
+    autoManage: true
+  policy:
+    enabled: true
+    acl:
+      inline: |
+        {"acls": [{"action": "accept", "src": ["*"], "dst": ["*:*"]}]}
+      tagOwners:
+        tag:ci:
+          - ci@
+  users:
+    - name: ci
+      enabled: true
+      email: ci@example.com
+  authKeys:
+    - name: ci
+      enabled: true
+      userId: 1
+      tags:
+        - tag:ci
+      secretName: ci-authkey
+  approvers:
+    - name: ci
+      enabled: true
+      routes:
+        - cidr: 10.0.0.0/8
+          tags:
+            - tag:ci
+      exitNodeTags:
+        - tag:ci

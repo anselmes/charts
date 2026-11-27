@@ -1,0 +1,24 @@
+---
+# Enables every optional component so CI renders all templates.
+resources:
+  rabbitmq:
+    enabled: true
+event:
+  enabled: true
+  config:
+    enabled: true
+  sources:
+    enabled: true
+  backstage:
+    enabled: true
+server:
+  enabled: true
+  security:
+    enabled: true
+  certmanager:
+    enabled: true
+  network:
+    gatewayAPI:
+      enabled: true
+  ingress:
+    type: gateway-api

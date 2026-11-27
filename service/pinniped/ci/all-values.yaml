@@ -1,0 +1,18 @@
+---
+# Enables optional components so CI renders their templates.
+domain:
+  enabled: true
+  issuer:
+    url: https://pinniped.example.com/ci
+    cert:
+      name: ci-tls
+  providers:
+    - name: vault
+      displayName: Vault
+idp:
+  enabled: true
+  issuer:
+    ca: Y2E=
+    secret:
+      clientID: ci-client
+      clientSecret: ci-secret

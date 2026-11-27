@@ -1,0 +1,14 @@
+---
+# Enables optional components so CI renders their templates.
+cilium:
+  bgp:
+    enabled: true
+    nodeSelector:
+      matchLabels:
+        bgp: enabled
+  l2:
+    enabled: true
+    interfaces:
+      - eth0
+  pool:
+    enabled: true

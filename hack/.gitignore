@@ -4,6 +4,7 @@
 # Except these files
 !.gitignore
 
+!ci/**
 !mke-demo-app/**
 !samples/**
 !apparmor.profile
@@ -12,3 +13,4 @@
 # ...even if they are in subdirectories
 !*/
 *.tgz
+__pycache__/
