@@ -39,7 +39,7 @@ spec:
                   {{- include "cni.labels" $ | nindent 18 }}
               spec:
                 {{- if .Values.cilium.bgp.nodeSelector }}
-                nodeSelector: {{ .Values.cilium.bgp.nodeSelector | toYaml | nindent 12 }}
+                nodeSelector: {{ .Values.cilium.bgp.nodeSelector | toYaml | nindent 18 }}
                 {{- end }}
                 bgpInstances: {{- range .Values.cilium.bgp.instances }}
                   - name: {{ .name }}
