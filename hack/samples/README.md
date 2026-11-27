@@ -15,8 +15,10 @@ kubectl apply -f hack/samples/flux.yaml
 # namespaces
 kubectl create namespace cert-manager
 kubectl create namespace cicd
+kubectl create namespace cloudflare-system
 kubectl create namespace iam
 kubectl create namespace minio
+kubectl create namespace netbird-system
 kubectl create namespace operators
 kubectl create namespace ucp
 ```
@@ -27,6 +29,7 @@ kubectl create namespace ucp
 kubectl apply -f hack/samples/core/envoy.yaml
 kubectl apply -f hack/samples/core/eso.yaml
 kubectl apply -f hack/samples/core/certmanager.yaml
+kubectl apply -f hack/samples/core/trust.yaml
 kubectl apply -f hack/samples/core/operator.yaml
 
 envsubst < hack/samples/core/gateway.yaml | kubectl apply -f -
@@ -145,6 +148,11 @@ the claim, which again takes a one-time step in the realm's admin console:
 A user who belongs to none of these groups has no `policy` claim, and the Console reports a bare
 `Error from IDP` after the Keycloak sign-in. That is expected: add the user to a group.
 
+The mapper is not declarative: the `KeycloakOIDCClient` CRD has no field for protocol mappers or
+client scopes. Whenever the `minio` client is recreated, for example by renaming or reinstalling
+its `minio-oidc-client` release, the mapper is lost and the Console shows the same bare
+`Error from IDP` again. Re-add the mapper (step 1) and check the token under Evaluate (step 3).
+
 ## Infra Services
 
 Vault (OpenBao) auto-unseals with a NetHSM through PKCS#11 and initializes itself from the
@@ -219,10 +227,9 @@ kubectl apply -f hack/samples/demo.yaml
 MinIO runs with KES as its key manager, using Vault (OpenBao) as the KES keystore, and signs users
 in through Keycloak. Before applying the file:
 
-1. Apply `ucp/vault.yaml`. It also creates the `external-secrets-store-ucp` store and the
-   read-only `vault-ca-reader` RBAC that let ESO sync the Vault CA into the `minio` namespace. It
-   also creates the `external-secrets-store-kube-system` store that syncs the default gateway CA,
-   which MinIO needs to trust Keycloak for its OIDC login.
+1. Apply `ucp/vault.yaml`. The `ca-issuer` Secret, which MinIO needs to trust Keycloak
+   for its OIDC login and KES needs to trust Vault, comes from the trust-manager Bundle in
+   `core/trust.yaml`.
 2. Put the AIStor license in Vault at `secret/minio`, property `license`.
 3. Apply `harbor/keycloak.yaml`, which the `minio-keycloak-client` release depends on. It creates
    the `external-secrets-store-iam` store that syncs the `minio-oidc-client` secret into the `minio`
@@ -231,10 +238,7 @@ in through Keycloak. Before applying the file:
    operator-created `minio-sa` service account:
 
 ```shell
-bao policy write minio-kes - <<'EOF'
-path "secret/data/kes/minio/*"     { capabilities = ["create", "read", "update", "delete"] }
-path "secret/metadata/kes/minio/*" { capabilities = ["list", "read", "delete"] }
-EOF
+bao policy write minio-kes hack/samples/minio-kes.hcl
 
 bao write auth/kubernetes/role/minio-kes \
   bound_service_account_names=minio-sa \
@@ -273,7 +277,8 @@ kubectl -n iam get keycloakoidcclient minio
 ```
 
 `minio-pool-0-0` and `minio-kes` should be `2/2 Running`, and the `minio-env-configuration`,
-`vault-ca`, `default-gateway-ca` and `minio-oidc-client` ExternalSecrets should be `SecretSynced`.
+`minio-oidc-client` ExternalSecret should be `SecretSynced`, and the `ca-issuer` Secret
+should exist in `minio`.
 The operator reads the AIStor license from its own namespace, so `minio-license` is in `operators`
 and must be `SecretSynced` there. Without it the operator logs `error checking license` and never
 reconciles the ObjectStore. The `minio` client should report no errors.
@@ -287,8 +292,8 @@ Keycloak sign-in.
 ```shell
 kubectl apply -f hack/samples/optional/gatekeeper.yaml
 
-kubectl apply -f hack/samples/optional/cloudflare.yaml
-kubectl apply -f hack/samples/optional/netbird.yaml
+envsubst < hack/samples/optional/cloudflare.yaml | kubectl apply -f -
+envsubst < hack/samples/optional/netbird.yaml | kubectl apply -f -
 ````
 
 ```sh
