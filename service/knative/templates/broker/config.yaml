@@ -36,7 +36,7 @@ spec:
               metadata:
                 name: {{ .config.name }}
                 labels:
-                  {{- include "knative.labels" $ | nindent 12 }}
+                  {{- include "knative.labels" $ | nindent 18 }}
               spec:
                 queueType: {{ .config.queueType }}
                 {{- if $vhost }}
