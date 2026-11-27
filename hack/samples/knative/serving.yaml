@@ -1,0 +1,78 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: knative-serving
+  namespace: knative-operator
+spec:
+  interval: 10m0s
+  releaseName: knative
+  timeout: 15m0s
+  chart:
+    spec:
+      interval: 5m
+      chart: knative
+      version: 1.22.3
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    version: v1.20.0
+    operator:
+      enabled: true
+    server:
+      enabled: true
+      domain: ${DOMAIN_NAME}
+      replicas: 1
+      security:
+        enabled: true
+        guard: false
+      ingress:
+        type: gateway-api
+      network:
+        gatewayAPI:
+          enabled: true
+          external:
+            class: envoy
+            name: kube-system/default
+            service: kube-system/envoy-gateway-default
+          internal:
+            class: envoy
+            name: kube-system/knative
+            service: kube-system/envoy-gateway-knative
+      certmanager:
+        enabled: true
+        issuerRef:
+          clusterIssuer:
+            name: ca-issuer-self-signed
+          localIssuer:
+            name: ca-issuer
+      workloads:
+        - name: activator
+          replicas: 1
+          resources:
+            - container: activator
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: "1"
+                memory: 512Mi
+        - name: controller
+          replicas: 1
+          resources:
+            - container: controller
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: "1"
+                memory: 512Mi

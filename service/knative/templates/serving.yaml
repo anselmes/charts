@@ -22,7 +22,7 @@ spec:
             - /bin/bash
             - -c
             - |
-              set -e
+              set -Eeuo pipefail
 
               cat > /tmp/serving.yaml <<'EOF'
               apiVersion: operator.knative.dev/v1beta1
@@ -82,7 +82,7 @@ spec:
                   {{- end }}
                   network:
                     {{- if eq .Values.server.ingress.type "kourier" }}
-                    ingress-class: kourier.ingress.networking.server.dev
+                    ingress-class: kourier.ingress.networking.knative.dev
                     {{- end }}
                     {{- if eq .Values.server.ingress.type "gateway-api" }}
                     ingress-class: gateway-api.ingress.networking.knative.dev
@@ -94,6 +94,10 @@ spec:
                     {{- end }}
                   deployment:
                     registriesSkippingTagResolving: kind.local,ko.local,dev.local,knative.registry.svc.cluster.local
+                {{- with .Values.server.workloads }}
+                workloads:
+                  {{- toYaml . | nindent 18 }}
+                {{- end }}
                 {{- if .Values.server.network.gatewayAPI.enabled }}
                 additionalManifests:
                   - URL: https://raw.githubusercontent.com/knative-extensions/net-gateway-api/refs/tags/knative-{{ .Values.server.network.gatewayAPI.version | default .Values.version }}/config/200-clusterrole.yaml
@@ -107,13 +111,19 @@ spec:
               EOF
 
               echo "Waiting for KnativeServing CRD to become available..."
+              attempts=0
               until kubectl get crd knativeservings.operator.knative.dev >/dev/null 2>&1; do
-                echo "Waiting for knativeservings.operator.knative.dev CRD..."
+                attempts=$((attempts + 1))
+                if [[ "${attempts}" -ge 60 ]]; then
+                  echo "Timed out waiting for knativeservings.operator.knative.dev CRD" >&2
+                  exit 1
+                fi
+                echo "Waiting for knativeservings.operator.knative.dev CRD (${attempts}/60)..."
                 sleep 5
               done
 
               echo "Applying KnativeServing configuration..."
-              kubectl apply -f /tmp/serving.yaml || exit 1
+              kubectl apply -f /tmp/serving.yaml
 
               echo "KnativeServing resource created successfully"
 {{- end }}

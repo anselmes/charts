@@ -99,6 +99,9 @@ server:
         type: NodePort  # Options include "ClusterIP", "NodePort", or "LoadBalancer".
   ingress:
     type: kourier           # Options include "gateway-api" or "kourier".
+  # Per-deployment overrides passed to KnativeServing `spec.workloads`
+  # (for example replicas, resources, env, or labels for `activator`, `controller`, ...).
+  workloads: []
   # Configuration for Cert-Manager integration.
   certmanager:
     enabled: false
