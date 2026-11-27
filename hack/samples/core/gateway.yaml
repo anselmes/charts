@@ -94,5 +94,5 @@ spec:
           tls:
             mode: Terminate
             certificateRefs:
-              - name: http-gw-cert
+              - name: default-gw-cert
                 issuer: ca-issuer
