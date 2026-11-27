@@ -8,8 +8,9 @@ For each chart this runs ``helm lint`` and ``helm template`` with each
 has none (the chart-testing convention), then again with the values of every
 HelmRelease under ``hack/samples`` that installs the chart (its
 ``.spec.values``). Flux ``${VAR}`` substitutions in the samples are filled from
-``hack/samples/example.env``; variables it leaves empty or unset become empty
-strings, as Flux does.
+``hack/samples/example.env``, with placeholders from ``hack/ci/samples.env`` for
+variables it leaves empty; anything still unset becomes an empty string, as
+Flux does.
 
 Shell scripts embedded in the chart's own rendered workloads
 (``command: [bash, -c, <script>]``) are checked with ``shellcheck``, and
@@ -43,6 +44,7 @@ from pathlib import Path, PurePosixPath
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SAMPLES_DIR = REPO_ROOT / "hack" / "samples"
 SAMPLES_ENV = SAMPLES_DIR / "example.env"
+CI_ENV = Path(__file__).resolve().parent / "samples.env"
 SUBSTITUTION = re.compile(r"(?<!\$)\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
 EXCLUDED_DIRS = frozenset({".git", "upstream", "charts"})
 SHELLS = {"sh": "sh", "ash": "sh", "bash": "bash", "dash": "dash", "ksh": "ksh"}
@@ -171,6 +173,15 @@ def parse_env(text: str) -> dict[str, str]:
         name, value = line.split("=", 1)
         env[name.strip()] = value.strip().strip("'\"")
     return env
+
+
+def merge_env(base: dict[str, str], fallback: dict[str, str]) -> dict[str, str]:
+    """Fill variables that are empty or missing in ``base`` from ``fallback``."""
+    merged = dict(base)
+    for name, value in fallback.items():
+        if not merged.get(name):
+            merged[name] = value
+    return merged
 
 
 def substitute(text: str, env: dict[str, str]) -> str:
@@ -429,7 +440,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         if missing := wanted - {c.path.resolve() for c in charts}:
             parser.error(f"not a chart: {', '.join(map(str, sorted(missing)))}")
 
-    env = parse_env(SAMPLES_ENV.read_text()) if SAMPLES_ENV.exists() else {}
+    env = merge_env(
+        parse_env(SAMPLES_ENV.read_text()) if SAMPLES_ENV.exists() else {},
+        parse_env(CI_ENV.read_text()) if CI_ENV.exists() else {},
+    )
     samples = discover_samples(SAMPLES_DIR, env)
     report = Report()
     if not args.offline:

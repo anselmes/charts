@@ -63,6 +63,12 @@ class SubstitutionTests(unittest.TestCase):
         text = "# comment\nexport A=one\nB='two'\nexport EMPTY=\n\nnot a pair\n"
         self.assertEqual(cc.parse_env(text), {"A": "one", "B": "two", "EMPTY": ""})
 
+    def test_merge_env_fills_only_empty(self) -> None:
+        self.assertEqual(
+            cc.merge_env({"A": "real", "B": ""}, {"A": "ci", "B": "ci", "C": "ci"}),
+            {"A": "real", "B": "ci", "C": "ci"},
+        )
+
     def test_substitute_like_flux(self) -> None:
         env = {"DOMAIN": "svc.local", "EMPTY": ""}
         self.assertEqual(
