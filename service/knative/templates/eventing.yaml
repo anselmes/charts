@@ -22,7 +22,7 @@ spec:
             - /bin/bash
             - -c
             - |
-              set -e
+              set -Eeuo pipefail
 
               cat > /tmp/eventing.yaml <<'EOF'
               apiVersion: operator.knative.dev/v1beta1
@@ -79,7 +79,7 @@ spec:
               done
 
               echo "Applying KnativeEventing configuration..."
-              kubectl apply -f /tmp/eventing.yaml || exit 1
+              kubectl apply -f /tmp/eventing.yaml
 
               echo "KnativeEventing resource created successfully"
 {{- end }}
