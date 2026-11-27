@@ -1,0 +1,291 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cloudflare-credentials
+  namespace: cloudflare-system
+spec:
+  interval: 10m0s
+  releaseName: cloudflare-credentials
+  timeout: 15m0s
+  dependsOn:
+    - name: external-secrets-store-vault
+      namespace: ucp
+  chart:
+    spec:
+      interval: 5m
+      chart: eso
+      version: 2.15.0
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    externalSecrets:
+      - kind: ExternalSecret
+        name: cloudflare-secret-api
+        namespace: cert-manager
+        externalSecretSpec:
+          secretStoreRef:
+            name: external-secrets-store-vault
+            kind: ClusterSecretStore
+          data:
+            - secretKey: token
+              remoteRef:
+                key: cloudflare/api
+                property: token
+      - kind: ExternalSecret
+        name: cloudflare-secret-api
+        externalSecretSpec:
+          secretStoreRef:
+            name: external-secrets-store-vault
+            kind: ClusterSecretStore
+          data:
+            - secretKey: token
+              remoteRef:
+                key: cloudflare/api
+                property: token
+      - kind: ExternalSecret
+        name: cloudflare-secret-tunnel
+        externalSecretSpec:
+          secretStoreRef:
+            name: external-secrets-store-vault
+            kind: ClusterSecretStore
+          data:
+            - secretKey: token
+              remoteRef:
+                key: cloudflare/tunnel
+                property: token
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: ca-issuer-cloudflare
+  namespace: cloudflare-system
+spec:
+  interval: 10m0s
+  releaseName: ca-issuer-cloudflare
+  timeout: 15m0s
+  dependsOn:
+    - name: cert-manager
+      namespace: cert-manager
+  chart:
+    spec:
+      interval: 5m
+      chart: ca
+      version: 1.3.0
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    issuers:
+      - name: ca-issuer-cloudflare
+        clustered: false
+        type: acme
+        secret:
+          create: false
+        acme:
+          email: "ca@${PUBLIC_DOMAIN_NAME}"
+          server: https://acme-v02.api.letsencrypt.org/directory
+          zones:
+            - ${PUBLIC_DOMAIN_NAME}
+            - "*.${PUBLIC_DOMAIN_NAME}"
+          provider:
+            type: cloudflare
+            apiTokenSecretRef:
+              name: cloudflare-secret-api
+              key: token
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cloudflare
+  namespace: cloudflare-system
+spec:
+  interval: 10m0s
+  releaseName: cloudflare
+  timeout: 15m0s
+  dependsOn:
+    - name: ca-issuer-cloudflare
+    - name: cloudflare-credentials
+  chart:
+    spec:
+      interval: 5m
+      chart: gwapi
+      version: 1.0.10
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    envoy:
+      enabled: false
+    cloudflare:
+      enabled: true
+      gatewayClassConfig:
+        create: true
+        accountId: ${CLOUDFLARE_ACCOUNT_ID}
+        tunnelID: ${CLOUDFLARE_TUNNEL_ID}
+        cloudflareCredentialsSecretRef:
+          name: cloudflare-secret-api
+          key: token
+      resources: {}
+      proxy:
+        tunnelTokenSecretRef:
+          name: cloudflare-secret-tunnel
+          key: token
+        resources: {}
+        # Cilium drops kubelet probes to the proxy's config API (8081) under the chart's
+        # NetworkPolicy and CIDR ipBlocks cannot admit them, so the proxies never become Ready.
+        # Dev only: this removes the lock on the config API.
+        networkPolicy:
+          enabled: false
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: external-dns-cloudflare
+  namespace: cloudflare-system
+spec:
+  interval: 10m0s
+  releaseName: external-dns-cloudflare
+  timeout: 15m0s
+  dependsOn:
+    - name: cloudflare-credentials
+  chart:
+    spec:
+      interval: 5m
+      chart: edns
+      version: 1.24.0
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    endpoints: []
+    externaldns:
+      enabled: true
+      policy: sync
+      sources:
+        - gateway-grpcroute
+        - gateway-httproute
+      domainFilters:
+        - ${PUBLIC_DOMAIN_NAME}
+        - "*.${PUBLIC_DOMAIN_NAME}"
+      env:
+        - name: CF_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: cloudflare-secret-api
+              key: token
+      provider:
+        name: cloudflare
+      extraArgs:
+        - --cloudflare-proxied
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: gateway-cloudflare
+  namespace: cloudflare-system
+spec:
+  interval: 10m0s
+  releaseName: gateway
+  timeout: 15m0s
+  dependsOn:
+    - name: ca-issuer-cloudflare
+    - name: cloudflare
+  chart:
+    spec:
+      interval: 5m
+      chart: gateway
+      version: 1.2.3
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    gateways:
+      - name: public-gateway
+        className: cloudflare
+        allowedListeners:
+          namespaces:
+            from: Same
+        listeners:
+          - name: http
+            port: 80
+            protocol: HTTP
+            allowedRoutes:
+              namespaces:
+                from: All
+              kinds:
+                - kind: HTTPRoute
+    # Port 80 lives on the Gateway itself, while the app routes attach to the ListenerSet, so
+    # nothing else answers plain HTTP. Redirect every HTTP request to HTTPS.
+    routes:
+      - name: https-redirect
+        kind: HTTPRoute
+        rules:
+          - filters:
+              - type: RequestRedirect
+                requestRedirect:
+                  scheme: https
+                  statusCode: 301
+        listeners:
+          - name: public-gateway
+            sectionName: http
+    listenerSet:
+      gatewayRef:
+        name: public-gateway
+      listeners:
+        - name: https
+          port: 443
+          protocol: HTTPS
+          hostname: "*.${PUBLIC_DOMAIN_NAME}"
+          allowedRoutes:
+            namespaces:
+              from: All
+            kinds:
+              - kind: GRPCRoute
+              - kind: HTTPRoute
+          tls:
+            mode: Terminate
+            certificateRefs:
+              - name: public-gw-cert
+                issuer: ca-issuer

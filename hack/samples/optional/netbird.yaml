@@ -1,0 +1,146 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: netbird-operator
+  namespace: operators
+spec:
+  interval: 10m0s
+  releaseName: netbird
+  timeout: 15m0s
+  dependsOn:
+    - name: external-secrets-store-vault
+      namespace: ucp
+  chart:
+    spec:
+      interval: 5m
+      chart: netbird
+      version: 0.9.0
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    operator:
+      enabled: true
+      operator:
+        resources: {}
+      netbirdAPI:
+        keyFromSecret:
+          name: netbird-secret-api
+          key: token
+      gatewayAPI:
+        enabled: false
+    secret:
+      enabled: true
+      externalSecrets:
+        - kind: ExternalSecret
+          name: netbird-secret-api
+          hook: pre-install,pre-upgrade
+          externalSecretSpec:
+            secretStoreRef:
+              name: external-secrets-store-vault
+              kind: ClusterSecretStore
+            data:
+              - secretKey: token
+                remoteRef:
+                  key: netbird/api
+                  property: token
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: netbird-cluster-proxy
+  namespace: netbird-system
+spec:
+  interval: 10m0s
+  releaseName: netbird-cluster-proxy
+  timeout: 15m0s
+  dependsOn:
+    - name: netbird-operator
+      namespace: operators
+  chart:
+    spec:
+      interval: 5m
+      chart: netbird
+      version: 0.9.0
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    cluster:
+      enabled: true
+      name: mockingbird
+      group:
+        create: false
+        name: kubernetes
+      rbac:
+        admins:
+          groups:
+            - device
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: netbird-routing-peer
+  namespace: netbird-system
+spec:
+  interval: 10m0s
+  releaseName: netbird-routing-peer
+  timeout: 15m0s
+  dependsOn:
+    - name: netbird-operator
+      namespace: operators
+  chart:
+    spec:
+      interval: 5m
+      chart: netbird
+      version: 0.9.0
+      sourceRef:
+        kind: HelmRepository
+        name: labsonline-catalog
+        namespace: sre
+  install:
+    crds: CreateReplace
+    remediation:
+      remediateLastFailure: true
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+  values:
+    peer:
+      enabled: true
+      hostname: netbird-k8s-router-mockingbird
+      secret:
+        create: false
+        name: netbird-secret-setup
+    secret:
+      enabled: true
+      externalSecrets:
+        - kind: ExternalSecret
+          name: netbird-secret-setup
+          hook: pre-install,pre-upgrade
+          externalSecretSpec:
+            secretStoreRef:
+              name: external-secrets-store-vault
+              kind: ClusterSecretStore
+            data:
+              - secretKey: NB_SETUP_KEY
+                remoteRef:
+                  key: netbird/setup/mockingbird
+                  property: key

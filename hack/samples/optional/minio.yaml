@@ -11,6 +11,8 @@ spec:
   dependsOn:
     - name: keycloak
       namespace: iam
+    - name: external-secrets-generator
+      namespace: ucp
   chart:
     spec:
       interval: 5m
@@ -129,6 +131,8 @@ spec:
   dependsOn:
     - name: external-secrets-generator
       namespace: sre
+    - name: external-secrets-store-vault
+      namespace: ucp
     - name: gateway
       namespace: kube-system
     - name: minio-oidc-client
