@@ -476,7 +476,7 @@ secret:
   externalSecrets:
     - kind: ExternalSecret
       name: minio-env-configuration
-      hook: pre-install
+      hook: pre-install,pre-upgrade
       externalSecretSpec:
         refreshPolicy: CreatedOnce
         target:
@@ -493,19 +493,19 @@ secret:
                 apiVersion: generators.external-secrets.io/v1alpha1
                 kind: Password
                 name: aistor-password-generator
-    - kind: ExternalSecret
-      name: minio-license
-      hook: pre-install
-      externalSecretSpec:
-        secretStoreRef:
-          name: vault
-          kind: ClusterSecretStore
-        data:
-          # checkov:skip=CKV_SECRET_6
-          - secretKey: minio.license
-            remoteRef:
-              key: minio
-              property: license
+    # - kind: ExternalSecret
+    #   name: minio-license
+    #   hook: pre-install,pre-upgrade
+    #   externalSecretSpec:
+    #     secretStoreRef:
+    #       name: vault
+    #       kind: ClusterSecretStore
+    #     data:
+    #       # checkov:skip=CKV_SECRET_6
+    #       - secretKey: minio.license
+    #         remoteRef:
+    #           key: minio
+    #           property: license
 
   secretStores:
     - kind: ClusterSecretStore
