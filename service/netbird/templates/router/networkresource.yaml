@@ -1,0 +1,24 @@
+{{- if .Values.router.enabled }}
+{{- range .Values.router.resources }}
+---
+apiVersion: netbird.io/v1alpha1
+kind: NetworkResource
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "netbird.labels" $ | nindent 4 }}
+    app: netbird-router
+spec:
+  networkRouterRef:
+    name: {{ (.routerRef | default dict).name | default $.Values.router.name }}
+    namespace: {{ (.routerRef | default dict).namespace | default $.Release.Namespace }}
+  serviceRef:
+    name: {{ (.service | default dict).name | default .name }}
+  {{- /* Per-resource groups win; otherwise use the router-wide groups. */}}
+  {{- with .groups | default $.Values.router.groups }}
+  groups:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}

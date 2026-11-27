@@ -3,10 +3,15 @@ apiVersion: v2
 type: application
 name: netbird
 description: A Helm chart that deploys netbird-operator and its dependencies.
-version: 0.8.0
+version: 0.9.0
 dependencies:
   - alias: operator
     name: netbird-operator
     repository: oci://ghcr.io/netbirdio/helm-charts
-    version: 0.8.0
+    version: 0.9.0
     condition: operator.enabled
+  - alias: secret
+    name: eso
+    repository: oci://ghcr.io/labsonline/charts
+    version: 2.15.0
+    condition: secret.enabled

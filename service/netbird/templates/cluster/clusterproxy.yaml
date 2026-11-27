@@ -1,0 +1,23 @@
+{{- if .Values.cluster.enabled }}
+---
+apiVersion: netbird.io/v1alpha1
+kind: ClusterProxy
+metadata:
+  name: {{ .Values.cluster.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "netbird.labels" $ | nindent 4 }}
+    app: netbird-cluster-proxy
+spec:
+  clusterName: {{ .Values.cluster.name }}
+  groups:
+    {{- if .Values.cluster.group.create }}
+    - localRef:
+        name: {{ include "netbird.name" . }}-cluster-proxy
+    {{- else if .Values.cluster.group.id }}
+    - id: {{ .Values.cluster.group.id | quote }}
+    {{- else }}
+    - name: {{ .Values.cluster.group.name | default (printf "kubernetes-%s" .Values.cluster.name) | quote }}
+    {{- end }}
+  serviceAccountName: {{ include "netbird.name" . }}-cluster-proxy
+{{- end }}

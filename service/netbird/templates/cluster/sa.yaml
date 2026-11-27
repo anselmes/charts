@@ -1,0 +1,11 @@
+{{- if .Values.cluster.enabled }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "netbird.name" . }}-cluster-proxy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "netbird.labels" $ | nindent 4 }}
+    app: netbird-cluster-proxy
+{{- end }}

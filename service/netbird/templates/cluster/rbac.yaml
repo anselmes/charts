@@ -1,0 +1,107 @@
+{{- if .Values.cluster.enabled }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "netbird.name" . }}-cluster-proxy
+  labels:
+    {{- include "netbird.labels" $ | nindent 4 }}
+    app: netbird-cluster-proxy
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - users
+      - groups
+    verbs:
+      - impersonate
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - userextras/*
+      - uids
+    verbs:
+      - impersonate
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "netbird.name" . }}-cluster-proxy
+  labels:
+    {{- include "netbird.labels" $ | nindent 4 }}
+    app: netbird-cluster-proxy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "netbird.name" . }}-cluster-proxy
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "netbird.name" . }}-cluster-proxy
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: netbird-cluster-reader
+  labels:
+    {{- include "netbird.labels" $ | nindent 4 }}
+    app: netbird-cluster-proxy
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+{{- with .Values.cluster.rbac.readers }}
+{{- if or .groups .users }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: netbird-cluster-reader
+  labels:
+    {{- include "netbird.labels" $ | nindent 4 }}
+    app: netbird-cluster-proxy
+subjects:
+  {{- range .groups }}
+  - kind: Group
+    name: {{ . | quote }}
+    apiGroup: rbac.authorization.k8s.io
+  {{- end }}
+  {{- range .users }}
+  - kind: User
+    name: {{ . | quote }}
+    apiGroup: rbac.authorization.k8s.io
+  {{- end }}
+roleRef:
+  kind: ClusterRole
+  name: netbird-cluster-reader
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}
+{{- end }}
+{{- with .Values.cluster.rbac.admins }}
+{{- if or .groups .users }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: netbird-cluster-admin
+  labels:
+    {{- include "netbird.labels" $ | nindent 4 }}
+    app: netbird-cluster-proxy
+subjects:
+  {{- range .groups }}
+  - kind: Group
+    name: {{ . | quote }}
+    apiGroup: rbac.authorization.k8s.io
+  {{- end }}
+  {{- range .users }}
+  - kind: User
+    name: {{ . | quote }}
+    apiGroup: rbac.authorization.k8s.io
+  {{- end }}
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}
+{{- end }}
+{{- end }}

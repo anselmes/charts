@@ -1,0 +1,14 @@
+{{- if .Values.router.enabled }}
+---
+apiVersion: netbird.io/v1alpha1
+kind: NetworkRouter
+metadata:
+  name: {{ .Values.router.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "netbird.labels" $ | nindent 4 }}
+    app: netbird-router
+spec:
+  dnsZoneRef:
+    name: {{ .Values.router.domain }}
+{{- end }}

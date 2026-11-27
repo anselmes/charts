@@ -1,0 +1,13 @@
+{{- if and .Values.cluster.enabled .Values.cluster.group.create }}
+---
+apiVersion: netbird.io/v1alpha1
+kind: Group
+metadata:
+  name: {{ include "netbird.name" . }}-cluster-proxy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "netbird.labels" $ | nindent 4 }}
+    app: netbird-cluster-proxy
+spec:
+  name: {{ .Values.cluster.group.name | default (printf "kubernetes-%s" .Values.cluster.name) | quote }}
+{{- end }}

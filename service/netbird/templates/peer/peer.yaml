@@ -47,7 +47,7 @@ spec:
             - name: NB_SETUP_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "netbird.name" . }}-setup-key
+                  name: {{ .Values.peer.secret.name }}
                   key: NB_SETUP_KEY
             - name: NB_HOSTNAME
               value: {{ .Values.peer.hostname }}

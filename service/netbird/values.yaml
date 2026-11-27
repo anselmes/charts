@@ -195,6 +195,51 @@ proxy:
   tolerations: []
   affinity: {}
 
+# MARK: - Cluster Proxy
+
+cluster:
+  enabled: false
+  name: prod
+
+  # NetBird group the proxy peers join.
+  group:
+    # Create the group with a `Group` resource. Set to false to reuse a group that already exists in NetBird.
+    create: true
+    # Group name. Defaults to "kubernetes-<cluster name>".
+    # With create: false this must match the existing group's name.
+    name: ""
+    # ID of an existing group. Only used with create: false and takes precedence over name.
+    id: ""
+
+  # Kubernetes access for NetBird identities. The proxy impersonates the caller's NetBird
+  # user and groups, so these names are NetBird group names and user IDs (e.g. "github|123").
+  rbac:
+    # Bound to the read-only `netbird-cluster-reader` ClusterRole (get, list, watch on everything).
+    readers:
+      groups:
+        - kubernetes-read
+      users: []
+    # Bound to the built-in `cluster-admin` ClusterRole. Grant sparingly.
+    admins:
+      groups: []
+      users: []
+
+# MARK: - Router
+
+router:
+  enabled: false
+  domain: prod.company.internal
+  name: prod
+  resources:
+    - name: nginx
+      # service:
+      #   name: nginx
+      # routerRef:
+      #   name: prod
+      #   namespace: default
+  groups: []
+    # - name: All
+
 # MARK: - Operator
 
 operator:
@@ -267,4 +312,24 @@ operator:
       key: NB_API_KEY
 
   gatewayAPI:
-    enabled: true
+    enabled: false
+
+# MARK: - External Secret
+
+secret:
+  enabled: false
+
+  externalSecrets:
+    - kind: ExternalSecret
+      name: netbird-mgmt-api-key
+      hook: pre-install,pre-upgrade
+      externalSecretSpec:
+        secretStoreRef:
+          name: vault
+          kind: ClusterSecretStore
+        data:
+          # checkov:skip=CKV_SECRET_6
+          - secretKey: NB_API_KEY
+            remoteRef:
+              key: netbird
+              property: key
