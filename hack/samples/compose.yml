@@ -1,11 +1,106 @@
+# Local HSM scenarios for the vault seal, selected with compose profiles.
+#
+#   softhsm      Cosmian KMS + SoftHSM2 (default scenario; arm64 and amd64)
+#   nethsm       Cosmian KMS + a NetHSM test instance (amd64 only; the NetHSM image
+#                failed on arm64 for now)
+#   nethsm-only  the NetHSM test instance alone, for running Cosmian KMS in Kubernetes
+#                against a NetHSM over the network
+#
+# Pick one; the Cosmian profiles publish the same ports. `softhsm` is the default and is
+# set in hack/samples/example.env as COMPOSE_PROFILES:
+#
+#   docker compose -f hack/samples/compose.yml --profile softhsm up -d --build
+#
+# Cosmian listens for KMIP on 5696 (mutual TLS) and HTTPS on 9998. A development PKI is
+# generated into the `pki` volume on first start; its client certificate is the KMS's HSM
+# admin, so it is for development only:
+#
+#   docker compose -f hack/samples/compose.yml cp cosmian-softhsm:/pki ./pki
+
 services:
+  cosmian-softhsm:
+    profiles: [softhsm]
+    build:
+      context: ./ucp/cosmian
+      target: softhsm
+    image: cosmian-kms-softhsm:dev
+    ports:
+      - 5696:5696
+      - 9998:9998
+    volumes:
+      - softhsm-pki:/pki
+      - softhsm-state:/state
+      - softhsm-kms-db:/var/lib/cosmian-kms
+      - softhsm-tokens:/var/lib/softhsm/tokens
+    healthcheck:
+      # A real mutual-TLS handshake, so the KMS does not log a failed handshake on every check.
+      test:
+        - CMD-SHELL
+        - openssl s_client -connect 127.0.0.1:5696 -cert /pki/client.pem -key /pki/client.key -CAfile /pki/ca.pem -verify_return_error </dev/null >/dev/null 2>&1
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 60s
+
+  cosmian-nethsm:
+    profiles: [nethsm]
+    # UNTESTED: the NetHSM PKCS#11 library is downloaded from the release URL in
+    # ucp/cosmian/Dockerfile, and a key-encryption key is used only when COSMIAN_KEK names an
+    # RSA key that exists on the NetHSM (the provisioner creates `cosmian-kek`).
+    platform: linux/amd64
+    build:
+      context: ./ucp/cosmian
+      target: nethsm
+      platforms:
+        - linux/amd64
+    image: cosmian-kms-nethsm:dev
+    depends_on:
+      nethsm-provisioner:
+        condition: service_completed_successfully
+    environment:
+      NETHSM_OPERATOR_PASSPHRASE: OperatorOperator
+      COSMIAN_KEK: ${COSMIAN_KEK:-}
+      KEK_WRAP_ALG: ${KEK_WRAP_ALG:-}
+    configs:
+      - source: p11nethsm
+        target: /etc/nitrokey/p11nethsm.conf
+    ports:
+      - 5696:5696
+      - 9998:9998
+    volumes:
+      - nethsm-pki:/pki
+      - nethsm-state:/state
+      - nethsm-kms-db:/var/lib/cosmian-kms
+    healthcheck:
+      # A real mutual-TLS handshake, so the KMS does not log a failed handshake on every check.
+      test:
+        - CMD-SHELL
+        - openssl s_client -connect 127.0.0.1:5696 -cert /pki/client.pem -key /pki/client.key -CAfile /pki/ca.pem -verify_return_error </dev/null >/dev/null 2>&1
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 60s
+
   nethsm:
+    profiles: [nethsm, nethsm-only]
     image: nitrokey/nethsm:latest-sdk
     platform: linux/amd64
     ports:
       - 8443:8443
 
+  # Browse the NetHSM REST API (the test image ships no web UI). The spec is fetched by your
+  # browser from Nitrokey's demo host; in "Servers" pick or type https://localhost:8443/api/v1
+  # (accept the self-signed certificate at that address first). Try it out is untested.
+  nethsm-api-docs:
+    profiles: [nethsm, nethsm-only]
+    image: swaggerapi/swagger-ui:v5.32.1
+    environment:
+      SWAGGER_JSON_URL: https://nethsmdemo.nitrokey.com/api_docs/nethsm-api.yaml
+    ports:
+      - 8081:8080
+
   nethsm-provisioner:
+    profiles: [nethsm, nethsm-only]
     image: curlimages/curl:latest
     depends_on:
       - nethsm
@@ -19,7 +114,26 @@ services:
       NETHSM_URL: https://nethsm:8443
       NETHSM_AUTO_UNLOCK: true
 
+volumes:
+  softhsm-pki:
+  softhsm-state:
+  softhsm-kms-db:
+  softhsm-tokens:
+  nethsm-pki:
+  nethsm-state:
+  nethsm-kms-db:
+
 configs:
+  p11nethsm:
+    content: |
+      slots:
+        - label: NetHSM
+          description: NetHSM
+          operator:
+            username: operator
+          instances:
+            - url: https://nethsm:8443/api/v1
+              danger_insecure_cert: true
   provision:
     content: |
       #!/bin/sh
@@ -37,6 +151,8 @@ configs:
         curl -k -v "https://$${HOST}/api/v1/provision" -d '{"unlockPassphrase":"UnlockPassphrase","adminPassphrase":"AdminPassphrase","systemTime":"'$$(date -u "+%Y-%m-%dT%H:%M:%SZ")'"}'
         curl -k -v "https://admin:AdminPassphrase@$${HOST}/api/v1/users/operator" -X PUT -d '{"role":"Operator", "passphrase":"OperatorOperator","realName":"Operator"}' -H "Content-Type: application/json"
         curl -k -v "https://admin:AdminPassphrase@$${HOST}/api/v1/keys/generate" -d '{ "mechanisms": ["RSA_Decryption_OAEP_SHA256"], "type": "RSA", "length": 2048, "id": "bao-root-rsa", "label": "bao-root-rsa"}' -H "Content-Type: application/json"
+        # Key-encryption key for Cosmian KMS (the nethsm profile). Used only when COSMIAN_KEK is set.
+        curl -k -v "https://admin:AdminPassphrase@$${HOST}/api/v1/keys/generate" -d '{ "mechanisms": ["RSA_Decryption_OAEP_SHA256"], "type": "RSA", "length": 2048, "id": "cosmian-kek", "label": "cosmian-kek"}' -H "Content-Type: application/json"
       else
         echo "NetHSM already provisioned!"
         if [ "$${NETHSM_AUTO_UNLOCK}" = "true" ]; then

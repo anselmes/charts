@@ -427,6 +427,23 @@ spec:
               pin       = "${NETHSM_OPERATOR_PASSPHRASE}"
             }
 
+            # Alternative to the pkcs11 seal above: auto-unseal through Cosmian KMS over KMIP,
+            # whose stored keys are wrapped by an HSM key-encryption key. Use one seal only.
+            # The seal key is an ordinary AES-256 KMS key (not one inside the HSM), created
+            # and activated beforehand; kms_key_id is its UID. The client certificate, key and
+            # CA must be mounted (for example from a Secret) at the paths below, and the
+            # certificate's user needs rights on the key. OpenBao needs the KMS reachable at
+            # every start: it exits when the endpoint is down. See hack/samples/README.md.
+            #seal "kmip" {
+            #  endpoint    = "cosmian-kms.cosmian.svc:5696"
+            #  kms_key_id  = "<uid of the AES-256 seal key>"
+            #  client_cert = "/etc/ssl/certs/cosmian-client.crt"
+            #  client_key  = "/etc/ssl/private/cosmian-client.key"
+            #  ca_cert     = "/etc/ssl/certs/cosmian-ca.crt"
+            #  server_name = "cosmian-kms.cosmian.svc"
+            #  encrypt_alg = "AES_GCM"
+            #}
+
             # Example configuration for enabling Prometheus metrics in your config.
             #telemetry {
             #  prometheus_retention_time = "30s"

@@ -2,5 +2,7 @@
 *.env
 *.key
 *.license
+*.p12
+*.pfx
 
 !*example.env

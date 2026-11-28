@@ -175,7 +175,7 @@ the seal's `key_label` against that label, so a key with only an id is never fou
 set -a && source hack/samples/.env && set +a
 
 # optional: local NetHSM test instance (NETHSM_ADDRESS=<host-ip>:8443, operator/OperatorOperator)
-docker compose -f hack/samples/compose.yml up -d
+docker compose -f hack/samples/compose.yml --profile nethsm-only up -d
 
 kubectl -n ucp create configmap p11nethsm \
   -o=yaml \
@@ -188,6 +188,57 @@ envsubst < hack/samples/ucp/vault.yaml | kubectl apply -f -
 envsubst < hack/samples/ucp/netbox.yaml | kubectl apply -f -
 envsubst < hack/samples/ucp/maas.yaml | kubectl apply -f -
 ```
+
+### Local HSM scenarios (compose profiles)
+
+`hack/samples/compose.yml` runs the HSM side of the vault seal locally, selected by a profile.
+`COMPOSE_PROFILES` in `example.env` defaults to `softhsm`. Pick one profile at a time; the Cosmian
+profiles publish the same ports.
+
+| Profile       | Runs                                         | Platforms     | Status                         |
+| ------------- | -------------------------------------------- | ------------- | ------------------------------ |
+| `softhsm`     | Cosmian KMS with SoftHSM2 behind it          | arm64, amd64  | Same steps as the tested setup |
+| `nethsm`      | Cosmian KMS with a NetHSM test instance      | amd64 only    | Untested                       |
+| `nethsm-only` | The NetHSM test instance, no Cosmian         | amd64 only    | Existing service               |
+
+```shell
+docker compose -f hack/samples/compose.yml --profile softhsm up -d --build
+```
+
+Cosmian serves KMIP on 5696 (mutual TLS) and HTTPS on 9998, which also serves its web UI at `https://localhost:9998/ui` (login with a client certificate: copy `/pki/client.p12` out of the `softhsm-pki` volume, password `cosmian-dev`, import it into the browser and trust `/pki/ca.pem`). The `nethsm` profiles add a Swagger UI for the NetHSM REST API at `http://localhost:8081`. In the `softhsm` profile it initialises a
+SoftHSM2 token, creates an AES key-encryption key inside it, and starts with that key as its
+`key_encryption_key`, so every key it stores is wrapped at rest by the HSM. The seal key is then an
+ordinary KMS AES-256 key; OpenBao's `kmip` seal cannot use a key held inside the HSM (Cosmian rejects the
+AES-GCM IV for HSM keys, and RSA-OAEP fails on SoftHSM and on the missing public-key link). Create the
+seal key once the stack is up (the entrypoint does not create it, so the UI's Locate page lists only the
+`hsm::<slot>::master-kek` key until you do). The probe is in the image; it creates an AES-256 key,
+activates it and prints its UID:
+
+```
+docker compose -f hack/samples/compose.yml exec cosmian-softhsm \
+  env KMIP_HOST=127.0.0.1 KMIP_PORT=5696 \
+      KMIP_CLIENT_CERT=/pki/client.pem KMIP_CLIENT_KEY=/pki/client.key KMIP_CA_CERT=/pki/ca.pem \
+  /opt/venv/bin/python /opt/kmip_probe.py create
+```
+
+Set that UID as `kms_key_id` in the commented `kmip` seal of `ucp/vault.yaml`, with
+`encrypt_alg = "AES_GCM"`. The new key shows as `Active` in the UI, not `HSM`. The UI's Symmetric section
+can also create an AES-256 key; this has not been tried here.
+
+A development PKI is generated into the `softhsm-pki` volume on first start (`ca.pem`, `client.pem`,
+`client.key`; copy it out with `docker compose cp cosmian-softhsm:/pki .`). The client certificate has the
+user name `admin`, which is the KMS's HSM admin, so use it for development only.
+
+The `nethsm` profile builds the image for amd64, installs the NetHSM PKCS#11 library as the KMS's
+`other` HSM library, and reaches the NetHSM container over the compose network. Two parts are
+unconfirmed: the release asset name of the x86_64 library (in `ucp/cosmian/Dockerfile`) and whether
+Cosmian can use an RSA key on the NetHSM as its key-encryption key. NetHSM has no AES-GCM or AES key wrap,
+so the key would be the `cosmian-kek` RSA key that the provisioner creates; set `COSMIAN_KEK` to its
+Cosmian id to try it. Without `COSMIAN_KEK` the KMS starts without a key-encryption key.
+
+To run Cosmian in Kubernetes against a NetHSM over the network, use the `nethsm-only` profile for a
+test NetHSM, or point `NETHSM_ADDRESS` at a real one. The Cosmian side of that setup, from the
+Cosmian Helm chart and KMS provider docs, is not part of these samples yet.
 
 ## Shared Services
 
