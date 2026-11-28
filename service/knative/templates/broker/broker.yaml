@@ -32,7 +32,7 @@ spec:
               metadata:
                 name: {{ .name }}
                 labels:
-                  {{- include "knative.labels" $ | nindent 12 }}
+                  {{- include "knative.labels" $ | nindent 18 }}
                 annotations:
                   eventing.knative.dev/broker.class: RabbitMQBroker
               spec:
@@ -44,7 +44,7 @@ spec:
                 delivery:
                   deadLetterSink:
                     ref:
-                      {{- toYaml .ref | nindent 16 }}
+                      {{- toYaml .ref | nindent 22 }}
                 {{- end }}
               {{- end }}
               EOF

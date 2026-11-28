@@ -42,7 +42,7 @@ spec:
                 name: {{ include "pinniped.fullname" . }}-oidc-idp
                 namespace: {{ .Release.Namespace }}
                 labels:
-                  {{- include "pinniped.labels" . | nindent 14 }}
+                  {{- include "pinniped.labels" . | nindent 18 }}
               spec:
                 issuer: {{ .Values.idp.issuer.url }}
                 {{- if .Values.idp.issuer.ca }}

@@ -169,6 +169,7 @@ logs/
 !.editorconfig
 !.github/
 !.gitignore
+!.helmignore
 !.gitmodules
 !.shellcheckrc
 !.trunk/

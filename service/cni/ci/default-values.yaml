@@ -1,0 +1,4 @@
+---
+# k8sServiceHost: auto looks up kube-public/cluster-info, which needs a cluster.
+cilium:
+  k8sServiceHost: 10.0.0.1

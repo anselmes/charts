@@ -30,7 +30,7 @@ spec:
               metadata:
                 name: knative-eventing
                 labels:
-                  {{- include "knative.labels" . | nindent 12 }}
+                  {{- include "knative.labels" . | nindent 18 }}
               spec:
                 version: {{ .Values.version | quote }}
                 defaultBrokerClass: {{ .Values.event.defaultBrokerClass }}
@@ -38,11 +38,11 @@ spec:
                 config:
                   {{- with .Values.event.config.channel }}
                   default-ch-webhook:
-                    {{- . | toYaml | nindent 14 }}
+                    {{- . | toYaml | nindent 20 }}
                   {{- end }}
                   {{- with .Values.event.config.broker }}
                   config-br-default-channel:
-                    {{- . | toYaml | nindent 14 }}
+                    {{- . | toYaml | nindent 20 }}
                   {{- end }}
                 {{- end }}
                 {{- if .Values.event.sources.enabled }}
@@ -68,7 +68,7 @@ spec:
                 {{- end }}
                 {{- with .Values.event.deployments }}
                 deployments:
-                  {{- . | toYaml | nindent 12 }}
+                  {{- . | toYaml | nindent 18 }}
                 {{- end }}
               EOF
 

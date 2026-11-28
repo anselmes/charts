@@ -1,0 +1,7 @@
+---
+# Enables optional components so CI renders their templates.
+grafana:
+  enabled: true
+  admin:
+    create: true
+    password: ci-password

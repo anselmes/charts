@@ -1,0 +1,16 @@
+---
+# Enables optional components so CI renders their templates.
+cilium:
+  # auto looks up kube-public/cluster-info, which needs a cluster.
+  k8sServiceHost: 10.0.0.1
+  bgp:
+    enabled: true
+    nodeSelector:
+      matchLabels:
+        bgp: enabled
+  l2:
+    enabled: true
+    interfaces:
+      - eth0
+  pool:
+    enabled: true

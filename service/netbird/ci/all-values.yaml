@@ -1,0 +1,4 @@
+---
+# Enables optional components so CI renders their templates.
+client:
+  enabled: true

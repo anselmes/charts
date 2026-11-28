@@ -23,17 +23,14 @@ spec:
             - -c
             - |
               set -e
-              echo "Waiting for Knative operator CRDs to be available..."
-              for i in {1..60}; do
-                if kubectl get crd knativeservings.operator.knative.dev >/dev/null 2>&1; then
-                  echo "CRD found, creating KnativeServing"
-                  cat <<EOF | kubectl apply -f -
+
+              cat > /tmp/serving.yaml <<'EOF'
               apiVersion: operator.knative.dev/v1beta1
               kind: KnativeServing
               metadata:
                 name: knative-serving
                 labels:
-                  {{- include "knative.labels" . | nindent 14 }}
+                  {{- include "knative.labels" . | nindent 18 }}
               spec:
                 version: {{ .Values.version | quote }}
                 high-availability:

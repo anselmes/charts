@@ -40,7 +40,7 @@ spec:
               metadata:
                 name: {{ .Values.deployment.name }}
                 labels:
-                  {{- include "openstack.labels" . | nindent 14 }}
+                  {{- include "openstack.labels" . | nindent 18 }}
               spec:
                 openstack_version: {{ .Values.deployment.region.version }}
                 public_domain_name: {{ .Values.deployment.region.domain }}
@@ -54,38 +54,38 @@ spec:
                   identity:
                     keystone:
                       values:
-                        {{- toYaml . | nindent 20 }}
+                        {{- toYaml . | nindent 24 }}
                   {{- end }}
                   {{- with .Values.cinder.values }}
                   block-storage:
                     cinder:
                       values:
-                        {{- toYaml . | nindent 20 }}
+                        {{- toYaml . | nindent 24 }}
                   {{- end }}
                   {{- with .Values.nova.values }}
                   compute:
                     nova:
                       values:
-                        {{- toYaml . | nindent 20 }}
+                        {{- toYaml . | nindent 24 }}
                   {{- end }}
                   {{- if or .Values.neutron.values .Values.openvswitch.values }}
                   networking:
                     {{- with .Values.neutron.values }}
                     neutron:
                       values:
-                        {{- toYaml . | nindent 20 }}
+                        {{- toYaml . | nindent 24 }}
                     {{- end }}
                     {{- with .Values.openvswitch.values }}
                     openvswitch:
                       values:
-                        {{- toYaml . | nindent 20 }}
+                        {{- toYaml . | nindent 24 }}
                     {{- end }}
                   {{- end }}
                   {{- with .Values.heat.values }}
                   orchestration:
                     heat:
                       values:
-                        {{- toYaml . | nindent 20 }}
+                        {{- toYaml . | nindent 24 }}
                   {{- end }}
                 features:
                   keystone:
