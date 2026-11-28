@@ -1,9 +1,11 @@
+{{- if .Values.envoy.enabled }}
 {{- range .Values.envoy.proxies }}
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: create-envoy-proxy-{{ .name }}
+  namespace: {{ $.Release.Namespace }}
   labels:
     {{- include "gwapi.labels" $ | nindent 4 }}
   annotations:
@@ -11,23 +13,66 @@ metadata:
     helm.sh/hook-weight: "10"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
+  backoffLimit: 3
   template:
     spec:
       serviceAccountName: envoy-resource-creator
       restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: kubectl
           image: alpine/k8s:1.32.3
+          env:
+            - name: HOME
+              value: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           command:
             - /bin/bash
             - -c
             - |
-              set -e
-              echo "Waiting for envoy-proxy CRDs to be available..."
-              for i in {1..60}; do
-                if kubectl get crd envoyproxies.gateway.envoyproxy.io >/dev/null 2>&1; then
-                  echo "CRD found, creating EnvoyProxy"
-                  cat <<EOF | kubectl apply -f -
+              set -Eeuo pipefail
+              crd=envoyproxies.gateway.envoyproxy.io
+              deadline=$((SECONDS + 240))
+
+              retry() {
+                if (( SECONDS >= deadline )); then
+                  echo "Timed out: $1" >&2
+                  exit 1
+                fi
+                echo "$1, retrying in 5s"
+                sleep 5
+              }
+
+              # kubectl errors are left on stderr so a Forbidden or connection
+              # error shows in the Job log instead of looking like a missing CRD.
+              echo "Waiting for CRD ${crd}..."
+              until kubectl get crd "${crd}" -o name; do
+                retry "CRD ${crd} is not available"
+              done
+              until kubectl wait --for=condition=Established --timeout=30s "crd/${crd}"; do
+                retry "CRD ${crd} is not established"
+              done
+
+              cat > /tmp/envoyproxy.yaml <<'EOF'
               apiVersion: gateway.envoyproxy.io/v1alpha1
               kind: EnvoyProxy
               metadata:
@@ -52,13 +97,17 @@ spec:
                       {{- end }}
                 logging:
                   level:
-                    default: {{ .logging.level.default | default "info" }}
+                    default: {{ dig "logging" "level" "default" "info" . }}
               EOF
-                  exit 0
-                fi
-                echo "Attempt $i: envoy-proxy CRD not ready, waiting 10s..."
-                sleep 10
+
+              # The API server can briefly reject a new kind right after its CRD
+              # is established, so the apply is retried too.
+              until kubectl apply -f /tmp/envoyproxy.yaml; do
+                retry "Could not apply EnvoyProxy {{ .name | default "envoy-proxy" }}"
               done
-              echo "Timeout waiting for envoy-proxy CRD"
-              exit 1
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 16Mi
+{{- end }}
 {{- end }}
